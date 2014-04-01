@@ -1,0 +1,1 @@
+~/wsc/bin/checkK.sh > ~/wsc/log/wsc-latest.tsv

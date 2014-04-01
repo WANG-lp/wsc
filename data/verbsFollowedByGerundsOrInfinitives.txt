@@ -1,0 +1,234 @@
+; LIST OF CATENATIVE VERBS. THE SAME VERB MIGHT OCCURR MORE THAN TWO TIMES (NOT uniq-ED).
+; <- LINES STARTING FROM SEMI-COLON MEANS A COMMENT.
+
+; PORTED FROM: http://en.wiktionary.org/wiki/Appendix:English_catenative_verbs
+; Followed by a to-infinitive
+afford
+agree
+aim
+appear
+arrange
+ask
+attempt
+be able to
+beg
+care
+choose
+condescend
+consent
+dare
+decide
+deserve
+expect
+fail
+happen
+have
+help
+hesitate
+hope
+long
+move
+need
+offer
+plan
+prepare
+pretend
+proceed
+promise
+refuse
+seek
+seem
+strive
+struggle
+swear
+tend
+threaten
+undertake
+wait
+want
+wish
+would like
+
+; In the passive voice followed by a to-infinitive
+allowed
+forbid
+permit
+request
+require
+
+; Followed by a gerund
+admit
+advise
+allow
+appreciate
+avoid
+can't help
+complete
+consider
+delay
+deny
+detest
+dislike
+enjoy
+escape
+finish
+forbid
+imagine
+imply
+keep
+mind
+miss
+need
+permit
+practise
+quit
+recall
+recommend
+regret
+resent
+resist
+resume
+risk
+stand
+suggest
+tolerate
+want
+give up
+
+; Followed by a to-infinitive or a gerund
+bear
+begin
+bother
+continue
+disdain
+intend
+like
+love
+neglect
+prefer
+regret
+start
+come
+go
+go on
+go round
+get
+forget
+like
+mean
+need
+remember
+propose
+stop
+try
+
+; PORTED FROM: http://www.gingersoftware.com/grammarbook/verbs/gerunds-and-infinitives/
+; List of common verbs and phrases that are followed by a gerund
+admit
+advise
+avoid
+be used to
+can't help
+can't stand
+consider
+deny
+discuss
+dislike
+end up
+enjoy
+feel like
+finish
+forget
+get used to
+give up
+go on
+have difficulty
+have problems
+have trouble
+imagine
+it's no use
+it's worthwhile
+keep
+look forward to
+mention
+mind
+miss
+recommend
+remember
+quit
+spend time
+stop
+suggest
+understand
+waste time
+work at
+
+; List of common verbs that can be followed by either a gerund or an infinitive without causing a change in meaning
+begin
+continue
+hate
+intend
+like
+love
+prefer
+start
+
+; List of common verbs that can be followed by a gerund or infinitive but with a change in meaning
+forget
+remember
+stop
+
+; List of common verbs are followed by an infinitive
+afford
+agree
+appear
+arrange
+ask
+care
+decide
+demand
+expect
+fail
+forget
+hope
+learn
+manage
+mean
+offer
+plan
+prepare
+pretend
+promise
+refuse
+remember
+seem
+stop
+volunteer
+wait
+want
+wish
+
+; List of common verbs that are directly followed by a noun or pronoun and then by an infinitive
+advise
+allow
+ask
+cause
+challenge
+command
+convince
+expect
+forbid
+force
+hire
+instruct
+invite
+order
+pay
+permit
+program
+remind
+teach
+tell
+urge
+want
+warn

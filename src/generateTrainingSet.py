@@ -1,0 +1,179 @@
+
+import optparse
+import multiprocessing
+
+import re
+import itertools
+import os
+import sys
+import collections
+import math
+import stanfordHelper as scn
+import featureGenerator
+
+from progressbar import progressbar_t
+from lxml import etree
+
+bypass_t = collections.namedtuple("bypass_t", "xmlText corefChains")
+
+def _isTarget(i, problemlist, options):
+	if options.problemno.startswith("%"):
+		return 0 == i % int(options.problemno[1:])
+	
+	try: return i == int(problemlist)
+	except ValueError:
+		if "-" in problemlist:
+			tstart, tend = map(lambda x: int(x), problemlist.split("-"))
+			return tstart <= int(i) and int(i) <= tend
+		
+		return str(i) in problemlist.split(",")
+	
+def main(options, args):
+	xmlText = etree.parse(options.input + ".xml")
+	
+	# EXTRACT COREFERENCE RELATIONS IDENTIFIED BY CORE NLP
+	coref				= xmlText.xpath("/root/document/coreference/coreference")
+	corefChains = collections.defaultdict(list)
+
+	for id_chain, mens in enumerate(coref):
+		for men in mens.xpath("./mention"):
+			for tok in xrange(int(men.xpath("./start/text()")[0]), int(men.xpath("./end/text()")[0])):
+				corefChains[(int(men.xpath("./sentence/text()")[0]), tok)] += [id_chain]
+
+	ff            = featureGenerator.feature_function_t(options, options.extkb)
+	bp            = bypass_t(xmlText, corefChains)
+	
+	for i, ln in enumerate(open(options.input)):
+		if None != options.problemno and not _isTarget(i, options.problemno, options):
+			continue
+		
+		print >>sys.stderr, "Processing No. %d..." % (i)
+
+		# PARSE THE INPUT TUPLE.
+		ti = eval(ln)
+		
+		_writeFeatures(ff, i, ti, bp)
+		sys.stdout.flush()
+
+def _toWordConstant(w):
+	return "W%s%s" % (w.attrib["id"], scn.getLemma(w))
+	
+def _getBrothers(sent, x):
+	return scn.getToken(sent, x[2]), scn.getToken(sent, x[4]), scn.getToken(sent, x[3].split(",")[0] if x[3].split(",")[0] != x[4] else x[3].split(",")[1])
+
+def _printContextualInfo(sent, anaphor, antecedent, antecedent_false):
+	gvAna, gvAnte, gvFalseAnte = scn.getPrimaryPredicativeGovernor(sent, anaphor), scn.getPrimaryPredicativeGovernor(sent, antecedent), \
+			scn.getPrimaryPredicativeGovernor(sent, antecedent_false)
+	
+	print "<governors anaphor=\"%s-%s:%s\" antecedent=\"%s-%s:%s\" falseAntecedent=\"%s-%s:%s\" />" % (
+		gvAna.lemma if None != gvAna else None,
+		gvAna.POS[0].lower() if None != gvAna else None,
+		gvAna.rel if None != gvAna else None,
+		
+		gvAnte.lemma if None != gvAnte else None, 
+		gvAnte.POS[0].lower() if None != gvAnte else None,
+		gvAnte.rel if None != gvAnte else None,
+		
+		gvFalseAnte.lemma if None != gvFalseAnte else None, 
+		gvFalseAnte.POS[0].lower() if None != gvFalseAnte else None,
+		gvFalseAnte.rel if None != gvFalseAnte else None
+		)
+	print "<contexts anaphor=\"%s\" antecedent=\"%s\" falseAntecedent=\"%s\" />" % (
+		scn.getFirstOrderContext(sent, gvAna.token) if None != gvAna else "-",
+		scn.getFirstOrderContext(sent, gvAnte.token) if None != gvAnte else "-",
+		scn.getFirstOrderContext(sent, gvFalseAnte.token) if None != gvFalseAnte else "-"
+		)
+	
+def _writeFeatures(ff, i, tupleInstance, bypass):
+	sent																	= bypass.xmlText.xpath("/root/document/sentences/sentence[@id='%s']" % (1+i))[0]	
+	anaphor, antecedent, antecedent_false =	_getBrothers(sent, tupleInstance)
+
+	if None == anaphor or None == antecedent or None == antecedent_false:
+		return
+
+	candidates = [antecedent, antecedent_false]
+
+	# FOR EACH CANDIDATE ANTECEDENT, WE GENERATE THE FEATURES.
+	ranker = featureGenerator.ranker_t(ff, anaphor, candidates, sent)
+
+	# WRITE THE HEADER AND BASIC INFORMATION OF ANAPHOR AND ANTECEDENTS
+	print "<problem id=\"%s\" text=\"%s\" anaphor=\"%s-%s-%s\" antecedent=\"%s-%s-%s\" falseAntecedent=\"%s-%s-%s\">" % (
+		i, tupleInstance[1].replace("\"", "&quot;"),
+		scn.getLemma(anaphor), scn.getPOS(anaphor)[0].lower(), scn.getNEtype(anaphor),
+		scn.getLemma(antecedent), scn.getPOS(antecedent)[0].lower(), scn.getNEtype(antecedent),
+		scn.getLemma(antecedent_false), scn.getPOS(antecedent_false)[0].lower(), scn.getNEtype(antecedent_false),
+		)
+
+	_printContextualInfo(sent, anaphor, antecedent, antecedent_false)
+
+	print "<feature-vector>%s</feature-vector>" % " ".join([
+			" ".join(["%s:%s" % x
+								for x in ff.generateFeature(anaphor, can, sent, ranker)])
+			for can in candidates])
+
+	#
+	# FOR MORE INFORMATIVE OUTPUTS
+	print >>sys.stderr, "Writing statistics..."
+	
+	# RANKING FEATURES
+	for fk, fvs in ranker.rankingsRv.iteritems():
+		print "<feature type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
+			fk,
+			ranker.getRankValue(antecedent.attrib["id"], fk),
+			ranker.getRankValue(antecedent_false.attrib["id"], fk),
+			)
+
+	# k-NEAREST NEIGHBOR SCORES
+	for fk, fvs in ranker.NN.iteritems():
+		for K in xrange(1, 50):
+			print "<feature type=\"kNN_%s,K=%d\" correct=\"%s\" wrong=\"%s\" />" % (
+				fk, K,
+				ranker.getKNNRankValue(antecedent.attrib["id"], fk, K),
+				ranker.getKNNRankValue(antecedent_false.attrib["id"], fk, K),
+				)
+			print "<feature type=\"kNN_rank_%s,K=%d\" correct=\"%s\" wrong=\"%s\" />" % (
+				fk, K,
+				ranker.getKNNRank(antecedent.attrib["id"], fk, K),
+				ranker.getKNNRank(antecedent_false.attrib["id"], fk, K),
+				)
+			print "<feature type=\"kNN_score_%s,K=%d\" correct=\"%s\" wrong=\"%s\" />" % (
+				fk, K,
+				ranker.getKNNRankValue(antecedent.attrib["id"], fk, K, score=True),
+				ranker.getKNNRankValue(antecedent_false.attrib["id"], fk, K, score=True),
+				)
+
+	# OTHER STATISTICS
+	for fk, fvs in ranker.statistics.iteritems():
+		if "cirInstances" == fk or "iriInstances" == fk:
+			for voted, inst in fvs:
+				print "<statistics type=\"%s\" label=\"%s\">%s</statistics>" % (
+					fk,
+					"Correct" if int(antecedent.attrib["id"]) == int(voted) else "Wrong",
+					"\t".join([repr(inst._asdict()[v]) for v in inst._fields])
+					)
+			
+		else:
+			print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
+				fk,
+				ranker.getRankValue(antecedent.attrib["id"], fk, 0.0, ranker.statistics),
+				ranker.getRankValue(antecedent_false.attrib["id"], fk, 0.0, ranker.statistics),
+				)
+		
+	print "</problem>"
+
+def _diff(x, y, th):
+	return (x > y) and (1.0*(x-y)/x > th)
+
+def _cdbdefget(f, key, de):
+	r = f.get(key)
+	return r if None != r else de
+
+if "__main__" == __name__:
+	cmdparser		= optparse.OptionParser(description="Feature generator.")
+	cmdparser.add_option("--output", help			= "Output file.")
+	cmdparser.add_option("--input", help			= "Input difficult pronoun.")
+	cmdparser.add_option("--problemno", help  = "(Debug) Process only specified problem.")
+	cmdparser.add_option("--extkb", help	= ".", default="/work/naoya-i/kb")
+	cmdparser.add_option("--quicktest", help	= ".", action="store_true")
+
+	main(*cmdparser.parse_args())
