@@ -200,6 +200,5 @@ public:
             pOut->push_back(j->second[k]);
         }
       } }
-    
   }
 };

@@ -170,7 +170,6 @@ def _cdbdefget(f, key, de):
 
 if "__main__" == __name__:
 	cmdparser		= optparse.OptionParser(description="Feature generator.")
-	cmdparser.add_option("--output", help			= "Output file.")
 	cmdparser.add_option("--input", help			= "Input difficult pronoun.")
 	cmdparser.add_option("--problemno", help  = "(Debug) Process only specified problem.")
 	cmdparser.add_option("--extkb", help	= ".", default="/work/naoya-i/kb")

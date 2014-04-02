@@ -146,10 +146,10 @@ class feature_function_t:
 		self.pa							 = pa
 
 		self.libiri    = iri.iri_t(
-			os.path.join(dirExtKb, "corefevents.reduced.tsv"),
+			os.path.join(dirExtKb, "corefevents.com.tsv"),
 			os.path.join(os.path.dirname(sys.argv[0]), "../bin"),
 			dirExtKb,
-			os.path.join(dirExtKb, "corefevents.b128.pceach.bin")
+			os.path.join(dirExtKb, "corefevents.com.lsh")
 			)
 		self.libcir    = conir.test_cir_t(
 			os.path.join(dirExtKb, "GoogleNews-vectors-negative300.bin"),

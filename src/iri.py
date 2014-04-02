@@ -21,7 +21,7 @@ result_t = collections.namedtuple(
 	)
 
 class iri_t:
-	def __init__(self, fnCorefEventsTsv, pathServer, dirKb, fnBin, numPara = 12, fUseMemoryMap = False):
+	def __init__(self, fnCorefEventsTsv, pathServer, dirKb, fnLSH, numPara = 12, fUseMemoryMap = False):
 		# LOADING THE HASH TABLE.5
 		print >>sys.stderr, "Loading..."
 
@@ -30,19 +30,12 @@ class iri_t:
 		if fUseMemoryMap: opts += ["-d"]
 		
 		self.procSearchServer = subprocess.Popen(
-			"%s -k %s -i %s -c %s -v %s -t %s -m %d %s" % (
-				os.path.join(pathServer, "similaritySearch"), dirKb, fnBin,
-				fnCorefEventsTsv, fnCorefEventsTsv.replace(".tsv", ".vocab.bin"), fnCorefEventsTsv.replace(".tsv", ".vocabct.bin"),
-				numPara, " ".join(opts)),
+			"%s -i %s -k %s -d %s -m %d %s" % (
+				os.path.join(pathServer, "similaritySearch"), fnLSH, dirKb,
+				fnCorefEventsTsv, numPara, " ".join(opts)),
 			shell = True,
 			stdin = subprocess.PIPE, stdout = subprocess.PIPE, )#stderr = subprocess.PIPE)
 
-		# self.procSimServer = subprocess.Popen(
-		# 	"%s -k %s -m %d" % (os.path.join(pathServer, "similarity"), dirKb, numPara),
-		# 	shell = True,
-		# 	stdin = subprocess.PIPE, stdout = subprocess.PIPE, )#stderr = subprocess.PIPE)
-		
-		# assert("200 OK" == self.procSimServer.stdout.readline().strip())
 		assert("200 OK" == self.procSearchServer.stdout.readline().strip())
 
 		self.cacheSearchServer = {}
@@ -101,7 +94,7 @@ class iri_t:
 if "__main__" == __name__:
 	# UNIT TEST.
 	iri = iri_t(
-		sys.argv[2],
+		"/work/naoya-i/kb/corefevents.com.tsv",
 		"/home/naoya-i/work/wsc/bin",
 		"/work/naoya-i/kb",
 		sys.argv[1])
@@ -123,7 +116,7 @@ if "__main__" == __name__:
 				continue
 
 			try:
-				iris = sorted(iri.predict(*x.strip().split("\t"), threshold=threshold), key=lambda x: x[0].score)
+				iris = sorted(iri.predict(*x.strip().split("\t"), threshold=threshold), key=lambda x: x[0].score, reverse=True)
 
 			except KeyboardInterrupt:
 				print "Aborted."
@@ -158,8 +151,8 @@ if "__main__" == __name__:
 							 "<br />".join(raw[4].split(" ")),
 							 "<br />".join(raw[5].split(" ")), 
 							 "<a target=\"_blank\" href=\"http://www.cl.ecei.tohoku.ac.jp/henry/cgi-bin/viewText.py?file=%s&docid=%s&s1=%s&s2=%s\">T</a>" % (
-								raw[-1][2:2+9], raw[-1][12:],
-								urllib2.quote(raw[-3][2:]), urllib2.quote(raw[-2][2:]),
+								raw[-1][:9], raw[-1][10:],
+								urllib2.quote(raw[0].split(":")[0][:-2]), urllib2.quote(raw[1].split(":")[0][:-2]),
 								)
 								]
 						)
