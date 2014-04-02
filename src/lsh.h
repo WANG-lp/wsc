@@ -24,7 +24,7 @@ static inline int _getHammingDistance(const uint64_t x64, const uint64_t y64) {
   return _mm_popcnt_u64(x64 ^ y64);
 }
 
-static inline size_t _binstr2uint64(const string &binstr, int start = 0) {
+static inline uint64_t _binstr2uint64(const string &binstr, int start = 0) {
   uint64_t ret = 0;
   for(int i=start; i<start+64; i++)
     if('1' == binstr[i]) ret += (2^i);
@@ -60,7 +60,7 @@ class lsh_t {
 public:
   struct entry128b_t {
     uint64_t hv1, hv2;
-    size_t   offset;
+    uint64_t offset;
 
     inline int getHammingDistance(uint64_t hvQ1, uint64_t hvQ2) {
       return _getHammingDistance(this->hv1, hvQ1) +
@@ -68,7 +68,7 @@ public:
     }
 
     entry128b_t() : hv1(0), hv2(0), offset(0) {}
-    entry128b_t(uint64_t _hv1, uint64_t _hv2, size_t _offset) : hv1(_hv1), hv2(_hv2), offset(_offset) {}
+    entry128b_t(uint64_t _hv1, uint64_t _hv2, uint64_t _offset) : hv1(_hv1), hv2(_hv2), offset(_offset) {}
   };
 
 private:  
@@ -78,7 +78,7 @@ private:
   size_t m_numKeys;
   string m_typeHash;
   
-  unordered_map<uint64_t, unordered_map<uint64_t, vector<size_t> > > *m_pHashTable;
+  unordered_map<uint64_t, unordered_map<uint64_t, vector<uint64_t> > > *m_pHashTable;
   size_t       m_offsetData;
 
   struct stat m_fStatData;
@@ -126,7 +126,7 @@ public:
     cerr << "Loading hash table..." << endl;
 
     if(!fUseMemoryMap) {
-      m_pHashTable = new unordered_map<uint64_t, unordered_map<uint64_t, vector<size_t> > >[m_numKeys];
+      m_pHashTable = new unordered_map<uint64_t, unordered_map<uint64_t, vector<uint64_t> > >[m_numKeys];
       
       for(int i=0; i<m_numKeys; i++) {
         uint64_t hv1, hv2;
@@ -136,11 +136,11 @@ public:
         uint32_t numOffsets;
         ifsBin.read((char*)&numOffsets, sizeof(uint32_t));
 
-        char *buffer = new char[sizeof(size_t)*numOffsets];
-        ifsBin.read(buffer, sizeof(size_t)*numOffsets);
+        char *buffer = new char[sizeof(uint64_t)*numOffsets];
+        ifsBin.read(buffer, sizeof(uint64_t)*numOffsets);
         
         for(int j=0; j<numOffsets; j++)
-          (*m_pHashTable)[hv1][hv2].push_back(*((size_t*)&buffer[j*sizeof(size_t)]));
+          (*m_pHashTable)[hv1][hv2].push_back(*((uint64_t*)&buffer[j*sizeof(uint64_t)]));
 
         delete[] buffer;
       }
@@ -182,16 +182,16 @@ public:
     }
   }
 
-  inline void search(vector<size_t> *pOut, const float *pVector, int threshold, int nThreads) const {
+  inline void search(vector<uint64_t> *pOut, const float *pVector, int threshold, int nThreads) const {
     entry128b_t e;
     hashing(&e, pVector);
 
     cerr << "search(): hash = " << e.hv1 << "," << e.hv2 << endl;
     
     // LINEAR SEARCH.
-    for(unordered_map<uint64_t, unordered_map<uint64_t, vector<size_t> > >::iterator
+    for(unordered_map<uint64_t, unordered_map<uint64_t, vector<uint64_t> > >::iterator
           i=m_pHashTable->begin(); m_pHashTable->end()!=i; ++i) {
-      for(unordered_map<uint64_t, vector<size_t> >::iterator
+      for(unordered_map<uint64_t, vector<uint64_t> >::iterator
             j=i->second.begin(); i->second.end()!=j; ++j) {
         int d =
           _getHammingDistance(i->first, e.hv1) +

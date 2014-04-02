@@ -4,6 +4,7 @@
 #include <tr1/unordered_set>
 
 using namespace std;
+using namespace tr1;
 
 typedef unordered_map<int, string> command_option_t;
 
@@ -45,6 +46,18 @@ public:
     return m_parsedopts.end() == iter ? "" : iter->second;
   }
 
+  inline string of(const char c, const string &from, const string &to) const {
+    string val = of(c);
+    
+    size_t start_pos = 0;
+    while((start_pos = val.find(from, start_pos)) != string::npos) {
+      val.replace(start_pos, from.length(), to);
+      start_pos += to.length();
+    }
+
+    return val;
+  }
+  
   inline bool hasKey(const char c) const {
     command_option_t::const_iterator iter = m_parsedopts.find(c);
     return m_parsedopts.end() != iter;
