@@ -28,26 +28,23 @@ using namespace tr1;
 static int myrandom (int i) { return std::rand()%i; }
 
 int main(int argc, char **argv) {
-  optparse_t opts("Usage:\n  similaritySearch -k <PATH TO KNOWLEDGE BASE>"
-                  " -i <INPUT DATABASE BIN>"
+  optparse_t opts("Usage:\n  similaritySearch"
+                  " -i <INPUT LSH>"
+                  " -k <PATH TO KNOWLEDGE BASE>"
+                  " -d <COREF EVENTS TSV>"
                   " -m <PARALLELS>"
-                  " -c <COREF EVENTS TSV>"
-                  " -v <VOCAB OF COREF EVENT PAIRS>"
-                  " -t <VOCAB OF CONTEXT TYPES>"
-                  " [-d]"
                   ,
-                  "k:i:m:dc:v:t:", "kimcvt", argc, argv);
+                  "k:i:m:d:", "kimd", argc, argv);
   if(!opts.isGood()) return 0;
   
   google_word2vec_t gw2v(opts.of('k') + "/GoogleNews-vectors-negative300.bin",
-                         opts.of('k') + "/GoogleNews-vectors-negative300.index.bin",
-                         opts.hasKey('d'));
-  lsh_t          lsh(opts.of('i'), opts.hasKey('d'));
+                         opts.of('k') + "/GoogleNews-vectors-negative300.index.bin");
+  lsh_t          lsh(opts.of('i'));
   string         line;
   int            th     = 0;
   float         *pQuery = new float[lsh.getDim()];
   
-  corefevents_t                libce(opts.of('c'), opts.of('v'), opts.of('t'));
+  corefevents_t                libce(opts.of('d'), true);
   corefevents_t::proposition_t prpIndexed, prpPredicted;
   
   cout << "200 OK" << endl;
@@ -71,12 +68,11 @@ int main(int argc, char **argv) {
     
     if("pceach" != lsh.getHashType()) {
       cerr << "SORRY..." << endl;
-      continue;
-    } else {
       cerr << "Idk the hash type: " << lsh.getHashType() << endl;
+      continue;
     }
     
-    unordered_map<size_t, int> commonOffsets;
+    vector<uint64_t> offsets;
     vector<string> keys;
 
     // PREPARE THE KEYS.
@@ -86,39 +82,39 @@ int main(int argc, char **argv) {
     timeval t1, t2;
     gettimeofday(&t1, NULL);
     
-    for(int i=0; i<(int)keys.size(); i++) {
-      vector<size_t> ret;
-      
-      cerr << "Searching..." << endl;
+    for(size_t i=0; i<keys.size(); i++) {
+      cerr << "Searching... " << flush;
     
       initVector(pQuery, lsh.getDim());
       addWordVector(pQuery, keys[i], gw2v);
 
+      vector<uint64_t> ret(1024*1024, 0);
       lsh.search(&ret, pQuery, th, atoi(opts.of('m').c_str()));
 
-      cerr << "Cool." << endl;
-
-      unordered_map<size_t, bool> localCommonOffsets;
-      for(int j=0; j<(int)ret.size(); j++) {
-        if(0 != i && 0 == commonOffsets.count(ret[j])) continue;
-        
-        localCommonOffsets[ret[j]] = true;
-      }
-
-      for(unordered_map<size_t, bool>::iterator j=localCommonOffsets.begin(); localCommonOffsets.end()!=j; ++j)
-        commonOffsets[j->first]++;
+      unordered_set<uint64_t> setRet(ret.begin(), ret.end());
+      for(unordered_set<uint64_t>::iterator j=setRet.begin(); setRet.end()!=j; ++j)
+        offsets.push_back(*j);
+      
+      cerr << "Cool. " << ret.size() << " entries found." << endl;
     }
     
     gettimeofday(&t2, NULL);
 
     int timeElapsed = (t2.tv_sec - t1.tv_sec) * 1000 + (t2.tv_usec - t1.tv_usec)/1000;
-    vector<size_t> ret;
-    
-    for(unordered_map<size_t, int>::iterator i=commonOffsets.begin(); commonOffsets.end()!=i; ++i) {
-      if((int)keys.size() > i->second) continue;
-      ret.push_back(i->first);
-    }
+    vector<uint64_t> ret;
 
+    sort(offsets.begin(), offsets.end());
+
+    size_t counter = 0;
+    for(size_t i=0; i<offsets.size();) {
+      for(counter=0; i+counter<offsets.size(); counter++)
+        if(offsets[i]!=offsets[i+counter]) break;
+      
+      if(counter >= keys.size()) ret.push_back(offsets[i]);
+      
+      i += counter;
+    }
+    
     std::srand(0);
     std::random_shuffle(ret.begin(), ret.end(), myrandom);
 
@@ -133,7 +129,7 @@ int main(int argc, char **argv) {
     cout << ret.size() << endl;
     
     // IDENTIFY THE COMMON IDS.
-    for(int i=0; i<(int)ret.size(); i++) {
+    for(size_t i=0; i<ret.size(); i++) {
       corefevents_t::result_t retScore;
       libce.calcScore(&retScore, ret[i], 0, prpIndexed, prpPredicted, gw2v);
 

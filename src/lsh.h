@@ -186,8 +186,6 @@ public:
     entry128b_t e;
     hashing(&e, pVector);
 
-    cerr << "search(): hash = " << e.hv1 << "," << e.hv2 << endl;
-    
     // LINEAR SEARCH.
     for(unordered_map<uint64_t, unordered_map<uint64_t, vector<uint64_t> > >::iterator
           i=m_pHashTable->begin(); m_pHashTable->end()!=i; ++i) {
@@ -198,27 +196,10 @@ public:
           _getHammingDistance(j->first, e.hv2);
 
         if(d <= threshold) {
-          for(int k=0; k<j->second.size(); k++)
+          for(size_t k=0; k<j->second.size(); k++)
             pOut->push_back(j->second[k]);
         }
       } }
-    
-// #pragma omp parallel for shared(ret, retCount) num_threads(nThreads)
-//     for(int i=0; i<m_numKeys; i++) {
-//       if(retCount >= MAX_POOL_SEARCH_RESULT) continue;
-      
-//       int d = m_pHashTable[i].getHammingDistance(e.hv1, e.hv2);
-
-//       if(d <= threshold) {
-// #pragma omp critical
-//         {
-//           ret[retCount++] = i;
-//         }
-//       }
-//     }
-
-    // for(int i=0; i<retCount; i++)
-    //   pOut->push_back(&m_pHashTable[ret[i]]);
     
   }
 };

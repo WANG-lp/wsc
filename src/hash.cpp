@@ -41,9 +41,11 @@ static size_t writeHash(lsh_t::entry128b_t *pOut, size_t *pOutCnt, size_t *pNumW
 }
 
 static void process(unordered_map<uint64_t, unordered_map<uint64_t, vector<size_t> > > *pOut, lsh_t::entry128b_t *ompResult, uint64_t *pNumWritten, const vector<pair<size_t, string> > &poolLines, const google_word2vec_t& gw2v, lsh_t *pLsh, int nThreads, bool fPrint) {
-  uint64_t ompResultCnt = 0;
+  size_t ompResultCnt = 0;
+
+  cerr << "Hashing..." << " " << flush;
   
-#pragma omp parallel for shared(gw2v, pOut, ompResultCnt, pNumWritten, pLsh) num_threads(nThreads)
+#pragma omp parallel for shared(poolLines, gw2v, pOut, ompResult, ompResultCnt, pNumWritten, pLsh, fPrint) num_threads(nThreads)
   for(size_t data=0; data<poolLines.size(); data++) {
     istringstream ssLine(poolLines[data].second);
     string        p1, p2, arg, sentdist, c1, c2;
@@ -52,7 +54,7 @@ static void process(unordered_map<uint64_t, unordered_map<uint64_t, vector<size_
     getline(ssLine, sentdist, '\t');
     getline(ssLine, c1, '\t'); getline(ssLine, c2, '\t');
 
-    // CONSTRUCT THE VECTOR OF INSTANCE.        
+    // CONSTRUCT THE VECTOR OF INSTANCE.
     float vecHash[google_word2vec_t::DIMENSION];
     size_t cnt;
           
@@ -86,9 +88,8 @@ static void process(unordered_map<uint64_t, unordered_map<uint64_t, vector<size_
 
   cerr << "Aggregating..." << " " << flush;
 
-  for(int i=0; i<(int)ompResultCnt; i++)
+  for(size_t i=0; i<ompResultCnt; i++)
     (*pOut)[ompResult[i].hv1][ompResult[i].hv2].push_back(ompResult[i].offset);
-  
 }
 
 int main(int argc, char **argv) {
@@ -97,30 +98,27 @@ int main(int argc, char **argv) {
                   " -i <INPUT EVENT PAIRS>"
                   " -o <OUTPUT BIN>"
                   " -m <PARALLELS>"
-                  " [-h <HASH TYPE:p|pc|pcjoin|pp|ppcc>]"
                   " [-p]"
                   ,
                   "k:i:o:m:h:p", "kiom", argc, argv);
   if(!opts.isGood()) return 0;
 
-  opts.defset('h', "pc");
+  opts.defset('h', "pceach");
   
   google_word2vec_t gw2v(opts.of('k') + "/GoogleNews-vectors-negative300.bin",
                          opts.of('k') + "/GoogleNews-vectors-negative300.index.bin");
 
   ofstream ofsOut(opts.of('o').c_str(), ios::out|ios::binary);
   
-  string   line(0, 1024*1024);
+  string   line(1024*1024, 0);
   size_t   bytesProcessed = 0, numProcessed = 0, numWritten = 0;
   ifstream ifsInstances(opts.of('i').c_str(), ios::in);
   char     typeHash[8]; strcpy(typeHash, opts.of('h').c_str());
   
   vector<pair<size_t, string> > poolLines;
 
-  lsh_t  lsh300(128, false, google_word2vec_t::DIMENSION), lsh600(128, false, google_word2vec_t::DIMENSION*2);
+  lsh_t  lsh300(128, false, google_word2vec_t::DIMENSION);
   lsh_t *pLsh = &lsh300;
-
-  if("pcjoin" == opts.of('h') || "pceachjoin" == opts.of('h')) pLsh = &lsh600;
 
   // WRITE THE BASIC INFO AND RANDOM HYPER PLANES.
   int nBits = pLsh->getBits(), nDim = pLsh->getDim();
@@ -139,7 +137,6 @@ int main(int argc, char **argv) {
   lsh_t::entry128b_t                        *ompResult = new lsh_t::entry128b_t[10000000*10];
   
   do {
-    string line;
     getline(ifsInstances, line);
 
     if(0 == numProcessed % 10000000) {
@@ -153,8 +150,10 @@ int main(int argc, char **argv) {
     
     if(0 == numProcessed % 500000) cerr << ".";
     if(0 == numProcessed % 10000000 || ifsInstances.eof()) {
-      cerr << " " << (numProcessed) << " " << flush;
+      cerr << " " << numProcessed << " " << flush;
+      
       process(&hashTable, ompResult, &numWritten, poolLines, gw2v, pLsh, atoi(opts.of('m').c_str()), opts.hasKey('p'));
+      
       cerr << numWritten << endl;
       poolLines.clear();
     }
@@ -181,9 +180,9 @@ int main(int argc, char **argv) {
       ofsOut.write((const char*)&numOffsets, sizeof(uint32_t));
 
       // WRITE THE LIST OF OFFSETS.
-      for(int k=0; k<(int)j->second.size(); k++) {
+      for(size_t k=0; k<j->second.size(); k++)
         ofsOut.write((const char*)&j->second[k], sizeof(size_t));
-      }
+      
     } }
 
   // REWRITE THE SIZE.
@@ -191,6 +190,8 @@ int main(int argc, char **argv) {
   ofsOut.write((const char*)&numKeys, sizeof(size_t));
   
   ofsOut.close();
+
+  cerr << "# of keys = " << numKeys << ". Goodbye." << endl;
   
   return 0;
   

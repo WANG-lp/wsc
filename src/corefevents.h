@@ -19,8 +19,6 @@ private:
   int          m_fd;
   struct stat  m_fs;
   char        *m_pCorefEvents;
-  vocab_t      m_vocab;
-  vocabct_t    m_vocabct;
 
 public:
   struct result_t {
@@ -37,12 +35,7 @@ public:
     string predicate, context, slot, focusedArgument;
   };
 
-  corefevents_t(const string &fnCorefEventsTsv, const string &fnCorefEventsVocab, const string &fnCorefEventsVocabCT, bool fMemoryMapped = false) : m_fd(-1) {
-    
-    // READ THE VOCAB.
-    cerr << "Loading vocab..." << endl;
-    readVocab(&m_vocab, fnCorefEventsVocab);
-    readVocab(&m_vocabct, fnCorefEventsVocabCT);
+  corefevents_t(const string &fnCorefEventsTsv, bool fMemoryMapped = false) : m_fd(-1) {
     
     // READ THE COREF EVENT PAIRS.
     cerr << "Loading " << fnCorefEventsTsv << "..." << endl;
@@ -52,6 +45,7 @@ public:
     
     if(fMemoryMapped)
       m_pCorefEvents = (char*)mmap(0, m_fs.st_size, PROT_READ, MAP_SHARED, m_fd, 0);
+    
     else {
       close(m_fd); m_fd = -1;
       
@@ -70,29 +64,15 @@ public:
       delete[] m_pCorefEvents;
   }
 
-  bool calcScore(result_t *pOut, size_t offset, int length, const proposition_t &prpIndexed, const proposition_t &prpPredicted, const google_word2vec_t &gw2v) {
+  bool calcScore(result_t *pOut, uint64_t offset, int length, const proposition_t &prpIndexed, const proposition_t &prpPredicted, const google_word2vec_t &gw2v) {
     char     buffer[1024*16];
-    uint32_t ip1, ip2, ia1, ia2;
-    char     csentdist, numC1, numC2;
-    char     rawc1[1024], rawc2[1024];
 
-    ip1      = *((uint32_t*)&m_pCorefEvents[offset]);
-    ip2      = *((uint32_t*)&m_pCorefEvents[offset+sizeof(uint32_t)*1]);
-    ia1      = *((uint32_t*)&m_pCorefEvents[offset+sizeof(uint32_t)*2]);
-    ia2      = *((uint32_t*)&m_pCorefEvents[offset+sizeof(uint32_t)*3]);
-    csentdist = *((char*)&m_pCorefEvents[offset+sizeof(uint32_t)*4]);
-    numC1    = *((char*)&m_pCorefEvents[offset+sizeof(uint32_t)*4+sizeof(char)]);
-    memcpy(rawc1, (char*)&m_pCorefEvents[offset+sizeof(uint32_t)*4+sizeof(char)*2], numC1*(2+4));
+    for(uint64_t i=offset; '\n'!=m_pCorefEvents[i]; i++) {
+      buffer[i-offset] = m_pCorefEvents[i]; buffer[i-offset+1] = 0;
+    }
     
-    numC2    = *((char*)&m_pCorefEvents[offset+sizeof(uint32_t)*4+sizeof(char)*2+sizeof(char)*numC1*(2+4)]);
-    memcpy(rawc2, (char*)&m_pCorefEvents[offset+sizeof(uint32_t)*4+sizeof(char)*2+sizeof(char)*numC1*(2+4)+sizeof(char)], numC2*(2+4));
-
-    pOut->line = m_vocab[ip1] + "\t" + m_vocab[ip2] + "\t" + m_vocab[ia1] + "," + m_vocab[ia2] + "\t" + csentdist + "\t";
-    addContext(&pOut->line, rawc1, numC1*(2+4), m_vocab, m_vocabct);
-    pOut->line += "\t";
-    addContext(&pOut->line, rawc2, numC2*(2+4), m_vocab, m_vocabct);
-
-    pOut->length = sizeof(uint32_t)*4 + sizeof(char)*3 + sizeof(char)*(numC1+numC2)*(2+4);
+    pOut->line   = buffer;
+    pOut->length = strlen(buffer);
     
     string   p1, s1, p2, s2, a1, a2, c1, c2, sentdist;
     istringstream ssRule(pOut->line);
@@ -138,45 +118,6 @@ public:
     }
     
     return true;
-  }
-
-  static void addContext(string *pOut, const char *rawc, int length, const vocab_t &vocab, const vocabct_t &vocabCT) {
-    for(int i=0; i<length; i+=2+4) {
-      uint16_t idType  = *((uint16_t*)&rawc[i]);
-      uint32_t idValue = *((uint32_t*)&rawc[i+2]);
-
-      if(0 != i) *pOut += " ";
-
-      *pOut += vocabCT.find(idType)->second + ":" + vocab.find(idValue)->second;
-    }
-  }
-
-  static void readVocab(vocab_t *pOut, const string &fnVocab) {
-    ifstream ifsVocab(fnVocab.c_str(), ios::in);
-    string line;
-    
-    while(!ifsVocab.eof()) {
-      uint32_t id;
-      getline(ifsVocab, line, '\t');
-      ifsVocab.read((char*)&id, sizeof(uint32_t));
-      (*pOut)[id] = line;
-    }
-
-    ifsVocab.close();
-  }
-  
-  static void readVocab(vocabct_t *pOut, const string &fnVocab) {
-    ifstream ifsVocab(fnVocab.c_str(), ios::in);
-    string line;
-  
-    while(!ifsVocab.eof()) {
-      uint16_t id;
-      getline(ifsVocab, line, '\t');
-      ifsVocab.read((char*)&id, sizeof(uint16_t));
-      (*pOut)[id] = line;
-    }
-
-    ifsVocab.close();
   }
   
 };

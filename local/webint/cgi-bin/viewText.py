@@ -32,7 +32,7 @@ print """<html><head>
 """
 
 xml		= etree.parse(
-	os.popen("/home/naoya-i/work/wsc/bin/extractDoc.sh %s %s" % (
+	os.popen("/home/naoya-i/work/wsc/src/extractDoc.sh %s %s" % (
 			fs.getvalue("file"), fs.getvalue("docid"),
 		)))
 
