@@ -123,6 +123,33 @@ def getPrimaryPredicativeGovernor(sent, x, contentGovernor = True):
 			if "VB" in ps or "JJ" in ps:
 				return governor_t(convRel(y.attrib["type"], tk, sent), tk, getLemma(tk), getPOS(tk))
 
+def getCatenativeDependent(sent, cate):
+    	dependent_items = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/governor[@idx='%s']" % cate.token.attrib["id"])
+        ret = []
+        # print dependent_predicate
+        for depitem in dependent_items:
+            idx = depitem.xpath("../dependent")[0].attrib["idx"]
+            tp  = depitem.xpath("..")[0].attrib["type"]
+
+            lm = sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)
+            ps = sent.xpath("./tokens/token[@id='%s']/POS/text()" % idx)
+            
+            if 0 == len(lm): lm = ["?"]
+            # if 0 == int(idx): continue
+            # ret += [(tp, lm[0], sent.xpath("./tokens/token[@id='%s']" % idx)[0])]
+
+            # FOLLOWED BY A TO-INFINITIVE or A GERUND
+            if "xcomp" == tp:
+                # print "xcomp = "
+                # print sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)
+                # ret += getContentPredicativeGovernor(sent, sent.xpath("./tokens/token[@id='%s']" % idx)[0])
+                ret += [(tp, sent.xpath("./tokens/token[@id='%s']" % idx)[0], lm[0], ps[0])]
+
+        if ret != []:
+            return governor_t(cate.rel, ret[0][1], ret[0][2], ret[0][3])
+        else:
+            return cate
+                                
 def getContentPredicativeGovernor(sent, p):
 	governing_predicate = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/dependent[@idx='%s']" % p.attrib["id"])
 	ret                 = []

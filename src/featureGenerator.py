@@ -26,6 +26,15 @@ def _npmi(_xy, _x, _y):
 	#return _xy/(_x*_y)
 	return 0.5*(1+(math.log(1.0 * _xy / (_x * _y), 2) / -math.log(_xy, 2)))
 
+def _catenativeget(gv, sent):
+    catenativelist = ["want","afford"]
+
+    if gv.lemma in catenativelist:
+        newgv = scn.getCatenativeDependent(sent, gv)
+        return newgv
+    else:
+        return gv
+        
 class ranker_t:
 	def __init__(self, ff, ana, candidates, sent):
 		self.NN = collections.defaultdict(list)
@@ -34,6 +43,7 @@ class ranker_t:
 
 		# FOR REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
 		# FOR EACH CANDIDATE.
+    
 		
 		for can in candidates:
 			wPrn, wCan	 = scn.getLemma(ana), scn.getLemma(can)
@@ -43,12 +53,28 @@ class ranker_t:
 			self.rankingsRv["position"] += [(vCan, -int(can.attrib["id"]))]
 
 			if None != gvAna and None != gvCan:
+                                # print "======"
+                                # print gvAna
+                                # print gvAna.lemma, gvAna.rel, gvAna.POS
+                                # print "======"
+
+                                gvAna = _catenativeget(gvAna, sent)
+
+                                # print "++++++"
+                                # print gvAna
+                                # print gvAna.lemma, gvAna.rel, gvAna.POS
+                                # print "++++++"
+
+                                gvCan = _catenativeget(gvCan, sent)
+                                
 				r1 = ff.selPref("%s-%s" % (scn.getLemma(gvAna.token), gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (scn.getLemma(can), scn.getNEtype(can)))
+                                
 				self.rankingsRv["nc"] += [(vCan, ff.nc(gvAna.lemma, gvAna.rel, gvCan.lemma, gvCan.rel))]
 				self.rankingsRv["selpref"] += [(vCan, r1[1])]
 				self.rankingsRv["selprefcnt"] += [(vCan, math.log(max(1, r1[0])))]
 
-				r1 = ff.iri(self.NN,
+                                
+				ff.iri(self.NN,
 										vCan,
 										gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
 										gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
@@ -151,11 +177,12 @@ class feature_function_t:
 			dirExtKb,
 			os.path.join(dirExtKb, "corefevents.com.lsh")
 			)
-		self.libcir    = conir.test_cir_t(
-			os.path.join(dirExtKb, "GoogleNews-vectors-negative300.bin"),
-			os.path.join(dirExtKb, "corefevents.tsv"), useMemoryMap=pa.quicktest)
+		# self.libcir    = conir.test_cir_t(
+		# 	os.path.join(dirExtKb, "GoogleNews-vectors-negative300.bin"),
+		# 	os.path.join(dirExtKb, "corefevents.tsv"), useMemoryMap=pa.quicktest)
 		
-		self.cdb_sp		 = cdb.init(os.path.join(dirExtKb, "tuples.cdb"))
+		# self.cdb_sp		 = cdb.init(os.path.join(dirExtKb, "tuples.cdb"))
+                self.cdb_sp = None
 		self.sp_tfq		 = int(open(os.path.join(dirExtKb, "tuples.totalfreq.txt")).read())
 		self.cdb_nc		 = cdb.init(os.path.join(dirExtKb, "nc12_assoc_verbs_wr_def.cdb"))
 		self.cdb_cache = {}
