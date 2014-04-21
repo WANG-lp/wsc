@@ -38,27 +38,16 @@ result_t = collections.namedtuple("result_t", "ana_lemma, ana_gov, ana_con, ante
 
 if None != fs.getvalue("query"):
 
-	procTranslator = subprocess.Popen(
-			"%s -v %s -c %s" % (
-			"/home/naoya-i/work/wsc/bin/translate",
-			"/work/naoya-i/kb/corefevents.reduced.vocab.bin",
-			"/work/naoya-i/kb/corefevents.reduced.vocabct.bin",
-			),
-			shell = True,
-			stdin = subprocess.PIPE, stdout = subprocess.PIPE, )#stderr = subprocess.PIPE)
-
-	assert("200 OK" == procTranslator.stdout.readline().strip())
-
 	# PRINT THE RESULT.
 	def _getCached(problemNo):
-		f														= open("/work/naoya-i/kb/corefevents.reduced.tsv")
+		f														= open("/work/naoya-i/kb/corefevents.com.tsv")
 		m														= mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
 		examples										= []
 		numCorrect, numWrong				= 0, 0
 		governors, contexts, lemmas = [], [], []
 		text												= ""
 		
-		for ln in os.popen("awk '$0 ~ /problem id=\"%s\"/ { fPrint=1; } 1 == fPrint { print $0 } fPrint && $0 ~ /<\/problem>/ {exit}' /work/naoya-i/tmp/test.xml.full" % problemNo):
+		for ln in os.popen("awk '$0 ~ /problem id=\"%s\"/ { fPrint=1; } 1 == fPrint { print $0 } fPrint && $0 ~ /<\/problem>/ {exit}' /work/naoya-i/tmp/train.full.xml" % problemNo):
 			if "governors" in ln: governors = re.findall("\"(.*?)\"", ln)
 			if "contexts" in ln:  contexts  = re.findall("\"(.*?)\"", ln)
 			if "text=" in ln:
@@ -188,37 +177,10 @@ if None != fs.getvalue("query"):
 						))
 				continue
 
-			ip1, ip2, ia1, ia2 = struct.unpack("I", ir[0:4])[0], struct.unpack("I", ir[4:8])[0], struct.unpack("I", ir[8:12])[0], struct.unpack("I", ir[12:16])[0]
-			sentdist           = struct.unpack("B", ir[16:17])[0]
-			inc1               = struct.unpack("B", ir[17:18])[0]
-			ic1                = struct.unpack("=" + "HI"*inc1, ir[18:18+(inc1*(2+4))])
-			inc2               = struct.unpack("B", ir[18+(inc1*(2+4)):18+(inc1*(2+4))+1])[0]
-			ic2                = struct.unpack("=" + "HI"*inc2, ir[18+(inc1*(2+4))+1:18+(inc1*(2+4))+1+(inc2*(2+4))])
-
-			#irp1, irp2, a12, sentdist, irc1, irc2, irsrc1, irsrc2, ig3 = ip1, ip2, ia1, sentdist, 0, 0, 0, 0, ""
-			print >>procTranslator.stdin, ip1
-			print >>procTranslator.stdin, ip2
-			print >>procTranslator.stdin, ia1
-			print >>procTranslator.stdin, ia2
-
-			irp1, irp2 = procTranslator.stdout.readline().strip(), procTranslator.stdout.readline().strip()
-			a1,   a2   = procTranslator.stdout.readline().strip(), procTranslator.stdout.readline().strip()
-			
-			a12												 = "%s,%s" % (a1, a2)
-			sentdist									 = str(sentdist)
-			irc1, irc2, irsrc1, irsrc2 = [], [], "", ""
-
-			def _addContext(_out, _c):
-				for i in xrange(0, len(_c), 2):
-					print >>procTranslator.stdin, "ct", _c[i+0]
-					print >>procTranslator.stdin, _c[i+1]
-					_out += [procTranslator.stdout.readline().strip() + ":" + procTranslator.stdout.readline().strip()]
-
-			_addContext(irc1, ic1)
-			irc1 = " ".join(irc1)
-			
-			_addContext(irc2, ic2)
-			irc2 = " ".join(irc2)
+			irp1, irp2, ia12, sentdist, irc1, irc2, src = ir.split("\t")
+			a1,   a2																		= ia12.split(",")
+			a12																					= "%s,%s" % (a1, a2)
+			sentdist																		= str(sentdist)
 			
 			print "<tr height=\"150px\"><td><a name=\"next%s\"></a>%s</td></tr>" % (nextAnchor, "</td><td>".join([
 						"%d" % (1+r),
@@ -231,7 +193,7 @@ if None != fs.getvalue("query"):
 							),
 						"%s <br />(%s)" % (irp1, "indexed" if 0 == inst.iIndexed else "predicted"),
 						a12.split(",")[0], _prettyC(c1, irc1),
-						"<a target=\"_blank\" href=\"https://www.google.co.jp/search?q=%s\">G</a>" % (urllib2.quote("\"%s\"+\"%s\"" % (irsrc1[2:], irsrc2[2:]))),
+						"<a target=\"_blank\" href=\"https://www.google.co.jp/search?q=%s\">G</a>" % (urllib2.quote("\"%s\"+\"%s\"" % (irp1, irp2))),
 						]))
 
 			print "<tr height=\"150px\"><td><a name=\"next%s\"></a>%s</td></tr>" % (nextAnchor, "</td><td>".join([
@@ -245,7 +207,7 @@ if None != fs.getvalue("query"):
 							),
 						"%s <br />(%s)" % (irp2, "indexed" if 1 == inst.iIndexed else "predicted"),
 						a12.split(",")[1], _prettyC(c2, irc2),
-						"<a target=\"_blank\" href=\"https://www.google.co.jp/search?q=%s\">G</a>" % (urllib2.quote("\"%s\"+\"%s\"" % (irsrc1[2:], irsrc2[2:]))),
+						"<a target=\"_blank\" href=\"https://www.google.co.jp/search?q=%s\">G</a>" % (urllib2.quote("\"%s\"+\"%s\"" % (irp1, irp2))),
 						]))
 			
 			# print "<tr height=\"150px\"><td><a name=\"next%s\"></a>%s</td></tr>" % (nextAnchor, "</td><td>".join([
