@@ -211,13 +211,6 @@ class feature_function_t:
 			r		 = ranker.getRank(can.attrib["id"], fk)
 			diff = 0
 			
-			# if "cirPMI" in fk:
-			# 	if 2 == len(ranker.rankingsRv[fk]):
-			# 		myScore, oppScore = ranker.rankingsRv[fk][0 if "R1" == r else 1][1], ranker.rankingsRv[fk][1 if "R1" == r else 0][1]
-			# 		diff              = int(10*abs(myScore-oppScore)/2.0)
-			# 	else:
-			# 		diff              = 10
-					
 			if None != r:
 				yield "%s_%s_%s_%s" % (position, fk, r, diff), 1
 

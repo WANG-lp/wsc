@@ -106,10 +106,12 @@ def _writeFeatures(ff, i, tupleInstance, bypass):
 
 	_printContextualInfo(sent, anaphor, antecedent, antecedent_false)
 
-	print "<feature-vector>%s</feature-vector>" % " ".join([
-			" ".join(["%s:%s" % x
-								for x in ff.generateFeature(anaphor, can, sent, ranker)])
-			for can in candidates])
+	for can in candidates:
+		print "<feature-vector for=\"%s\">%s</feature-vector>" % (
+			"correct" if can == antecedent else "wrong",
+			"%d qid:%d %s" % (1 if can == antecedent else 2, 1+i,
+												" ".join(["%s:%s" % x for x in ff.generateFeature(anaphor, can, sent, ranker)])
+												))
 
 	#
 	# FOR MORE INFORMATIVE OUTPUTS

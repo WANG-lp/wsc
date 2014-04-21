@@ -8,6 +8,6 @@ xpath $argv[1] \
     "feature[@type='kNN_score_iriPred,K=$k']/@correct:None" "feature[@type='kNN_score_iriPred,K=$k']/@wrong:None" \
     "feature[@type='kNN_score_iriPredArg,K=$k']/@correct:None" "feature[@type='kNN_score_iriPredArg,K=$k']/@wrong:None" \
     "feature[@type='kNN_score_iriPredArgCon,K=$k']/@correct:None" "feature[@type='kNN_score_iriPredArgCon,K=$k']/@wrong:None" \
-    | python ./bin/performance.py $k
+    | python ./src/performance.py $k
 end
 

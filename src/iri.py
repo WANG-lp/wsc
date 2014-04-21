@@ -40,7 +40,7 @@ class iri_t:
 
 		self.cacheSearchServer = {}
 
-	def predict(self, predicate, context, slot, focusedArgument, predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None, threshold = 0):
+	def predict(self, predicate, context, slot, focusedArgument, predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None, threshold = 0, limit = 1000):
 		keyCache = predicate + context + str(threshold)
 		
 		if not self.cacheSearchServer.has_key(keyCache):
@@ -56,6 +56,7 @@ class iri_t:
 				print >>self.procSearchServer.stdin, "~a", predictedFocusedArgument
 				
 			print >>self.procSearchServer.stdin, "t", threshold
+			print >>self.procSearchServer.stdin, "m", limit
 			print >>self.procSearchServer.stdin, ""
 
 			# READ THE NUMBER OF IRIs.
@@ -101,6 +102,7 @@ if "__main__" == __name__:
 
 	try:
 		threshold = 0
+		limit     = 1000
 		
 		while True:
 			x					 = raw_input("? ")
@@ -110,20 +112,32 @@ if "__main__" == __name__:
 				threshold = int(x[2:])
 				print "Threshold =", threshold
 				continue
-				
+
+			if x.startswith("l "):
+				limit = int(x[2:])
+				print "Limit =", limit
+				continue
+			
 			if len(x.strip().split("\t")) != 4 and len(x.strip().split("\t")) != 8:
-				print "Format: predicate[TAB]context[TAB]slot[TAB]focused argument"
+				print "Format: predicate[TAB]context[TAB]slot[TAB]focused argument", "or"
+				print "Format: predicate[TAB]context[TAB]slot[TAB]focused argument[TAB]predicate[TAB]context[TAB]slot[TAB]focused argument", "or"
 				continue
 
 			try:
-				iris = sorted(iri.predict(*x.strip().split("\t"), threshold=threshold), key=lambda x: x[0].score, reverse=True)
+				iris = sorted(iri.predict(*x.strip().split("\t"), threshold=threshold, limit=limit),
+											key=lambda x:
+												x[0].sIndexPred[x[0].iIndexed]*x[0].sPredictedPred+\
+												x[0].sIndexSlot[x[0].iIndexed]*x[0].sPredictedSlot+\
+												x[0].sIndexContext[x[0].iIndexed]*x[0].sPredictedContext+\
+												0.1*(x[0].sIndexArg[x[0].iIndexed]*x[0].sPredictedArg)
+											, reverse=True)
 
 			except KeyboardInterrupt:
 				print "Aborted."
 				continue
 
 			try:
-				f = open("/home/naoya-i/work/wsc/local/webint/kb.html", "w")
+				f = open("/home/naoya-i/work/wsc/local/webint/kbsearch-%s.html" % sys.argv[2], "w")
 
 				print >>f, """<html><head>
 <link href="./bootstrap-3.0.3/dist/css/bootstrap.min.css" rel="stylesheet" />
