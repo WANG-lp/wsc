@@ -47,7 +47,7 @@ if None != fs.getvalue("query"):
 		governors, contexts, lemmas = [], [], []
 		text												= ""
 		
-		for ln in os.popen("awk '$0 ~ /problem id=\"%s\"/ { fPrint=1; } 1 == fPrint { print $0 } fPrint && $0 ~ /<\/problem>/ {exit}' /work/naoya-i/tmp/train.full.xml" % problemNo):
+		for ln in os.popen("awk '$0 ~ /problem id=\"%s\"/ { fPrint=1; } 1 == fPrint { print $0 } fPrint && $0 ~ /<\/problem>/ {exit}' ./link-to-result" % problemNo):
 			if "governors" in ln: governors = re.findall("\"(.*?)\"", ln)
 			if "contexts" in ln:  contexts  = re.findall("\"(.*?)\"", ln)
 			if "text=" in ln:
