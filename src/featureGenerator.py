@@ -11,6 +11,7 @@ import collections
 import math
 import os
 import cdb
+import marshal
 
 #
 def _isPredicate(x):  return x in "VB|VBD|VBG|VBN|VBP|VBZ|JJ|JJR|JJS".split("|")
@@ -27,13 +28,30 @@ def _npmi(_xy, _x, _y):
 	return 0.5*(1+(math.log(1.0 * _xy / (_x * _y), 2) / -math.log(_xy, 2)))
 
 def _catenativeget(gv, sent):
-    catenativelist = ["want","afford"]
+    catenativelistA = ['afford', 'agree', 'able','aim', 'appear', 'arrange', 'ask', 'attempt', 'beg', 'care', 'choose', 'condescend', 'consent', 'dare', 'decide', 'deserve', 'expect', 'fail', 'happen', 'have', 'help', 'hesitate', 'hope', 'long', 'move', 'need', 'offer', 'plan', 'prepare', 'pretend', 'proceed', 'promise', 'refuse', 'seek', 'seem', 'strive', 'struggle', 'swear', 'tend', 'threaten', 'undertake', 'wait', 'want', 'wish']
+    catenativelistB = ['allowed', 'forbid', 'permit', 'request', 'require']
+    catenativelistC = ['admit', 'advise', 'allow', 'appreciate', 'avoid', 'complete', 'consider', 'delay', 'deny', 'detest', 'dislike', 'enjoy', 'escape', 'finish', 'forbid', 'imagine', 'imply', 'keep', 'mind', 'miss', 'need', 'permit', 'practise', 'quit', 'recall', 'recommend', 'regret', 'resent', 'resist', 'resume', 'risk', 'stand', 'suggest', 'tolerate', 'want']
+    catenativelistD = ['bear', 'begin', 'bother', 'continue', 'disdain', 'intend', 'like', 'love', 'neglect', 'prefer', 'regret', 'start', 'come', 'go', 'get', 'forget', 'like', 'mean', 'need', 'remember', 'propose', 'stop', 'try']
+    # catenativelistOther = ['able']
+    catenativelist = list(set(catenativelistA)|set(catenativelistB)|set(catenativelistC)|set(catenativelistD))
 
+    
     if gv.lemma in catenativelist:
         newgv = scn.getCatenativeDependent(sent, gv)
         return newgv
     else:
         return gv
+
+def _phrasalget(gv, sent):
+    phrasedict = marshal.load( open("/home/jun-s/work/wsc/data/phrasedict.msl") )
+    # phrasedict = {'come': {'come_back': ['answer', 'denote', 'reappear', 're-emerge', 'refer', 'reply', 'respond'], 'come_by': ['acquire']}}
+
+    if gv.lemma in phrasedict:
+        newgv = scn.getPhrasal(sent, gv, phrasedict[gv.lemma])
+        return newgv
+    else:
+        return gv
+
         
 class ranker_t:
 	def __init__(self, ff, ana, candidates, sent):
@@ -53,33 +71,71 @@ class ranker_t:
 			self.rankingsRv["position"] += [(vCan, -int(can.attrib["id"]))]
 
 			if None != gvAna and None != gvCan:
-                                # print "======"
-                                # print gvAna
-                                # print gvAna.lemma, gvAna.rel, gvAna.POS
-                                # print "======"
-
-                                gvAna = _catenativeget(gvAna, sent)
-
-                                # print "++++++"
-                                # print gvAna
-                                # print gvAna.lemma, gvAna.rel, gvAna.POS
-                                # print "++++++"
-
-                                gvCan = _catenativeget(gvCan, sent)
                                 
-				r1 = ff.selPref("%s-%s" % (scn.getLemma(gvAna.token), gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (scn.getLemma(can), scn.getNEtype(can)))
+				# r1 = ff.selPref("%s-%s" % (scn.getLemma(gvAna.token), gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (scn.getLemma(can), scn.getNEtype(can)))
+                                r1 = ff.selPref("%s-%s" % (gvAna.lemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (scn.getLemma(can), scn.getNEtype(can)))
                                 
-				self.rankingsRv["nc"] += [(vCan, ff.nc(gvAna.lemma, gvAna.rel, gvCan.lemma, gvCan.rel))]
-				self.rankingsRv["selpref"] += [(vCan, r1[1])]
-				self.rankingsRv["selprefcnt"] += [(vCan, math.log(max(1, r1[0])))]
+                                self.rankingsRv["nc"] += [(vCan, ff.nc(gvAna.lemma, gvAna.rel, gvCan.lemma, gvCan.rel))]
+                                self.rankingsRv["selpref"] += [(vCan, r1[1])]
+                                self.rankingsRv["selprefcnt"] += [(vCan, math.log(max(1, r1[0])))]
+                                
+                                if isinstance(gvAna.lemma, list) and isinstance(gvCan.lemma, list):
+                                    # print "anaphra govornor and candidate govornor are phrasal verb"
+                                    for p1 in gvAna.lemma:
+                                        for p2 in gvCan.lemma:
+                                            ff.iri(self.NN,
+                                                   vCan,
+                                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                                   self.statistics["iriInstances"],
+                                            )
+                                elif isinstance(gvAna.lemma, list):
+                                    # print len(gvAna.lemma)
+                                    # print "anaphora govonor is phrasal verb"
+                                    for p1 in gvAna.lemma:
+                                        # print p1
+                                        ff.iri(self.NN,
+                                               vCan,
+                                               p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                               gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                               self.statistics["iriInstances"],
+                                        )
 
+
+                                elif isinstance(gvCan.lemma, list):
+                                    # print len(gvCan.lemma)
+                                    # print "candidate govonors is phrasal verb"
+                                    for p2 in gvCan.lemma:
+                                        # print p2
+                                        ff.iri(self.NN,
+                                               vCan,
+                                               gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                               p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                               self.statistics["iriInstances"],
+                                        )
+                                        
+                                    # self.rankingsRv["nc"] += [(vCan, ff.nc(gvAna.lemma, gvAna.rel, gvCan.lemma, gvCan.rel))]
+                                    # self.rankingsRv["selpref"] += [(vCan, r1[1])]
+                                    # self.rankingsRv["selprefcnt"] += [(vCan, math.log(max(1, r1[0])))]
+
+                                    # ff.iri_for_list(self.NN,
+                                    #                 vCan,
+                                    #                 gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                    #                 gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                    #                 self.statistics["iriInstances"],
+                                    # )
+
+                                else:                                
+                                    # self.rankingsRv["nc"] += [(vCan, ff.nc(gvAna.lemma, gvAna.rel, gvCan.lemma, gvCan.rel))]
+                                    # self.rankingsRv["selpref"] += [(vCan, r1[1])]
+                                    # self.rankingsRv["selprefcnt"] += [(vCan, math.log(max(1, r1[0])))]
                                 
-				ff.iri(self.NN,
-										vCan,
-										gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
-										gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
-										self.statistics["iriInstances"],
-										)
+                                    ff.iri(self.NN,
+                                           vCan,
+                                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                           gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                           self.statistics["iriInstances"],
+                                    )
 				
 				# r1 = ff.cir(self.NN, vCan, gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token),
 				# 	    gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
@@ -332,7 +388,7 @@ class feature_function_t:
 			outNN["iriPredArgCon"] += [(NNvoted, spac)]
 
 		return 0
-						 
+
 	def cir(self, outNN, NNvoted, p1, r1, ps1, c1, p2, r2, ps2, c2, filler, cached = None):
 		voters	 = collections.defaultdict(list)
 		comXY, comX, comY = 0.0, 0.0, 0.0

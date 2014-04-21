@@ -3,6 +3,9 @@
 import collections
 import sys
 
+import featureGenerator as fgn
+
+
 def _isPredicativeGovernorRel(x): return x in "nsubjpass nsubj dobj iobj".split() or x.startswith("prep")
 
 governor_t = collections.namedtuple("governor_t", "rel token lemma POS")
@@ -112,8 +115,12 @@ def getPrimaryPredicativeGovernor(sent, x, contentGovernor = True):
 			ps = getPOS(cg[-1][2])
 			
 			if "VB" in ps or "JJ" in ps:
-				return governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
-			
+				# return governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
+				tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
+                                tmp1 = fgn._catenativeget(tmp1, sent)
+                                tmp1 = fgn._phrasalget(tmp1, sent)
+                                return tmp1
+                                
 	for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/dependent[@idx='%s']/.." % x.attrib["id"]):
 		tk = getTokenById(sent, y.find("governor").attrib["idx"])
 
@@ -121,7 +128,12 @@ def getPrimaryPredicativeGovernor(sent, x, contentGovernor = True):
 			ps = getPOS(tk)
 			
 			if "VB" in ps or "JJ" in ps:
-				return governor_t(convRel(y.attrib["type"], tk, sent), tk, getLemma(tk), getPOS(tk))
+				# return governor_t(convRel(y.attrib["type"], tk, sent), tk, getLemma(tk), getPOS(tk))
+				tmp1 = governor_t(convRel(y.attrib["type"], tk, sent), tk, getLemma(tk), getPOS(tk))
+                                tmp1 = fgn._catenativeget(tmp1, sent)
+                                tmp1 = fgn._phrasalget(tmp1, sent)
+                                return tmp1
+
 
 def getCatenativeDependent(sent, cate):
     	dependent_items = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/governor[@idx='%s']" % cate.token.attrib["id"])
@@ -149,7 +161,53 @@ def getCatenativeDependent(sent, cate):
             return governor_t(cate.rel, ret[0][1], ret[0][2], ret[0][3])
         else:
             return cate
-                                
+
+def getPhrasal(sent, phgv, phdict):
+    dependent_items = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/governor[@idx='%s']" % phgv.token.attrib["id"])
+    ret = []
+
+    for depitem in dependent_items:
+        idx = depitem.xpath("../dependent")[0].attrib["idx"]
+        tp  = depitem.xpath("..")[0].attrib["type"]
+        
+        lm = sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)
+        ps = sent.xpath("./tokens/token[@id='%s']/POS/text()" % idx)
+        
+        if 0 == len(lm): lm = ["?"]
+        # if 0 == int(idx): continue
+        # ret += [(tp, lm[0], sent.xpath("./tokens/token[@id='%s']" % idx)[0])]
+        
+        # FOLLOWED BY A TO-INFINITIVE or A GERUND
+        if "advmod" == tp:
+            ret += lm
+            
+            # print "xcomp = "
+            # print sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)
+            # ret += getContentPredicativeGovernor(sent, sent.xpath("./tokens/token[@id='%s']" % idx)[0])
+            # ret += [(tp, sent.xpath("./tokens/token[@id='%s']" % idx)[0], lm[0], ps[0])]
+            
+    if ret != []:
+        candphrase = phgv.lemma + "_" + "_".join(ret)
+        # print phgv.lemma
+        # print "_"
+        # print "_".join(ret)
+        # print candphrase
+        
+        if candphrase in phdict:
+            paraphraselist = phdict[candphrase]
+            # print paraphraselist
+            if len(paraphraselist) == 1:
+                return governor_t(phgv.rel, phgv.token, paraphraselist[0], phgv.POS)
+            else:
+                return governor_t(phgv.rel, phgv.token, paraphraselist, phgv.POS)
+        else:
+            return phgv
+    else:
+        return phgv
+
+    
+
+            
 def getContentPredicativeGovernor(sent, p):
 	governing_predicate = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/dependent[@idx='%s']" % p.attrib["id"])
 	ret                 = []
