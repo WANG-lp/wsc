@@ -16,7 +16,7 @@ import urllib2
 
 import xml.etree.cElementTree as ET
 
-sys.path.append("/home/naoya-i/work/wsc/bin")
+sys.path.append("/home/naoya-i/work/wsc/src")
 
 import iri
 

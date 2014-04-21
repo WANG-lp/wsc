@@ -35,7 +35,7 @@ for ln in sys.stdin:
 		
 vec = []
 
-print m
+# print m
 
 for k in methods:
 	numCorrect, numWrong, numNoDec = 0, 0, 0
@@ -66,7 +66,9 @@ for k in methods:
 	numTTCheckSum = numTTCorrect + numTTWrong
 
 	vec += [
-		100.0*numCorrect/numCheckSum if numCheckSum > 0 else 0, 100.0*numWrong/numCheckSum if numCheckSum > 0 else 0, 100.0*numNoDec/numCheckSum if numCheckSum > 0 else 0, 
+		100.0*numCorrect/numCheckSum if numCheckSum > 0 else 0,
+		100.0*numWrong/numCheckSum if numCheckSum > 0 else 0,
+		100.0*numNoDec/numCheckSum if numCheckSum > 0 else 0, 
 		numCorrect, numWrong, numNoDec, numCheckSum,
 		# 100.0*numTTCorrect/numTTCheckSum if numTTCheckSum > 0 else 0, 100.0*numTTWrong/numTTCheckSum if numTTCheckSum > 0 else 0,
 		# numTTCorrect, numTTWrong, numTTCheckSum,

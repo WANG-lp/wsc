@@ -11,7 +11,7 @@ import mmap
 
 import urllib2
 
-sys.path += ["/home/naoya-i/work/wsc/bin"]
+sys.path += ["/home/naoya-i/work/wsc/src"]
 
 import cir as conir
 

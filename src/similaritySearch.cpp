@@ -39,10 +39,11 @@ int main(int argc, char **argv) {
   
   google_word2vec_t gw2v(opts.of('k') + "/GoogleNews-vectors-negative300.bin",
                          opts.of('k') + "/GoogleNews-vectors-negative300.index.bin");
-  lsh_t          lsh(opts.of('i'));
-  string         line;
-  int            th     = 0;
-  float         *pQuery = new float[lsh.getDim()];
+  lsh_t   lsh(opts.of('i'));
+  string  line;
+  int     th       = 0;
+  size_t  maxRules = 1000;
+  float  *pQuery   = new float[lsh.getDim()];
   
   corefevents_t                libce(opts.of('d'), true);
   corefevents_t::proposition_t prpIndexed, prpPredicted;
@@ -63,6 +64,7 @@ int main(int argc, char **argv) {
     }
     
     if('t' == line[0]) th = atoi(line.substr(2).c_str());
+    if('m' == line[0]) maxRules = atoi(line.substr(2).c_str());
     
     if("" != line) continue;
     
@@ -118,8 +120,8 @@ int main(int argc, char **argv) {
     std::srand(0);
     std::random_shuffle(ret.begin(), ret.end(), myrandom);
 
-    if(ret.size() > 1000) {
-      ret.resize(1000);
+    if(ret.size() > maxRules) {
+      ret.resize(maxRules);
       cerr << "Truncated." << endl;
     }
       
