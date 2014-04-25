@@ -20,6 +20,7 @@ m   	  = dict([(k, collections.defaultdict(int)) for k in methods])
 
 for ln in sys.stdin:
 	ln = ln.strip().split("\t")
+        # print ln
 
 	# m["numRules"][_getClass(ln[1], ln[2], ln[1], ln[2])] += 1
 	# m["cirPMI"][_getClass(ln[1], ln[2], ln[3], ln[4])] += 1
@@ -46,11 +47,11 @@ for k in methods:
 	if 0 == len(m[k]): continue
 
 	for c in [(True,True,True), (True,True,False), (True,False,True), (False,True,False), (False,False,True), (False,False,False)]:
-		# numCorrect += m[k][c] if (c[0] or c[1]) and c[2] else 0
-		# numWrong += m[k][c] if (c[0] or c[1]) and not c[2] else 0
-		# numNoDec += m[k][c] if not(c[0] or c[1]) else 0		
-		numCorrect += m[k][c] if c[2] else 0
-		numWrong += m[k][c] if not c[2] else 0
+		numCorrect += m[k][c] if (c[0] or c[1]) and c[2] else 0
+		numWrong += m[k][c] if (c[0] or c[1]) and not c[2] else 0
+		numNoDec += m[k][c] if not(c[0] or c[1]) else 0		
+		# numCorrect += m[k][c] if c[2] else 0
+		# numWrong += m[k][c] if not c[2] else 0
 		# numNoDec += m[k][c] if not(c[0] or c[1]) else 0
 		
 		numTTCorrect += m[k][c] if (c[0] and c[1]) and c[2] else 0

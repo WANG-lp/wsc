@@ -117,13 +117,13 @@ int main(int argc, char **argv) {
       i += counter;
     }
     
-    std::srand(0);
-    std::random_shuffle(ret.begin(), ret.end(), myrandom);
+    // std::srand(0);
+    // std::random_shuffle(ret.begin(), ret.end(), myrandom);
 
-    if(ret.size() > maxRules) {
-      ret.resize(maxRules);
-      cerr << "Truncated." << endl;
-    }
+    // if(ret.size() > maxRules) {
+    //   ret.resize(maxRules);
+    //   cerr << "Truncated." << endl;
+    // }
       
     cerr << "Done!" << endl;
     cerr << ret.size() << " entries have been found. (took " << float(timeElapsed)/1000.0 << " sec)." << endl;

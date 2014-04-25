@@ -67,7 +67,7 @@ class iri_t:
 			numIRIs = len(self.cacheSearchServer[keyCache])
 			
 		ret     = []
-		
+
 		for i in xrange(numIRIs):
 			iIndexed, iPredicted, offset, length, \
 					score, \

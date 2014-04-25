@@ -146,14 +146,27 @@ def _writeFeatures(ff, i, tupleInstance, bypass):
 
 	# OTHER STATISTICS
 	for fk, fvs in ranker.statistics.iteritems():
+                NumRulesCorrect = 0
+                NumRulesWrong = 0
 		if "cirInstances" == fk or "iriInstances" == fk:
 			for voted, inst in fvs:
+                                if int(antecedent.attrib["id"]) == int(voted):
+                                    NumRulesCorrect += 1 
+                                else:
+                                    NumRulesWrong += 1
+                                                                
 				print "<statistics type=\"%s\" label=\"%s\">%s</statistics>" % (
 					fk,
 					"Correct" if int(antecedent.attrib["id"]) == int(voted) else "Wrong",
 					"\t".join([repr(inst._asdict()[v]) for v in inst._fields])
 					)
-			
+                        print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
+                            "iriNumRules",
+                            NumRulesCorrect,
+                            NumRulesWrong
+                        )
+
+
 		else:
 			print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
 				fk,

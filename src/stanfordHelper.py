@@ -118,7 +118,7 @@ def getPrimaryPredicativeGovernor(sent, x, contentGovernor = True):
 				# return governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
 				tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
                                 tmp1 = fgn._catenativeget(tmp1, sent)
-                                tmp1 = fgn._phrasalget(tmp1, sent)
+                                # tmp1 = fgn._phrasalget(tmp1, sent)
                                 return tmp1
                                 
 	for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/dependent[@idx='%s']/.." % x.attrib["id"]):
@@ -131,7 +131,7 @@ def getPrimaryPredicativeGovernor(sent, x, contentGovernor = True):
 				# return governor_t(convRel(y.attrib["type"], tk, sent), tk, getLemma(tk), getPOS(tk))
 				tmp1 = governor_t(convRel(y.attrib["type"], tk, sent), tk, getLemma(tk), getPOS(tk))
                                 tmp1 = fgn._catenativeget(tmp1, sent)
-                                tmp1 = fgn._phrasalget(tmp1, sent)
+                                # tmp1 = fgn._phrasalget(tmp1, sent)
                                 return tmp1
 
 
@@ -165,7 +165,7 @@ def getCatenativeDependent(sent, cate):
 def getPhrasal(sent, phgv, phdict):
     dependent_items = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/governor[@idx='%s']" % phgv.token.attrib["id"])
     ret = []
-
+    phrasedeplist = ["advmod", "prt", "prep", "amod"]
     for depitem in dependent_items:
         idx = depitem.xpath("../dependent")[0].attrib["idx"]
         tp  = depitem.xpath("..")[0].attrib["type"]
@@ -178,7 +178,7 @@ def getPhrasal(sent, phgv, phdict):
         # ret += [(tp, lm[0], sent.xpath("./tokens/token[@id='%s']" % idx)[0])]
         
         # FOLLOWED BY A TO-INFINITIVE or A GERUND
-        if "advmod" == tp:
+        if tp in phrasedeplist:
             ret += lm
             
             # print "xcomp = "
