@@ -64,6 +64,22 @@ public:
       delete[] m_pCorefEvents;
   }
 
+  void getPredicates(string *pOut1, string *pOut2, uint64_t offset) {
+    char buffer[1024*16];
+    for(uint64_t i=offset; '\t'!=m_pCorefEvents[i]; i++) {
+      buffer[i-offset] = m_pCorefEvents[i]; buffer[i-offset+1] = 0;
+    }
+
+    (*pOut1) = buffer;
+    offset += strlen(buffer);
+    
+    for(uint64_t i=offset; '\t'!=m_pCorefEvents[i]; i++) {
+      buffer[i-offset] = m_pCorefEvents[i]; buffer[i-offset+1] = 0;
+    }
+
+    (*pOut2) = buffer;
+  }
+  
   bool calcScore(result_t *pOut, uint64_t offset, int length, const proposition_t &prpIndexed, const proposition_t &prpPredicted, const google_word2vec_t &gw2v) {
     char     buffer[1024*16];
 

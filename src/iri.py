@@ -49,6 +49,12 @@ class iri_t:
 			print >>self.procSearchServer.stdin, "s", slot
 			print >>self.procSearchServer.stdin, "a", focusedArgument
 
+			# TO TURN ON SIMILARITY SEARCH,
+			# print >>self.procSearchServer.stdin, "+", "y"
+			
+			# TO TURN OFF SIMILARITY SEARCH,
+			# print >>self.procSearchServer.stdin, "+", "n"
+			
 			if None != predictedFocusedArgument:
 				print >>self.procSearchServer.stdin, "~p", predictedPredicate
 				print >>self.procSearchServer.stdin, "~c", predictedContext

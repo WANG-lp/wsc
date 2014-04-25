@@ -41,8 +41,9 @@ int main(int argc, char **argv) {
                          opts.of('k') + "/GoogleNews-vectors-negative300.index.bin");
   lsh_t   lsh(opts.of('i'));
   string  line;
+  bool    fSimilaritySearchOn = false;
   int     th       = 0;
-  size_t  maxRules = 1000;
+  size_t  maxRules = 10000;
   float  *pQuery   = new float[lsh.getDim()];
   
   corefevents_t                libce(opts.of('d'), true);
@@ -63,6 +64,7 @@ int main(int argc, char **argv) {
       if('s' == line[1]) prpPredicted.slot = line.substr(3);
     }
     
+    if('+' == line[0]) fSimilaritySearchOn = line.substr(2) == "y";
     if('t' == line[0]) th = atoi(line.substr(2).c_str());
     if('m' == line[0]) maxRules = atoi(line.substr(2).c_str());
     
@@ -99,7 +101,7 @@ int main(int argc, char **argv) {
       
       cerr << "Cool. " << ret.size() << " entries found." << endl;
     }
-    
+
     gettimeofday(&t2, NULL);
 
     int timeElapsed = (t2.tv_sec - t1.tv_sec) * 1000 + (t2.tv_usec - t1.tv_usec)/1000;
@@ -116,7 +118,26 @@ int main(int argc, char **argv) {
       
       i += counter;
     }
+
+    // FILTERING: REMOVE A SET OF INFERENCE RULE INSTANCES THAT DO NOT
+    // EXACTLY MATCH WITH THE INPUT PREDICATES.
+    if(!fSimilaritySearchOn) {
+      vector<uint64_t> retFiltered;
+      string p1, p2;
+      for(size_t i=0; i<ret.size(); i++) {
+        libce.getPredicates(&p1, &p2, ret[i]);
+        if((prpIndexed.predicate + ":" + prpIndexed.slot == p1 &&
+            prpPredicted.predicate + ":" + prpPredicted.slot == p2) ||
+           (prpIndexed.predicate + ":" + prpIndexed.slot == p2 &&
+            prpPredicted.predicate + ":" + prpPredicted.slot == p1))
+          retFiltered.push_back(ret[i]);
+      }
+
+      ret = retFiltered;
+    }
+    // <-- FILTERING ENDS
     
+    // <-- FILTERING: RANDOM SAMPLING
     std::srand(0);
     std::random_shuffle(ret.begin(), ret.end(), myrandom);
 
@@ -124,6 +145,7 @@ int main(int argc, char **argv) {
       ret.resize(maxRules);
       cerr << "Truncated." << endl;
     }
+    // <-- FILTERING ENDS
       
     cerr << "Done!" << endl;
     cerr << ret.size() << " entries have been found. (took " << float(timeElapsed)/1000.0 << " sec)." << endl;
