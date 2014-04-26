@@ -126,6 +126,11 @@ int main(int argc, char **argv) {
       string p1, p2;
       for(size_t i=0; i<ret.size(); i++) {
         libce.getPredicates(&p1, &p2, ret[i]);
+
+        // REMOVE THE POS.
+        p1 = p1.substr(0, p1.find("-")) + p1.substr(p1.find("-")+2);
+        p2 = p2.substr(0, p2.find("-")) + p2.substr(p2.find("-")+2);
+        
         if((prpIndexed.predicate + ":" + prpIndexed.slot == p1 &&
             prpPredicted.predicate + ":" + prpPredicted.slot == p2) ||
            (prpIndexed.predicate + ":" + prpIndexed.slot == p2 &&
