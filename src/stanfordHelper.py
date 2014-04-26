@@ -117,7 +117,7 @@ def getPrimaryPredicativeGovernor(sent, x, contentGovernor = True):
 			if "VB" in ps or "JJ" in ps:
 				# return governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
 				tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
-                                tmp1 = fgn._catenativeget(tmp1, sent)
+                                # tmp1 = fgn._catenativeget(tmp1, sent)
                                 # tmp1 = fgn._phrasalget(tmp1, sent)
                                 return tmp1
                                 
@@ -130,7 +130,7 @@ def getPrimaryPredicativeGovernor(sent, x, contentGovernor = True):
 			if "VB" in ps or "JJ" in ps:
 				# return governor_t(convRel(y.attrib["type"], tk, sent), tk, getLemma(tk), getPOS(tk))
 				tmp1 = governor_t(convRel(y.attrib["type"], tk, sent), tk, getLemma(tk), getPOS(tk))
-                                tmp1 = fgn._catenativeget(tmp1, sent)
+                                # tmp1 = fgn._catenativeget(tmp1, sent)
                                 # tmp1 = fgn._phrasalget(tmp1, sent)
                                 return tmp1
 

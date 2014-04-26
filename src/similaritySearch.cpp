@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
     }
     // <-- FILTERING ENDS
     
-<<<<<<< HEAD
+// <<<<<<< HEAD
     // std::srand(0);
     // std::random_shuffle(ret.begin(), ret.end(), myrandom);
 
@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
     //   ret.resize(maxRules);
     //   cerr << "Truncated." << endl;
     // }
-=======
+// =======
     // <-- FILTERING: RANDOM SAMPLING
     std::srand(0);
     std::random_shuffle(ret.begin(), ret.end(), myrandom);
@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
       cerr << "Truncated." << endl;
     }
     // <-- FILTERING ENDS
->>>>>>> 2745f0fcaa9a32696cbcb61fde2da13f7deb25ad
+// >>>>>>> 2745f0fcaa9a32696cbcb61fde2da13f7deb25ad
       
     cerr << "Done!" << endl;
     cerr << ret.size() << " entries have been found. (took " << float(timeElapsed)/1000.0 << " sec)." << endl;

@@ -364,8 +364,8 @@ class feature_function_t:
 			spa = sp * ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 
-                        if sp != 1: # predicate similarity OFF
-                            continue
+                        # if sp != 1: # predicate similarity OFF
+                        #     continue
 
                         # print "sp == 1"
                         # print p1, p2
@@ -383,8 +383,8 @@ class feature_function_t:
 			spa = sp * ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 
-                        if sp != 1: # predicate similarity OFF
-                            continue
+                        # if sp != 1: # predicate similarity OFF
+                        #     continue
 
                         if None != cached: cached += [(NNvoted, ret)]                                                                            
 			assert(abs(spac - ret.score) < 0.1)
