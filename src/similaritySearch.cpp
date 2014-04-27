@@ -81,7 +81,9 @@ int main(int argc, char **argv) {
 
     // PREPARE THE KEYS.
     keys.push_back(prpIndexed.predicate);
-    extractContextWords(&keys, prpIndexed.context);
+    
+    if(fSimilaritySearchOn)
+      extractContextWords(&keys, prpIndexed.context);
     
     timeval t1, t2;
     gettimeofday(&t1, NULL);
@@ -92,7 +94,7 @@ int main(int argc, char **argv) {
       initVector(pQuery, lsh.getDim());
       addWordVector(pQuery, keys[i], gw2v);
 
-      vector<uint64_t> ret(1024*1024, 0);
+      vector<uint64_t> ret;
       lsh.search(&ret, pQuery, th, atoi(opts.of('m').c_str()));
 
       unordered_set<uint64_t> setRet(ret.begin(), ret.end());
@@ -124,18 +126,20 @@ int main(int argc, char **argv) {
     if(!fSimilaritySearchOn) {
       vector<uint64_t> retFiltered;
       string p1, p2;
+      
       for(size_t i=0; i<ret.size(); i++) {
         libce.getPredicates(&p1, &p2, ret[i]);
 
         // REMOVE THE POS.
         p1 = p1.substr(0, p1.find("-")) + p1.substr(p1.find("-")+2);
         p2 = p2.substr(0, p2.find("-")) + p2.substr(p2.find("-")+2);
-        
+
         if((prpIndexed.predicate + ":" + prpIndexed.slot == p1 &&
             prpPredicted.predicate + ":" + prpPredicted.slot == p2) ||
            (prpIndexed.predicate + ":" + prpIndexed.slot == p2 &&
-            prpPredicted.predicate + ":" + prpPredicted.slot == p1))
+            prpPredicted.predicate + ":" + prpPredicted.slot == p1)) {
           retFiltered.push_back(ret[i]);
+        }
       }
 
       ret = retFiltered;

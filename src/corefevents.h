@@ -71,7 +71,7 @@ public:
     }
 
     (*pOut1) = buffer;
-    offset += strlen(buffer);
+    offset += strlen(buffer)+1;
     
     for(uint64_t i=offset; '\t'!=m_pCorefEvents[i]; i++) {
       buffer[i-offset] = m_pCorefEvents[i]; buffer[i-offset+1] = 0;
