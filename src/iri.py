@@ -80,7 +80,7 @@ class iri_t:
 		numIRIs = int(self.procSearchServer.stdout.readline())
 			
 		ret     = []
-		
+
 		for i in xrange(numIRIs):
 			iIndexed, iPredicted, offset, length, \
 					score, \
@@ -99,7 +99,15 @@ class iri_t:
 				line = self.procSearchServer.stdout.readline().strip().split("\t")
 			except ValueError:
 				continue
-			
+
+                        # result_t = collections.namedtuple(
+                        #     "result_t",
+                        #     "score iPredicted iIndexed sRuleAssoc" +\
+                        #     " sIndexPred sIndexArg sIndexContext sIndexSlot" +\
+                        #     " sPredictedPred sPredictedArg sPredictedContext sPredictedSlot" +\
+                        #     " offset length"
+                        # )
+        
 			yield result_t(score,
 										 iPredicted, iIndexed,
 										 spassoc,

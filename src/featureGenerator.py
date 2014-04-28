@@ -90,10 +90,10 @@ class ranker_t:
                                                    self.statistics["iriInstances"],
                                             )
                                 elif isinstance(gvAna.lemma, list):
-                                    # print len(gvAna.lemma)
-                                    # print "anaphora govonor is phrasal verb"
+                                    print gvAna.lemma
+                                    print "anaphora govonor is phrasal verb"
                                     for p1 in gvAna.lemma:
-                                        # print p1
+                                        print p1
                                         ff.iri(self.NN,
                                                vCan,
                                                p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
@@ -136,7 +136,8 @@ class ranker_t:
                                            gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
                                            self.statistics["iriInstances"],
                                     )
-				
+
+
 				# r1 = ff.cir(self.NN, vCan, gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token),
 				# 	    gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
 				# 	    self.statistics["cirInstances"],
@@ -357,25 +358,35 @@ class feature_function_t:
 		return float(r) if None != r else 0.0
 
 	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2, cached = None):
-		for ret, raw in self.libiri.predict(p1, "", r1, a1, p2, "", r2, a2, threshold = 1):
-			if None != cached: cached += [(NNvoted, ret)]
+                for ret, raw in self.libiri.predict(p1, "", r1, a1, p2, "", r2, a2, threshold = 1):
 
 			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
 			spa = sp * ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 
+                        # if sp != 1: # predicate similarity OFF
+                        #     continue
+
+                        # print "sp == 1"
+                        # print p1, p2
+                            
+                        if None != cached: cached += [(NNvoted, ret)]
 			assert(abs(spac - ret.score) < 0.1)
 			
 			outNN["iriPred"] += [(NNvoted, sp)]
 			outNN["iriPredArg"] += [(NNvoted, spa)]
 			
 		for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1):
-			if None != cached: cached += [(NNvoted, ret)]
+                    
 
 			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
 			spa = sp * ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 
+                        # if sp != 1: # predicate similarity OFF
+                        #     continue
+
+                        if None != cached: cached += [(NNvoted, ret)]                                                                            
 			assert(abs(spac - ret.score) < 0.1)
 			
 			outNN["iriPredArgCon"] += [(NNvoted, spac)]
