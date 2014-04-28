@@ -123,25 +123,25 @@ int main(int argc, char **argv) {
 
     // FILTERING: REMOVE A SET OF INFERENCE RULE INSTANCES THAT DO NOT
     // EXACTLY MATCH WITH THE INPUT PREDICATES.
-    if(!fSimilaritySearchOn) {
-      vector<uint64_t> retFiltered;
-      string p1, p2;
+    vector<uint64_t> retFiltered;
+    string p1, p2;
       
-      for(size_t i=0; i<ret.size(); i++) {
-        libce.getPredicates(&p1, &p2, ret[i]);
+    for(size_t i=0; i<ret.size(); i++) {
+      libce.getPredicates(&p1, &p2, ret[i]);
 
-        // REMOVE THE POS.
-        p1 = p1.substr(0, p1.find("-")) + p1.substr(p1.find("-")+2);
-        p2 = p2.substr(0, p2.find("-")) + p2.substr(p2.find("-")+2);
+      // REMOVE THE POS.
+      p1 = p1.substr(0, p1.find("-")) + p1.substr(p1.find("-")+2);
+      p2 = p2.substr(0, p2.find("-")) + p2.substr(p2.find("-")+2);
 
-        if((prpIndexed.predicate + ":" + prpIndexed.slot == p1 &&
-            prpPredicted.predicate + ":" + prpPredicted.slot == p2) ||
-           (prpIndexed.predicate + ":" + prpIndexed.slot == p2 &&
-            prpPredicted.predicate + ":" + prpPredicted.slot == p1)) {
-          retFiltered.push_back(ret[i]);
-        }
+      if((prpIndexed.predicate + ":" + prpIndexed.slot == p1 &&
+          prpPredicted.predicate + ":" + prpPredicted.slot == p2) ||
+         (prpIndexed.predicate + ":" + prpIndexed.slot == p2 &&
+          prpPredicted.predicate + ":" + prpPredicted.slot == p1)) {
+        retFiltered.push_back(ret[i]);
       }
+    }
 
+    if(!fSimilaritySearchOn) {
       ret = retFiltered;
     }
     // <-- FILTERING ENDS
@@ -159,6 +159,7 @@ int main(int argc, char **argv) {
     cerr << "Done!" << endl;
     cerr << ret.size() << " entries have been found. (took " << float(timeElapsed)/1000.0 << " sec)." << endl;
 
+    cout << retFiltered.size() << endl;
     cout << ret.size() << endl;
     
     // IDENTIFY THE COMMON IDS.

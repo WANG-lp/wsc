@@ -360,7 +360,7 @@ class feature_function_t:
 		for ret, raw in self.libiri.predict(p1, "", r1, a1, p2, "", r2, a2, threshold = 1):
 			if None != cached: cached += [(NNvoted, ret)]
 
-			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred
+			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
 			spa = sp * ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 
@@ -372,7 +372,7 @@ class feature_function_t:
 		for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1):
 			if None != cached: cached += [(NNvoted, ret)]
 
-			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred
+			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
 			spa = sp * ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 

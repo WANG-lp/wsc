@@ -1,4 +1,6 @@
 
+import cdb
+
 import urllib2
 
 import struct
@@ -20,6 +22,13 @@ result_t = collections.namedtuple(
 		" offset length"
 	)
 
+def _cdbdefget(f, key, de):
+	r = f.get(key)
+	return r if None != r else de
+
+def _npmi(self, xy, x, y):
+	return 0.5*(1+(math.log(1.0 * xy / (x * y), 2) / -math.log(xy, 2)))
+
 class iri_t:
 	def __init__(self, fnCorefEventsTsv, pathServer, dirKb, fnLSH, numPara = 12, fUseMemoryMap = False):
 		# LOADING THE HASH TABLE.5
@@ -36,41 +45,39 @@ class iri_t:
 			shell = True,
 			stdin = subprocess.PIPE, stdout = subprocess.PIPE, )#stderr = subprocess.PIPE)
 
+		# FOR PMI
+		self.cdbPreds = cdb.init(os.path.join(dirKb, "tuples.cdb"))
+		self.totalFreqPreds = int(open(os.path.join(dirKb, "tuples.totalfreq.txt")).read())
+		
 		assert("200 OK" == self.procSearchServer.stdout.readline().strip())
-
-		self.cacheSearchServer = {}
 
 	def predict(self, predicate, context, slot, focusedArgument, predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None, threshold = 0, limit = 1000):
 		keyCache = predicate + context + str(threshold)
 		
-		if not self.cacheSearchServer.has_key(keyCache):
-			print >>self.procSearchServer.stdin, "p", predicate
-			print >>self.procSearchServer.stdin, "c", context
-			print >>self.procSearchServer.stdin, "s", slot
-			print >>self.procSearchServer.stdin, "a", focusedArgument
+		print >>self.procSearchServer.stdin, "p", predicate
+		print >>self.procSearchServer.stdin, "c", context
+		print >>self.procSearchServer.stdin, "s", slot
+		print >>self.procSearchServer.stdin, "a", focusedArgument
 
-			# TO TURN ON SIMILARITY SEARCH,
-			# print >>self.procSearchServer.stdin, "+", "y"
-			
-			# TO TURN OFF SIMILARITY SEARCH,
-			# print >>self.procSearchServer.stdin, "+", "n"
-			
-			if None != predictedFocusedArgument:
-				print >>self.procSearchServer.stdin, "~p", predictedPredicate
-				print >>self.procSearchServer.stdin, "~c", predictedContext
-				print >>self.procSearchServer.stdin, "~s", predictedSlot
-				print >>self.procSearchServer.stdin, "~a", predictedFocusedArgument
-				
-			print >>self.procSearchServer.stdin, "t", threshold
-			print >>self.procSearchServer.stdin, "m", limit
-			print >>self.procSearchServer.stdin, ""
+		# TO TURN ON SIMILARITY SEARCH,
+		# print >>self.procSearchServer.stdin, "+", "y"
 
-			# READ THE NUMBER OF IRIs.
-			numIRIs = int(self.procSearchServer.stdout.readline())
+		# TO TURN OFF SIMILARITY SEARCH,
+		# print >>self.procSearchServer.stdin, "+", "n"
 
-		else:
-			print >>sys.stderr, "Cache hit! (key=%s)" % keyCache
-			numIRIs = len(self.cacheSearchServer[keyCache])
+		if None != predictedFocusedArgument:
+			print >>self.procSearchServer.stdin, "~p", predictedPredicate
+			print >>self.procSearchServer.stdin, "~c", predictedContext
+			print >>self.procSearchServer.stdin, "~s", predictedSlot
+			print >>self.procSearchServer.stdin, "~a", predictedFocusedArgument
+
+		print >>self.procSearchServer.stdin, "t", threshold
+		print >>self.procSearchServer.stdin, "m", limit
+		print >>self.procSearchServer.stdin, ""
+
+		# READ THE NUMBER OF IRIs.
+		numExactMatchIRIs = int(self.procSearchServer.stdout.readline())
+		numIRIs = int(self.procSearchServer.stdout.readline())
 			
 		ret     = []
 		
@@ -82,6 +89,12 @@ class iri_t:
 			 		spm, scm, sm, sam \
 			 		= struct.unpack("=HHQHf" + "f"*(4*3), self.procSearchServer.stdout.read(2+2+8+2+4+4*4*3))
 
+			# CALCULATE PMI
+			spassoc = _npmi(1.0*numExactMatchIRIs / self.totalFreqPreds,
+						1.0*int(_cdbdefget(self.cdbPreds, pr1, 0)) / self.totalFreqPreds,
+						1.0*int(_cdbdefget(self.cdbPreds, pr2, 0)) / self.totalFreqPreds),
+			score *= spassoc
+			
 			try:
 				line = self.procSearchServer.stdout.readline().strip().split("\t")
 			except ValueError:
@@ -89,14 +102,11 @@ class iri_t:
 			
 			yield result_t(score,
 										 iPredicted, iIndexed,
-										 0.0,
+										 spassoc,
 										 (spm1, spm2), (sam1, sam2), (scm1, scm2), (sm1, sm2),
 										 spm, sam, scm, sm,
 										 offset, length,
 										 ), line
-
-		# if not self.cacheSearchServer.has_key(keyCache):
-		# 	self.cacheSearchServer[keyCache] = ret
 
 if "__main__" == __name__:
 	# UNIT TEST.
