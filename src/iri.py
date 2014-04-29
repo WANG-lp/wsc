@@ -1,5 +1,6 @@
 
 import cdb
+import math
 
 import urllib2
 
@@ -26,7 +27,7 @@ def _cdbdefget(f, key, de):
 	r = f.get(key)
 	return r if None != r else de
 
-def _npmi(self, xy, x, y):
+def _npmi(xy, x, y):
 	return 0.5*(1+(math.log(1.0 * xy / (x * y), 2) / -math.log(xy, 2)))
 
 class iri_t:
@@ -51,8 +52,11 @@ class iri_t:
 		
 		assert("200 OK" == self.procSearchServer.stdout.readline().strip())
 
-	def predict(self, predicate, context, slot, focusedArgument, predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None, threshold = 0, limit = 1000):
+	def predict(self, predicate, context, slot, focusedArgument, predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None, threshold = 0, limit = 1000, pos1 = '', pos2 = ''):
 		keyCache = predicate + context + str(threshold)
+
+		if "" != pos1: pos1 = pos1.lower()[0]
+		if "" != pos2: pos2 = pos2.lower()[0]
 		
 		print >>self.procSearchServer.stdin, "p", predicate
 		print >>self.procSearchServer.stdin, "c", context
@@ -81,6 +85,15 @@ class iri_t:
 			
 		ret     = []
 
+		# CALCULATE PMI
+		pr1, pr2 = "%s-%s:%s" % (predicate, pos1, slot), "%s-%s:%s" % (predictedPredicate, pos2, predictedSlot)
+		if pr1 > pr2: pr1, pr2 = pr2, pr1
+
+		spassoc = _npmi(1.0*numExactMatchIRIs / self.totalFreqPreds,
+					1.0*int(_cdbdefget(self.cdbPreds, pr1, 1)) / self.totalFreqPreds,
+					1.0*int(_cdbdefget(self.cdbPreds, pr2, 1)) / self.totalFreqPreds)
+		print >>sys.stderr, pr1, pr2, numExactMatchIRIs, int(_cdbdefget(self.cdbPreds, pr1, 1)), int(_cdbdefget(self.cdbPreds, pr2, 1))
+		
 		for i in xrange(numIRIs):
 			iIndexed, iPredicted, offset, length, \
 					score, \
@@ -89,10 +102,6 @@ class iri_t:
 			 		spm, scm, sm, sam \
 			 		= struct.unpack("=HHQHf" + "f"*(4*3), self.procSearchServer.stdout.read(2+2+8+2+4+4*4*3))
 
-			# CALCULATE PMI
-			spassoc = _npmi(1.0*numExactMatchIRIs / self.totalFreqPreds,
-						1.0*int(_cdbdefget(self.cdbPreds, pr1, 0)) / self.totalFreqPreds,
-						1.0*int(_cdbdefget(self.cdbPreds, pr2, 0)) / self.totalFreqPreds),
 			score *= spassoc
 			
 			try:
@@ -108,9 +117,7 @@ class iri_t:
                         #     " offset length"
                         # )
         
-			yield result_t(score,
-										 iPredicted, iIndexed,
-										 spassoc,
+			yield result_t(score, iPredicted, iIndexed, spassoc,
 										 (spm1, spm2), (sam1, sam2), (scm1, scm2), (sm1, sm2),
 										 spm, sam, scm, sm,
 										 offset, length,
