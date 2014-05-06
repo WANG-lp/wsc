@@ -22,7 +22,7 @@ for ln in sys.stdin:
 	ln = ln.strip().split("\t")
         # print ln
 
-	# m["numRules"][_getClass(ln[1], ln[2], ln[1], ln[2])] += 1
+	m["numRules"][_getClass(ln[1], ln[2], ln[1], ln[2])] += 1
 	# m["cirPMI"][_getClass(ln[1], ln[2], ln[3], ln[4])] += 1
 	# m["cirArg"][_getClass(ln[1], ln[2], ln[5], ln[6], fInvertPolarity=True)] += 1
 	# m["cirPMICon"][_getClass(ln[1], ln[2], ln[7], ln[8], fInvertPolarity=True)] += 1
@@ -71,8 +71,8 @@ for k in methods:
 		100.0*numWrong/numCheckSum if numCheckSum > 0 else 0,
 		100.0*numNoDec/numCheckSum if numCheckSum > 0 else 0, 
 		numCorrect, numWrong, numNoDec, numCheckSum,
-		# 100.0*numTTCorrect/numTTCheckSum if numTTCheckSum > 0 else 0, 100.0*numTTWrong/numTTCheckSum if numTTCheckSum > 0 else 0,
-		# numTTCorrect, numTTWrong, numTTCheckSum,
+		100.0*numTTCorrect/numTTCheckSum if numTTCheckSum > 0 else 0, 100.0*numTTWrong/numTTCheckSum if numTTCheckSum > 0 else 0,
+		numTTCorrect, numTTWrong, numTTCheckSum,
 #		numTFCorrect, numTFWrong, numFTCorrect, numFTWrong,
 		]
 	
