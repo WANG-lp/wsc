@@ -28,7 +28,10 @@ def _cdbdefget(f, key, de):
 	return r if None != r else de
 
 def _npmi(xy, x, y):
-	return 0.5*(1+(math.log(1.0 * xy / (x * y), 2) / -math.log(xy, 2)))
+        if xy != 0:
+                return 0.5*(1+(math.log(1.0 * xy / (x * y), 2) / -math.log(xy, 2)))
+        else:
+                return 0
 
 class iri_t:
 	def __init__(self, fnCorefEventsTsv, pathServer, dirKb, fnLSH, numPara = 12, fUseMemoryMap = False):
