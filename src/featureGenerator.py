@@ -61,8 +61,6 @@ class ranker_t:
 
 		# FOR REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
 		# FOR EACH CANDIDATE.
-    
-		
 		for can in candidates:
 			wPrn, wCan	 = scn.getLemma(ana), scn.getLemma(can)
 			vCan				 = can.attrib["id"]
@@ -375,20 +373,6 @@ class feature_function_t:
 			
 			outNN["iriPred"] += [(NNvoted, sp)]
 			outNN["iriPredArg"] += [(NNvoted, spa)]
-			
-		for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
-                    
-
-			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
-			spa = sp * ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg
-			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-
-                        # if sp != 1: # predicate similarity OFF
-                        #     continue
-
-                        if None != cached: cached += [(NNvoted, ret)]                                                                            
-			assert(abs(spac - ret.score) < 0.1)
-			
 			outNN["iriPredArgCon"] += [(NNvoted, spac)]
 
 		return 0

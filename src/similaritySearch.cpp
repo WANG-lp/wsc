@@ -109,18 +109,22 @@ int main(int argc, char **argv) {
     int timeElapsed = (t2.tv_sec - t1.tv_sec) * 1000 + (t2.tv_usec - t1.tv_usec)/1000;
     vector<uint64_t> ret;
 
-    sort(offsets.begin(), offsets.end());
+    // IDENTIFY COMMON IRRs.
+    if(fSimilaritySearchOn) {
+      sort(offsets.begin(), offsets.end());
 
-    size_t counter = 0;
-    for(size_t i=0; i<offsets.size();) {
-      for(counter=0; i+counter<offsets.size(); counter++)
-        if(offsets[i]!=offsets[i+counter]) break;
+      size_t counter = 0;
+      for(size_t i=0; i<offsets.size();) {
+        for(counter=0; i+counter<offsets.size(); counter++)
+          if(offsets[i]!=offsets[i+counter]) break;
       
-      if(counter >= keys.size()) ret.push_back(offsets[i]);
+        if(counter >= keys.size()) ret.push_back(offsets[i]);
       
-      i += counter;
-    }
-
+        i += counter;
+      }
+    } else
+      ret = offsets;
+    
     // FILTERING: REMOVE A SET OF INFERENCE RULE INSTANCES THAT DO NOT
     // EXACTLY MATCH WITH THE INPUT PREDICATES.
     vector<uint64_t> retFiltered;
@@ -146,15 +150,6 @@ int main(int argc, char **argv) {
     }
     // <-- FILTERING ENDS
     
-// <<<<<<< HEAD
-    // std::srand(0);
-    // std::random_shuffle(ret.begin(), ret.end(), myrandom);
-
-    // if(ret.size() > maxRules) {
-    //   ret.resize(maxRules);
-    //   cerr << "Truncated." << endl;
-    // }
-// =======
     // <-- FILTERING: RANDOM SAMPLING
     std::srand(0);
     std::random_shuffle(ret.begin(), ret.end(), myrandom);
@@ -164,7 +159,6 @@ int main(int argc, char **argv) {
       cerr << "Truncated." << endl;
     }
     // <-- FILTERING ENDS
-// >>>>>>> 2745f0fcaa9a32696cbcb61fde2da13f7deb25ad
       
     cerr << "Done!" << endl;
     cerr << ret.size() << " entries have been found. (took " << float(timeElapsed)/1000.0 << " sec)." << endl;

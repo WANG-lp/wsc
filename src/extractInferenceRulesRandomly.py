@@ -56,7 +56,7 @@ for i in xrange(int(sys.argv[1])):
 	
 	tsv[3] = tsv[3].lstrip("# ")
 	tsv[4] = tsv[4].lstrip("# ")
-	tsv += ["http://rum:8021/cgi-bin/viewText.py?file=%s&docid=%s&s1=%s&s2=%s" % (
+	tsv += ["http://rum:8020/cgi-bin/viewText.py?file=%s&docid=%s&s1=%s&s2=%s" % (
 			tsv[7][2:].split(":")[0], tsv[7][2:].split(":")[1],
 			urllib2.quote(tsv[3]), urllib2.quote(tsv[4]),
 			)]
