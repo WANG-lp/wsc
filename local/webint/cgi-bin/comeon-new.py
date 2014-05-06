@@ -236,7 +236,7 @@ if None != fs.getvalue("query"):
 			]))
 
 			print "<tr height=\"150px\"><td><a name=\"next%s\"></a>%s</td></tr>" % (nextAnchor, "</td><td>".join([
-				"%.2f" % _sortedScore(inst),
+				"%.2f<br />(p: %.2f)" % (_sortedScore(inst), inst.sRuleAssoc),
 				("%.4f <br />p: %.2f<br />a: %.2f<br />c: %.2f<br />s: %.2f") % (
 							(float(inst.sIndexPred[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedPred))*
 							(float(inst.sIndexArg[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedArg))*
@@ -278,7 +278,7 @@ print """</div>
 <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
       <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href="#">Results Viewer</a>
+          <a class="navbar-brand" href="#">Nearest Neighbors Viewer - %s</a>
         </div>
         <div class="navbar-collapse collapse">
 <form action ="./comeon-new.py" method="GET" class="navbar-form navbar-right" role="form">
@@ -307,6 +307,7 @@ print """</div>
 <script src="../bootstrap-3.0.3/dist/js/bootstrap.min.js"></script>
 </body></html>
 """ % (
+	fs.getvalue("sortkey", "pac"),
 	fs.getvalue("query") if None != fs.getvalue("query") else "",
 	fs.getvalue("k") if None != fs.getvalue("query") else "200"
 	)
