@@ -28,16 +28,34 @@ def _npmi(_xy, _x, _y):
 	return 0.5*(1+(math.log(1.0 * _xy / (_x * _y), 2) / -math.log(_xy, 2)))
 
 def _catenativeget(gv, sent):
-    catenativelistA = ['afford', 'agree', 'able','aim', 'appear', 'arrange', 'ask', 'attempt', 'beg', 'care', 'choose', 'condescend', 'consent', 'dare', 'decide', 'deserve', 'expect', 'fail', 'happen', 'have', 'help', 'hesitate', 'hope', 'long', 'move', 'need', 'offer', 'plan', 'prepare', 'pretend', 'proceed', 'promise', 'refuse', 'seek', 'seem', 'strive', 'struggle', 'swear', 'tend', 'threaten', 'undertake', 'wait', 'want', 'wish']
-    catenativelistB = ['allowed', 'forbid', 'permit', 'request', 'require']
-    catenativelistC = ['admit', 'advise', 'allow', 'appreciate', 'avoid', 'complete', 'consider', 'delay', 'deny', 'detest', 'dislike', 'enjoy', 'escape', 'finish', 'forbid', 'imagine', 'imply', 'keep', 'mind', 'miss', 'need', 'permit', 'practise', 'quit', 'recall', 'recommend', 'regret', 'resent', 'resist', 'resume', 'risk', 'stand', 'suggest', 'tolerate', 'want']
-    catenativelistD = ['bear', 'begin', 'bother', 'continue', 'disdain', 'intend', 'like', 'love', 'neglect', 'prefer', 'regret', 'start', 'come', 'go', 'get', 'forget', 'like', 'mean', 'need', 'remember', 'propose', 'stop', 'try']
-    # catenativelistOther = ['able']
-    catenativelistObj = ['ask', 'beg', 'allow', 'forbid', 'permit', 'request', 'require', 'admit', ]
-    catenativelist = list(set(catenativelistA)|set(catenativelistB)|set(catenativelistC)|set(catenativelistD))
+    # catenativelistA = ['afford', 'agree', 'able','aim', 'appear', 'arrange', 'ask', 'attempt', 'beg', 'care', 'choose', 'condescend', 'consent', 'dare', 'decide', 'deserve', 'expect', 'fail', 'happen', 'have', 'help', 'hesitate', 'hope', 'long', 'move', 'need', 'offer', 'plan', 'prepare', 'pretend', 'proceed', 'promise', 'refuse', 'seek', 'seem', 'strive', 'struggle', 'swear', 'tend', 'threaten', 'undertake', 'wait', 'want', 'wish']
+    # catenativelistB = ['allowed', 'forbid', 'permit', 'request', 'require']
+    # catenativelistC = ['admit', 'advise', 'allow', 'appreciate', 'avoid', 'complete', 'consider', 'delay', 'deny', 'detest', 'dislike', 'enjoy', 'escape', 'finish', 'forbid', 'imagine', 'imply', 'keep', 'mind', 'miss', 'need', 'permit', 'practise', 'quit', 'recall', 'recommend', 'regret', 'resent', 'resist', 'resume', 'risk', 'stand', 'suggest', 'tolerate', 'want']
+    # catenativelistD = ['bear', 'begin', 'bother', 'continue', 'disdain', 'intend', 'like', 'love', 'neglect', 'prefer', 'regret', 'start', 'come', 'go', 'get', 'forget', 'like', 'mean', 'need', 'remember', 'propose', 'stop', 'try']
+    # # catenativelistOther = ['able']
+    # catenativelistObj = ['ask', 'beg', 'allow', 'forbid', 'permit', 'request', 'require', 'admit', 'advise', 'imagine', 'need', 'recommend', 'suggest', 'tolerate', 'want', 'help', 'let', 'tell', 'make']
+    # catenativelist = list(set(catenativelistA)|set(catenativelistB)|set(catenativelistC)|set(catenativelistD)|set(catenativelistObj))
 
+    catenativelist = ['love', 'help', 'forbid', 'consent', 'move',
+                      'prefer', 'promise', 'go', 'miss', 'consider', 'quit', 'proceed',
+                      'prepare', 'long', 'start', 'choose', 'recommend', 'threaten',
+                      'dislike', 'practise', 'tell', 'hope', 'risk', 'offer', 'afford',
+                      'propose', 'stop', 'bother', 'bear', 'resent', 'deserve',
+                      'decide', 'dare', 'arrange', 'deny', 'like', 'recall', 'require',
+                      'pretend', 'tolerate', 'beg', 'aim', 'continue', 'wish', 'agree',
+                      'care', 'mean', 'enjoy', 'forget', 'have', 'appreciate',
+                      'allowed', 'mind', 'resist', 'need', 'imply', 'condescend',
+                      'expect', 'want', 'escape', 'fail', 'happen', 'seek', 'seem',
+                      'complete', 'hesitate', 'appear', 'suggest', 'avoid', 'get',
+                      'able', 'tend', 'delay', 'advise', 'make', 'begin', 'finish',
+                      'intend', 'resume', 'detest', 'let', 'plan', 'imagine', 'ask',
+                      'come', 'wait', 'regret', 'refuse', 'undertake', 'attempt',
+                      'remember', 'disdain', 'try', 'request', 'keep', 'admit', 'swear',
+                      'stand', 'allow', 'permit', 'strive', 'neglect', 'struggle']
+    
     
     if gv.lemma in catenativelist:
+        # print gv.lemma
         newgv = scn.getCatenativeDependent(sent, gv)
         return newgv
     else:

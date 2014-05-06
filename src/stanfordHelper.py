@@ -117,7 +117,7 @@ def getPrimaryPredicativeGovernor(sent, x, contentGovernor = True):
 			if "VB" in ps or "JJ" in ps:
 				# return governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
 				tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
-                                # tmp1 = fgn._catenativeget(tmp1, sent)
+                                tmp1 = fgn._catenativeget(tmp1, sent)
                                 # tmp1 = fgn._phrasalget(tmp1, sent)
                                 return tmp1
                                 
@@ -130,10 +130,20 @@ def getPrimaryPredicativeGovernor(sent, x, contentGovernor = True):
 			if "VB" in ps or "JJ" in ps:
 				# return governor_t(convRel(y.attrib["type"], tk, sent), tk, getLemma(tk), getPOS(tk))
 				tmp1 = governor_t(convRel(y.attrib["type"], tk, sent), tk, getLemma(tk), getPOS(tk))
-                                # tmp1 = fgn._catenativeget(tmp1, sent)
+                                tmp1 = fgn._catenativeget(tmp1, sent)
                                 # tmp1 = fgn._phrasalget(tmp1, sent)
                                 return tmp1
 
+def checkObjectCatenative(sent, idx):
+    depend2step_items = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/governor[@idx='%s']" % idx)
+    for dep2item in depend2step_items:
+        tp2  = dep2item.xpath("..")[0].attrib["type"]
+        # lm2 = sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx2
+        # print "Checking..."
+        # print tp2, lm2        
+        if "nsubj" == tp2:
+            return True
+    return False    
 
 def getCatenativeDependent(sent, cate):
     	dependent_items = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/governor[@idx='%s']" % cate.token.attrib["id"])
@@ -151,11 +161,12 @@ def getCatenativeDependent(sent, cate):
             # ret += [(tp, lm[0], sent.xpath("./tokens/token[@id='%s']" % idx)[0])]
 
             # FOLLOWED BY A TO-INFINITIVE or A GERUND
-            if "xcomp" == tp:
-                # print "xcomp = "
-                # print sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)
-                # ret += getContentPredicativeGovernor(sent, sent.xpath("./tokens/token[@id='%s']" % idx)[0])
-                ret += [(tp, sent.xpath("./tokens/token[@id='%s']" % idx)[0], lm[0], ps[0])]
+            if "xcomp" == tp or "ccomp" == tp:
+                if checkObjectCatenative(sent, idx):
+                    continue
+                else:                
+                    # ret += getContentPredicativeGovernor(sent, sent.xpath("./tokens/token[@id='%s']" % idx)[0])
+                    ret += [(tp, sent.xpath("./tokens/token[@id='%s']" % idx)[0], lm[0], ps[0])]
 
         if ret != []:
             return governor_t(cate.rel, ret[0][1], ret[0][2], ret[0][3])

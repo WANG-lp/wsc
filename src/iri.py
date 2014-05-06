@@ -55,7 +55,7 @@ class iri_t:
 		
 		assert("200 OK" == self.procSearchServer.stdout.readline().strip())
 
-	def predict(self, predicate, context, slot, focusedArgument, predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None, threshold = 0, limit = 1000, pos1 = '', pos2 = ''):
+	def predict(self, predicate, context, slot, focusedArgument, predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None, threshold = 0, limit = 10000, pos1 = '', pos2 = ''):
 		keyCache = predicate + context + str(threshold)
 
 		if "" != pos1: pos1 = pos1.lower()[0]
