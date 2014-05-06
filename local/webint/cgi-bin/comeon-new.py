@@ -69,8 +69,42 @@ if None != fs.getvalue("query"):
 	timeStart								= time.time()
 	results									= _getCached(fs.getvalue("query"))
 	timeRetrieve, timeStart = time.time() - timeStart, time.time()
-	
-	sortedRet = sorted(results.examples, key=lambda x: x[1].score, reverse=True)[:min(len(results.examples), int(fs.getvalue("k")))]
+
+	def _sortedScore(x):
+		if "p" == fs.getvalue("sortkey"):
+			return x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred * \
+				x.sIndexSlot[x.iIndexed] * x.sPredictedSlot
+
+		elif "a" == fs.getvalue("sortkey"):
+			return \
+				x.sIndexArg[x.iIndexed] * x.sPredictedArg
+
+		elif "pa" == fs.getvalue("sortkey"):
+			return \
+				x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred * \
+				x.sIndexArg[x.iIndexed] * x.sPredictedArg
+			
+		elif "c" == fs.getvalue("sortkey"):
+			return \
+				x.sIndexContext[x.iIndexed] * x.sPredictedContext
+
+		elif "pc" == fs.getvalue("sortkey"):
+			return \
+				x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred * \
+				x.sIndexContext[x.iIndexed] * x.sPredictedContext
+			
+		elif "pac" == fs.getvalue("sortkey"):
+			return \
+				x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred * \
+				x.sIndexArg[x.iIndexed] * x.sPredictedArg * \
+				x.sIndexContext[x.iIndexed] * x.sPredictedContext
+			
+		return x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred * \
+			x.sIndexSlot[x.iIndexed] * x.sPredictedSlot * \
+			x.sIndexArg[x.iIndexed] * x.sPredictedArg * \
+			x.sIndexContext[x.iIndexed] * x.sPredictedContext
+		
+	sortedRet = sorted(results.examples, key=lambda x: _sortedScore(x[1]), reverse=True)[:min(len(results.examples), int(fs.getvalue("k")))]
 	timeSort, timeStart = time.time() - timeStart, time.time()
 
 	def _coloring(t):
@@ -146,16 +180,17 @@ if None != fs.getvalue("query"):
 
 		if p1 > p2: p1, p2, c1, c2 = p2, p1, c2, c1
 		
-		header = "Rank Scores Predicates Shared&nbsp;Arg Contexts Source"
+		header = "R Score Predicates Shared&nbsp;Arg Contexts Source"
 
 		votesCorrect, votesWrong = 0, 0
+		scoreCorrect, scoreWrong = 0, 0
 		
 		for r, ret in enumerate(sortedRet):
-			if   0 == ret[0]: votesCorrect += 1
-			elif 1 == ret[0]: votesWrong += 1
+			if   0 == ret[0]: votesCorrect += 1; scoreCorrect += _sortedScore(ret[1])
+			elif 1 == ret[0]: votesWrong += 1; scoreWrong += _sortedScore(ret[1])
 			
 		print "<div class=\"col-md-6\">"
-		print "<h3>%s Votes for %s Candidate (%s -- %s)</h3>" % ((votesCorrect, "Correct", p1, p2) if 0 == tp else (votesWrong, "Wrong", p1, p2))
+		print "<h3>%s Votes (Score: %.2f) for %s Candidate (%s -- %s)</h3>" % ((votesCorrect, scoreCorrect, "Correct", p1, p2) if 0 == tp else (votesWrong, scoreWrong, "Wrong", p1, p2))
 		print "<table class=\"table table-striped\">"
 		print "<tr><th>%s</th></tr>" % "</th><th>".join(header.split())
 
@@ -183,30 +218,38 @@ if None != fs.getvalue("query"):
 			sentdist																		= str(sentdist)
 			
 			print "<tr height=\"150px\"><td><a name=\"next%s\"></a>%s</td></tr>" % (nextAnchor, "</td><td>".join([
-						"%d" % (1+r),
-						"%.4f <br />P: %.2f<br />A: %.2f<br />C: %.2f<br />S: %.2f" % (
-							inst.score,
+				"%d" % (1+r),
+				("%.4f <br />p: %.2f<br />a: %.2f<br />c: %.2f<br />s: %.2f") % (
+							(float(inst.sIndexPred[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedPred))*
+							(float(inst.sIndexArg[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedArg))*
+							(float(inst.sIndexContext[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedContext))*
+							(float(inst.sIndexSlot[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedSlot)),
+
 							float(inst.sIndexPred[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedPred),
 							float(inst.sIndexArg[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedArg),
 							float(inst.sIndexContext[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedContext),
 							float(inst.sIndexSlot[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedSlot),
 							),
-						"%s <br />(%s)" % (irp1, "indexed" if 0 == inst.iIndexed else "predicted"),
-						a12.split(",")[0], _prettyC(c1, irc1),
-						"<a target=\"_blank\" href=\"https://www.google.co.jp/search?q=%s\">G</a>" % (urllib2.quote("\"%s\"+\"%s\"" % (irp1, irp2))),
-						]))
+				"%s <br />(%s)" % (irp1, "indexed" if 0 == inst.iIndexed else "predicted"),
+				"<br />".join(a12.split(",")[0].split("-")), _prettyC(c1, irc1),
+				"<a target=\"_blank\" href=\"https://www.google.co.jp/search?q=%s\">G</a>" % (urllib2.quote("\"%s\"+\"%s\"" % (irp1, irp2))),
+			]))
 
 			print "<tr height=\"150px\"><td><a name=\"next%s\"></a>%s</td></tr>" % (nextAnchor, "</td><td>".join([
-						"%d" % (1+r),
-						"%.4f <br />P: %.2f<br />A: %.2f<br />C: %.2f<br />S: %.2f" % (
-							inst.score,
+				"%.2f" % _sortedScore(inst),
+				("%.4f <br />p: %.2f<br />a: %.2f<br />c: %.2f<br />s: %.2f") % (
+							(float(inst.sIndexPred[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedPred))*
+							(float(inst.sIndexArg[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedArg))*
+							(float(inst.sIndexContext[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedContext))*
+							(float(inst.sIndexSlot[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedSlot)),
+							
 							float(inst.sIndexPred[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedPred),
 							float(inst.sIndexArg[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedArg),
 							float(inst.sIndexContext[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedContext),
 							float(inst.sIndexSlot[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedSlot),
 							),
-						"%s <br />(%s)" % (irp2, "indexed" if 1 == inst.iIndexed else "predicted"),
-						a12.split(",")[1], _prettyC(c2, irc2),
+				"%s <br />(%s)" % (irp2, "indexed" if 1 == inst.iIndexed else "predicted"),
+				"<br />".join(a12.split(",")[1].split("-")), _prettyC(c2, irc2),
 						"<a target=\"_blank\" href=\"https://www.google.co.jp/search?q=%s\">G</a>" % (urllib2.quote("\"%s\"+\"%s\"" % (irp1, irp2))),
 						]))
 			
@@ -249,6 +292,11 @@ print """</div>
 </div>
 
 <input type="submit" value="Search" class="btn btn-success"/>
+<input type="submit" name="sortkey" value="p" class="btn btn-success"/>
+<input type="submit" name="sortkey" value="a" class="btn btn-success"/>
+<input type="submit" name="sortkey" value="c" class="btn btn-success"/>
+<input type="submit" name="sortkey" value="pa" class="btn btn-success"/>
+<input type="submit" name="sortkey" value="pc" class="btn btn-success"/>
 
 </form>
         </div><!--/.navbar-collapse -->
