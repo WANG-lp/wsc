@@ -379,6 +379,7 @@ class feature_function_t:
 
 			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
 			spa = sp * ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg
+			spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 
                         # if sp != 1: # predicate similarity OFF
@@ -392,6 +393,7 @@ class feature_function_t:
 			
 			outNN["iriPred"] += [(NNvoted, sp)]
 			outNN["iriPredArg"] += [(NNvoted, spa)]
+			outNN["iriPredCon"] += [(NNvoted, spc)]
 			outNN["iriPredArgCon"] += [(NNvoted, spac)]
 
 		return 0
