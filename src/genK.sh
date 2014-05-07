@@ -8,6 +8,7 @@ foreach k (`seq 1 49`)
     "feature[@type='kNN_score_iriPred,K=$k']/@correct:None" "feature[@type='kNN_score_iriPred,K=$k']/@wrong:None" \
     "feature[@type='kNN_score_iriPredArg,K=$k']/@correct:None" "feature[@type='kNN_score_iriPredArg,K=$k']/@wrong:None" \
     "feature[@type='kNN_score_iriPredArgCon,K=$k']/@correct:None" "feature[@type='kNN_score_iriPredArgCon,K=$k']/@wrong:None" \
+    "feature[@type='kNN_score_iriPredCon,K=$k']/@correct:None" "feature[@type='kNN_score_iriPredCon,K=$k']/@wrong:None" \
     | python ./src/performance.py $k
 end
 
