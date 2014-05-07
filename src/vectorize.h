@@ -10,10 +10,12 @@
 using namespace std;
 
 static inline float _weight(const string &k) {
+  /* if(string::npos != k.find("dobj")  || string::npos != k.find("iobj") || */
+  /*    string::npos != k.find("nsubj") || string::npos != k.find("prep_") || */
+  /*    string::npos != k.find("acomp")) return 1.0; */
   if(string::npos != k.find("dobj")  || string::npos != k.find("iobj") ||
-     string::npos != k.find("nsubj") || string::npos != k.find("prep_") ||
-     string::npos != k.find("acomp")) return 1.0;
-  return 0.5;
+     string::npos != k.find("nsubj") || string::npos != k.find("advcl")) return 1.0;
+  return 0.2;
 }
 
 static inline float calcWordSimilarity(const string &w1, const string &w2, const google_word2vec_t &gw2v) {
