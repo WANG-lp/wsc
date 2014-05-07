@@ -64,7 +64,8 @@ class iri_t:
 		print >>self.procSearchServer.stdin, "p", predicate
 		print >>self.procSearchServer.stdin, "c", context
 		print >>self.procSearchServer.stdin, "s", slot
-		print >>self.procSearchServer.stdin, "a", focusedArgument
+		#print >>self.procSearchServer.stdin, "a", focusedArgument
+		print >>self.procSearchServer.stdin, "a", predictedFocusedArgument
 
 		# TO TURN ON SIMILARITY SEARCH,
 		# print >>self.procSearchServer.stdin, "+", "y"

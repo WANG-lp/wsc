@@ -375,7 +375,7 @@ class feature_function_t:
 		return float(r) if None != r else 0.0
 
 	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2, cached = None):
-                for ret, raw in self.libiri.predict(p1, "", r1, a1, p2, "", r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
+                for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
 
 			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
 			spa = sp * ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg
