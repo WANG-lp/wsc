@@ -70,7 +70,7 @@ static inline float calcContextualSimilarity(const string &c1, const string &c2,
     numContext++;
   }
 
-  return (1.0+(0.0 == numContext ? 0.0 : dot / numContext))*0.5;
+  return (1.0+(0.0 == numContext ? 0.0 : dot / numContext));
 }
 
 static inline float calcSlotSimilarity(const string &s1, const string &s2) {
