@@ -152,7 +152,7 @@ def getPrimaryPredicativeGovernor(sent, x, contentGovernor = True):
 				# return governor_t(convRel(y.attrib["type"], tk, sent), tk, getLemma(tk), getPOS(tk))
 				tmp1 = governor_t(convRel(y.attrib["type"], tk, sent), tk, getLemma(tk), getPOS(tk))
                                 tmp1 = fgn._catenativeget(tmp1, sent)
-                                # tmp1 = fgn._phrasalget(tmp1, sent)
+                                # tmp1 = fgn._phrasalget(tmp1, sent) 
                                 return tmp1
 
 def checkObjectCatenative(sent, idx):
@@ -197,7 +197,7 @@ def getCatenativeDependent(sent, cate):
 def getPhrasal(sent, phgv, phdict):
     dependent_items = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/governor[@idx='%s']" % phgv.token.attrib["id"])
     ret = []
-    phrasedeplist = ["advmod", "prt", "prep", "amod"]
+    phrasedeplist = ["advmod", "prt", "prep", "amod", "dobj"]
     for depitem in dependent_items:
         idx = depitem.xpath("../dependent")[0].attrib["idx"]
         tp  = depitem.xpath("..")[0].attrib["type"]
@@ -227,7 +227,7 @@ def getPhrasal(sent, phgv, phdict):
         
         if candphrase in phdict:
             paraphraselist = phdict[candphrase]
-            # print paraphraselist
+            # print candphrase, paraphraselist, "Match Phrase"
             if len(paraphraselist) == 1:
                 return governor_t(phgv.rel, phgv.token, paraphraselist[0], phgv.POS)
             else:
