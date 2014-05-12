@@ -52,6 +52,23 @@ def getTokenById(sent, x):
 	r = sent.xpath("./tokens/token[@id='%s']" % x)
 	return r[0] if 1 <= len(r) else None
 
+def getNextToken(sent, x):
+	return getTokenById(sent, int(x.attrib["id"])+1)
+
+def getNextPredicateToken(sent, x):
+	for i in xrange(1000):
+		tk = getTokenById(sent, int(x.attrib["id"])+(1+i))
+		if None == tk:
+			return x
+			
+		if "VB" in getPOS(tk) or "JJ" in getPOS(tk):
+			return tk
+			
+	return x
+	
+def getPreviousToken(sent, x):
+	return getTokenById(sent, int(x.attrib["id"])-1)
+	
 def getConn(sent):
 	for tk in sent.xpath("./tokens/token/POS[contains(text(),'VB') or contains(text(),'JJ')]/.."):
 		id_cnj_mk = sent.xpath("./dependencies[@type='basic-dependencies']/dep[@type='mark']/governor[@idx='%s']/../dependent/@idx" % (tk.attrib["id"]))
@@ -107,6 +124,10 @@ def getGovernors(sent, x):
 		for y in 
 		sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/dependent[@idx='%s']/.." % x.attrib["id"])]
 
+def getDeepSubject(sent, x):
+	ret = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='agent']/governor[@idx='%s']/../dependent/@idx" % x.attrib["id"])
+	return ret[0] if 0 < len(ret) else None
+	
 def getPrimaryPredicativeGovernor(sent, x, contentGovernor = True):
 	if contentGovernor:
 		cg = getContentPredicativeGovernor(sent, x)

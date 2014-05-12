@@ -110,7 +110,7 @@ def _writeFeatures(ff, i, tupleInstance, bypass):
 		print "<feature-vector for=\"%s\">%s</feature-vector>" % (
 			"correct" if can == antecedent else "wrong",
 			"%d qid:%d %s" % (1 if can == antecedent else 2, 1+i,
-												" ".join(["%s:%s" % x for x in ff.generateFeature(anaphor, can, sent, ranker)])
+												" ".join(["%s:%s" % x for x in ff.generateFeature(anaphor, can, sent, ranker, candidates)])
 												))
 
 	#

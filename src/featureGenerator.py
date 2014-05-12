@@ -1,6 +1,11 @@
 
+
 import iri
-import cir as conir
+import selpref
+import googlengram
+import nccj08
+import ncnaive
+import sentimentpolarity
 
 import stanfordHelper as scn
 
@@ -25,6 +30,7 @@ def _npmi(_xy, _x, _y):
 	if 0 == _x*_y or 0 == _xy: return 0
 	
 	#return _xy/(_x*_y)
+	return math.log(1.0 * _xy / (_x * _y), 2)
 	return 0.5*(1+(math.log(1.0 * _xy / (_x * _y), 2) / -math.log(_xy, 2)))
 
 def _catenativeget(gv, sent):
@@ -88,13 +94,49 @@ class ranker_t:
 			self.rankingsRv["position"] += [(vCan, -int(can.attrib["id"]))]
 
 			if None != gvAna and None != gvCan:
-                                
-				# r1 = ff.selPref("%s-%s" % (scn.getLemma(gvAna.token), gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (scn.getLemma(can), scn.getNEtype(can)))
-                                r1 = ff.selPref("%s-%s" % (gvAna.lemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (scn.getLemma(can), scn.getNEtype(can)))
-                                
-                                self.rankingsRv["nc"] += [(vCan, ff.nc(gvAna.lemma, gvAna.rel, gvCan.lemma, gvCan.rel))]
-                                self.rankingsRv["selpref"] += [(vCan, r1[1])]
-                                self.rankingsRv["selprefcnt"] += [(vCan, math.log(max(1, r1[0])))]
+
+                                # SELECTIONAL PREFERENCE
+                                if "O" == scn.getNEtype(can):
+                                    ret = ff.sp.calc("%s-%s" % (gvAna.lemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
+                                    self.rankingsRv["selpref"] += [(vCan, ret[0])]
+                                    self.rankingsRv["selprefCnt"] += [(vCan, ret[1])]
+																		
+                                # NARRATIVE CHAIN FEATURE (C&J08'S OUTPUT)
+                                self.rankingsRv["NCCJ08"] += [(vCan, 1 if 1 <= len(ff.nc.getChains(
+                                    ff.nc.createQuery(gvAna.lemma, gvAna.rel),
+                                    ff.nc.createQuery(gvCan.lemma, gvCan.rel))) else 0)]
+                                self.statistics["NCCJ08"] += [(vCan, "%s ~ %s" % (ff.nc.createQuery(gvAna.lemma, gvAna.rel), ff.nc.createQuery(gvCan.lemma, gvCan.rel)))]
+																
+                                # NARRATIVE CHAIN FEATURE
+                                for th in [5, 10, 25, 50, 100, 200, 400]:
+                                    self.rankingsRv["NCNAIVE%sFREQ" % th] += [(vCan,
+                                        ff.ncnaive[th].getFreq("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
+
+                                    self.rankingsRv["NCNAIVE%sPMI" % th] += [(vCan,
+                                        ff.ncnaive[th].getPMI("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
+																
+                                # Q1, 2: CV
+                                if "O" == scn.getNEtype(can):
+                                    tkNextAna = scn.getNextPredicateToken(sent, ana)
+                                    qCV = [wCan, scn.getSurf(tkNextAna)]
+                                    ret = ff.gn.search(qCV)
+                                    self.statistics["CV"] += [(vCan, " ".join(qCV))]
+                                    self.rankingsRv["googleCV"] += [(vCan, ret)]
+																
+                                    # Q3, Q4: CVW
+                                    tkNeighbor = scn.getNextToken(sent, tkNextAna)
+                                    if None != tkNeighbor:
+                                        qCV = [wCan, scn.getSurf(tkNextAna), scn.getSurf(tkNeighbor)]
+                                        ret = ff.gn.search(qCV)
+                                        self.statistics["CVW"] += [(vCan, " ".join(qCV))]
+                                        self.rankingsRv["googleCVW"] += [(vCan, ret)]
+
+                                    if "JJ" in gvAna.POS:
+                                        # Q5, Q6: JC
+                                        qCV = [scn.getSurf(gvAna.token), wCan]
+                                        ret = ff.gn.search(qCV)
+                                        self.statistics["JC"] += [(vCan, " ".join(qCV))]
+                                        self.rankingsRv["googleJC"] += [(vCan, ret)]
                                 
                                 if isinstance(gvAna.lemma, list) and isinstance(gvCan.lemma, list):
                                     # print "anaphra govornor and candidate govornor are phrasal verb"
@@ -155,49 +197,6 @@ class ranker_t:
                                     )
 
 
-				# r1 = ff.cir(self.NN, vCan, gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token),
-				# 	    gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
-				# 	    self.statistics["cirInstances"],
-				# 	    )
-				# self.statistics["cirNumRules"] += [(vCan, r1[5])]
-				# self.statistics["cirComXY"] += [(vCan, r1[4][0])]
-				# self.statistics["cirComX"] += [(vCan, r1[4][1])]
-				# self.statistics["cirComY"] += [(vCan, r1[4][2])]
-				
- 				# self.rankingsRv["cirPMIMatch"] += [(vCan, r1[0])]
-				
-# 				self.rankingsRv["cirArgMatch"] += [(vCan, r1[1])]
-# 				self.rankingsRv["cirConMatch"] += [(vCan, r1[2])]
-
-# 				self.rankingsRv["cirArgConMatch"] += [(vCan, r1[1]+r1[2])]
-# 				self.rankingsRv["cirConPMIMatch"] += [(vCan, r1[2]+r1[0])]
-# 				self.rankingsRv["cirPMIArgMatch"] += [(vCan, r1[0]+r1[1])]
-# 				self.rankingsRv["cirAllMatch"] += [(vCan, r1[0]+r1[1]+r1[2])]
-				
-# 				self.rankingsRv["cirComMatch"] += [(vCan, r1[3])]
-
-
-				
-				#self.rankingsRv["pk"] += [(vCan, ff.pk(gvAna.lemma, gvAna.rel, gvCan.lemma, gvCan.rel))]
-
-				# r1 = ff.langmodel3("%s %s" % (wCan, gvAna.lemma) if "nsubj" == gvAna.rel else ("%s %s" % (gvAna.lemma, wCan)))
-				# r2 = ff.langmodel3("%s %ss" % (wCan, gvAna.lemma) if "nsubj" == gvAna.rel else ("%ss %s" % (gvAna.lemma, wCan)))
-				# r3 = ff.langmodel3("%s %ses" % (wCan, gvAna.lemma) if "nsubj" == gvAna.rel else ("%ses %s" % (gvAna.lemma, wCan)))
-				# r4 = ff.langmodel3("%s %s" % (wCan, gvAna.lemma.replace("y", "ies")) if "nsubj" == gvAna.rel else ("%s %s" % (gvAna.lemma.replace("y", "ies"), wCan)))
-				# self.rankingsRv["googleBI"] += [(vCan, max(r1[1], r2[1], r3[1], r4[1]))]
-				# self.rankingsRv["googleBIcnt"] += [(vCan, math.log(max(1, r1[0], r2[0], r3[0], r4[0])))]
-
-				# r1 = ff.langmodel3("%s %s %s" % (wCan, gvAna.lemma, scn.getLemma(gvAna.token.getnext())) if "nsubj" == gvAna.rel else ("%s %s %s" % (gvAna.lemma, scn.getLemma(gvAna.token.getnext()), wCan)))
-				# r2 = ff.langmodel3("%s %ss %s" % (wCan, gvAna.lemma, scn.getLemma(gvAna.token.getnext())) if "nsubj" == gvAna.rel else ("%ss %s %s" % (gvAna.lemma, scn.getLemma(gvAna.token.getnext()), wCan)))
-				# r3 = ff.langmodel3("%s %ses %s" % (wCan, gvAna.lemma, scn.getLemma(gvAna.token.getnext())) if "nsubj" == gvAna.rel else ("%ses %s %s" % (gvAna.lemma, scn.getLemma(gvAna.token.getnext()), wCan)))
-				# r4 = ff.langmodel3("%s %s %s" % (wCan, gvAna.lemma.replace("y", "ies"), scn.getLemma(gvAna.token.getnext())) if "subj" == gvAna.rel else ("%s %s %s" % (gvAna.lemma.replace("y", "ies"), scn.getLemma(gvAna.token.getnext()), wCan)))
-				# self.rankingsRv["googleTRI"] += [(vCan, max(r1[1], r2[1], r3[1], r4[1]))]
-				# self.rankingsRv["googleTRIcnt"] += [(vCan, math.log(max(1, r1[0], r2[0], r3[0], r4[0])))]
-
-				# r1 = ff.langmodel3("%s %s" % (gvAna.lemma, wCan)) if "JJ" in gvAna.POS else [0, 0]
-				# self.rankingsRv["googleJC"] += [(vCan, r1[1])]
-				# self.rankingsRv["googleJCcnt"] += [(vCan, math.log(max(1, r1[0])))]
-
 		for rank in self.rankingsRv.values():
 			rank.sort(key=lambda x: x[1], reverse=True)
 
@@ -251,130 +250,147 @@ class feature_function_t:
 			dirExtKb,
 			os.path.join(dirExtKb, "corefevents.com.lsh")
 			)
-		# self.libcir    = conir.test_cir_t(
-		# 	os.path.join(dirExtKb, "GoogleNews-vectors-negative300.bin"),
-		# 	os.path.join(dirExtKb, "corefevents.tsv"), useMemoryMap=pa.quicktest)
+
+		self.ncnaive = {}
 		
-		# self.cdb_sp		 = cdb.init(os.path.join(dirExtKb, "tuples.cdb"))
-                self.cdb_sp = None
-		self.sp_tfq		 = int(open(os.path.join(dirExtKb, "tuples.totalfreq.txt")).read())
-		self.cdb_nc		 = cdb.init(os.path.join(dirExtKb, "nc12_assoc_verbs_wr_def.cdb"))
-		self.cdb_cache = {}
+		for th in [5, 10, 25, 50, 100, 200, 400]:
+			self.ncnaive[th] = ncnaive.ncnaive_t("/work/naoya-i/kb/ncnaive%s.cdb" % th, "/work/naoya-i/kb/tuples.cdb")
+			
+		self.nc        = nccj08.nccj08_t("/work/naoya-i/schemas-size12", "/work/naoya-i/kb/verb-pair-orders")
+		self.sp        = selpref.selpref_t(pathKB="/work/naoya-i/kb/")
+		self.sentpol   = sentimentpolarity.sentimentpolarity_t("/work/naoya-i/kb/wilson05_subj/subjclueslen1-HLTEMNLP05.tff")
 
 		# GOOGLE NGRAMS
-		if os.path.exists(os.path.join("/work/naoya-i/ngrams/", "1gram.cdb")) and \
-					os.path.exists(os.path.join("/work/naoya-i/ngrams/", "1gram.total")):
-			self.cdb_1gram			 = cdb.init(os.path.join("/work/naoya-i/ngrams/", "1gram.cdb"))
-			self.cdb_ngram       = {}
-			self.lm_1gram_total	 = int(open(os.path.join("/work/naoya-i/ngrams/", "1gram.total")).read())
-			self.lm_idx2				 = collections.defaultdict(list)
-			self.lm_idx3				 = collections.defaultdict(list)
+		self.gn        = googlengram.googlengram_t()		
 
-			for ln in open(os.path.join("/work/naoya-i/ngrams/2gm.idx")):
-				fn, w1, w2 = ln.strip().split()
-				self.lm_idx2[w1[0]] += [fn]
-
-			for ln in open(os.path.join("/work/naoya-i/ngrams/3gm.idx")):
-				fn, w1, w2, w3 = ln.strip().split()
-				self.lm_idx3[w1[0]] += [fn]
-			
-		# WILSON'S SUBJECTIVITY LEXICON.
-		self.subjlex = {}
-
-		for ln in open(os.path.join(dirExtKb, "wilson05_subj/subjclueslen1-HLTEMNLP05.tff")):
-			ln = re.findall("word1=([^ ]+).*?priorpolarity=([^ ]+)\n", ln)
-			
-			if 0 < len(ln):
-				self.subjlex[ln[0][0]] = ln[0][1]
-
-		# CHAMBERS & JURAFSKY'S ORDERED VERB PAIRS.
-		self.verbOrder = {}
-		
-		for ln in open(os.path.join(dirExtKb, "verb-pair-orders")):
-			v1, v2, freq = ln.strip().split("\t")
-			self.verbOrder[(v1, v2)] = int(freq)
-		
-
-	def generateFeature(self, ana, can, sent, ranker):
+	def generateFeature(self, ana, can, sent, ranker, candidates):
 		conn				 = scn.getConn(sent)
-		position		 = ranker.getRank(can.attrib["id"], "position")
+		position		 = "left" if "R1" == ranker.getRank(can.attrib["id"], "position") else "right"
 		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana), scn.getPrimaryPredicativeGovernor(sent, can)
 
 		# kNN FEATURES.
 		for fk, fnn in ranker.NN.iteritems():
 			r = ranker.getKNNRank(can.attrib["id"], fk)
-			yield "%s_KNN_%s_%s" % (position, fk, r), 1
+			yield "KNN_%s_%s" % (fk, r), 1
 			
 		# RANKING FEATURES.
 		for fk, fr in ranker.rankingsRv.iteritems():
 			if "position" == fk: continue
 			
-			r		 = ranker.getRank(can.attrib["id"], fk)
-			diff = 0
-			
-			if None != r:
-				yield "%s_%s_%s_%s" % (position, fk, r, diff), 1
+			r	=ranker.getRank(can.attrib["id"], fk)
 
-			# if None != r:
-			# 	yield "%s_%s" % (position, fk), fr[0 if "R1" == r else 1][1]
-			
+			if "selpref" == fk:
+				yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
+					
+			if "R1" == r:
+				if "google" in fk:
+					if min(fr[1][1], fr[0][1]) > 0 and max(fr[1][1], fr[0][1]) > 0 and \
+								 float(abs(fr[1][1] - fr[0][1])) / max(fr[1][1], fr[0][1]) > 0.2:
+						yield "%s_Rank_%s_%s" % ("x", fk, r), 1
+						
+				elif "NCCJ08" == fk:
+					if 2 > fr[0][1] + fr[1][1]:
+						yield "%s_Rank_%s_%s" % ("x", fk, r), 1
+						
+				elif "NCCJ08_VO" == fk:
+					if abs(fr[0][1] - fr[1][1])>25:
+						yield "%s_Rank_%s_%s" % ("x", fk, r), 1
+						
+				else:
+					yield "%s_Rank_%s_%s" % ("x", fk, r), 1
+
+		#
 		# LEXICAL FEATURES.
+		yield "%s_LEX_AD_%s,%s" % (position, scn.getLemma(ana), scn.getLemma(can)), 1
+		
+		# ANTECEDENT-INDEPENDENT.
 		for tk in sent.xpath("./tokens/token"):
-			yield "%s_L_%s" % (position, scn.getLemma(tk)), 1
+			yield "%s_LEX_AI1_%s" % (position, scn.getLemma(tk)), 1
 
 			if None != conn:
 				for tk2 in sent.xpath("./tokens/token"):
 					if int(tk.attrib["id"]) < int(conn.attrib["id"]) and int(tk2.attrib["id"]) > int(conn.attrib["id"]) and \
-								("VB" in scn.getPOS(tk) or "JJ" in scn.getPOS(tk)) and \
-								("VB" in scn.getPOS(tk2) or "JJ" in scn.getPOS(tk2)):
-						yield "%s_VPA_%s,%s" % (position, scn.getLemma(tk), scn.getLemma(tk2)), 1
+								not("NN" in scn.getPOS(tk) or "JJ" in scn.getPOS(tk)) and \
+								not("NN" in scn.getPOS(tk2) or "JJ" in scn.getPOS(tk2)):
+						yield "%s_LEX_AI2_%s,%s" % (position, scn.getLemma(tk), scn.getLemma(tk2)), 1
+						yield "%s_LEX_AI3_%s,%s,%s" % (position, scn.getLemma(tk), scn.getLemma(tk2), scn.getLemma(conn)), 1
 
-		yield "%s_LL_%s,%s" % (position, scn.getLemma(ana), scn.getLemma(can)), 1
+		# ANTECEDENT-DEPENDENT.
+		if None != gvAna:
+			yield "%s_LEX_ADHC1VA_%s,%s" % (position, scn.getLemma(can), gvAna.lemma), 1
+
+		if None != gvCan:
+			yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma), 1
+
+		# HEURISTIC POLARITY.
+		for fHPOL in self.heuristicPolarity(ana, can, sent, ranker, candidates):
+			yield fHPOL
+
+		# NC VERB ORDER.
+		if None != gvAna and None != gvCan:
+			diff = self.nc.getVerbPairOrder(gvCan.lemma, gvAna.lemma) - self.nc.getVerbPairOrder(gvAna.lemma, gvCan.lemma)
+			
+			if diff > 25: yield "NCCJ08_VO_SAME_ORDER", 1
+			elif diff < -25: yield "NCCJ08_VO_REVERSE_ORDER", 1
+
+	def heuristicPolarity(self, ana, can, sent, ranker, candidates):
+		conn				 = scn.getConn(sent)
+		gvCan1, gvCan2 = scn.getPrimaryPredicativeGovernor(sent, candidates[0]), scn.getPrimaryPredicativeGovernor(sent, candidates[1])
+		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana), scn.getPrimaryPredicativeGovernor(sent, can)
+		polAna, polCan1, polCan2 = 0, 0, 0
+		position		 = "left" if "R1" == ranker.getRank(can.attrib["id"], "position") else "right"
 
 		if None != gvAna:
-			yield "%s_PC_%s,%s" % (position, gvAna.lemma, scn.getLemma(can)), 1
+			polAna = self.sentpol.getPolarity(gvAna.lemma) if gvAna.rel == "nsubj" or scn.getDeepSubject(sent, gvAna.token) == ana.attrib["id"] else None
 
-			if None != gvCan:
-				yield "%s_PP_%s,%s" % (position, gvAna.lemma, gvCan.lemma), 1
-				
-		  #yield ("%s_PRPR_%s-%s,%s-%s" % (position, gvAna.lemma, gvAna.rel, gvCan.lemma, gvCan.rel), 1)
+			# FLIPPING
+			if None != polAna and (scn.getNeg(sent, gvAna.token) or (None != conn and scn.getLemma(conn) in "but although though however".split())): polAna *= -1
 
-		if "O" != scn.getNEtype(can):
-			yield "%s_NE_%s,%s" % (position, scn.getLemma(ana), scn.getNEtype(can)), 1
+		if None != gvCan1:
+			polCan1 = self.sentpol.getPolarity(gvCan1.lemma) if gvCan1.rel == "nsubj" or scn.getDeepSubject(sent, gvCan1.token) == candidates[0].attrib["id"] else None
 
-	def _cdbgetc(self, db, k, de = None):
-		gk = "%s-%s" % (db, k)
-		
-		if not self.cdb_cache.has_key(gk):
-			self.cdb_cache[gk] = _cdbdefget(db, k, de)
+			# FLIPPING
+			if None != polCan1 and scn.getNeg(sent, gvCan1.token): polCan1 *= -1
 			
-		return self.cdb_cache[gk]
+		if None != gvCan2:
+			polCan2 = self.sentpol.getPolarity(gvCan2.lemma) if gvCan2.rel == "nsubj" or scn.getDeepSubject(sent, gvCan2.token) == candidates[1].attrib["id"] else None
 
-	def selPref(self, p, r, a):
-		if None == self.cdb_sp:
-			return (0, 0)
+			# FLIPPING
+			if None != polCan2 and scn.getNeg(sent, gvCan2.token): polCan2 *= -1
 
-		freq_slot	 = int(self._cdbgetc(self.cdb_sp, "%s:%s" % (p, r), 1))
-		freq_inst	 = int(self._cdbgetc(self.cdb_sp, "%s" % a, 1))
-		freq_cooc	 = int(self._cdbgetc(self.cdb_sp, "%s:%s,%s" % (p, r, a), 1))
-		freq_total = self.sp_tfq
+		# INFERENCE.
+		if 1 == polCan1 and None == polCan2: polCan2 = -1
+		if -1 == polCan1 and None == polCan2: polCan2 = 1
+		if None == polCan1 and 1 == polCan2: polCan1 = -1
+		if None == polCan1 and -1 == polCan2: polCan1 = 1
 
-		if 1 == freq_slot or 1 == freq_inst:
-			return (0, 0)
+		def _L(_x):
+			if None == _x: return None
+			return scn.getLemma(scn.getTokenById(sent, _x))
+			
+		ranker.statistics["POLDS"] += [(candidates[0].attrib["id"], "%s,%s" % (_L(scn.getDeepSubject(sent, gvAna.token)) if None != gvAna else None, _L(scn.getDeepSubject(sent, gvCan1.token)) if None != gvCan1 else None))]
+		ranker.statistics["POLDS"] += [(candidates[1].attrib["id"], "%s,%s" % (_L(scn.getDeepSubject(sent, gvAna.token)) if None != gvAna else None, _L(scn.getDeepSubject(sent, gvCan2.token)) if None != gvCan2 else None))]
+		ranker.statistics["POL"] += [(candidates[0].attrib["id"], "%s,%s" % (polAna, polCan1))]
+		ranker.statistics["POL"] += [(candidates[1].attrib["id"], "%s,%s" % (polAna, polCan2))]
 
-		d    = (1.0 * freq_cooc / (freq_cooc+1)) * (1.0 * min(freq_slot, freq_inst) / (min(freq_slot, freq_inst)+1))
-		npmi = _npmi(1.0*freq_cooc/freq_total, 1.0*freq_slot/freq_total, 1.0*freq_inst/freq_total)
-		
-		return (freq_cooc, npmi)
-	
-	def nc(self, p1, r1, p2, r2):
-		q1 = ("X %s" if "nsubj" == r1 else "%s X") % p1
-		q2 = ("X %s" if "nsubj" == r2 else "%s X") % p2
-		r  = self._cdbgetc(self.cdb_nc, "%s ~ %s" % (q1, q2))
-		
-		return float(r) if None != r else 0.0
+		if None != polAna and None != polCan1 and None != polCan2 and 0 != polAna*polCan1*polCan2:
+			
+			# HPOL1
+			if can == candidates[0] and polCan1 == polAna: yield "%s_HPOL_MATCH" % position, 1
+			if can == candidates[1] and polCan2 == polAna: yield "%s_HPOL_MATCH" % position, 1
 
+			# HPOL2
+			if can == candidates[0]: yield "%s_HPOL_%s-%s" % (position, polAna, polCan1), 1
+			if can == candidates[1]: yield "%s_HPOL_%s-%s" % (position, polAna, polCan2), 1
+
+			# HPOL3
+			if None != conn:
+				if can == candidates[0]: yield "%s_HPOL_%s-%s-%s" % (position, polAna, scn.getLemma(conn), polCan1), 1
+				if can == candidates[1]: yield "%s_HPOL_%s-%s-%s" % (position, polAna, scn.getLemma(conn), polCan2), 1
+				
 	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2, cached = None):
+		if None == self.libiri: return 0
+		
                 for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
 
 			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
@@ -382,12 +398,6 @@ class feature_function_t:
 			spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 
-                        # if sp != 1: # predicate similarity OFF
-                        #     continue
-
-                        # print "sp == 1"
-                        # print p1, p2
-                            
                         if None != cached: cached += [(NNvoted, ret)]
 			assert(abs(spac - ret.score) < 0.1)
 			
@@ -397,85 +407,3 @@ class feature_function_t:
 			outNN["iriPredArgCon"] += [(NNvoted, spac)]
 
 		return 0
-
-	def cir(self, outNN, NNvoted, p1, r1, ps1, c1, p2, r2, ps2, c2, filler, cached = None):
-		voters	 = collections.defaultdict(list)
-		comXY, comX, comY = 0.0, 0.0, 0.0
-
-		for ret in self.libcir.getScores(
-			("%s-%s:%s" %(p1, ps1[0].lower(), r1), c1),
-			("%s-%s:%s" %(p2, ps2[0].lower(), r2), c2), filler):
-		
-			if None != cached: cached += [(NNvoted, ret)]
-
-			outNN["cirArgPMI"] += [(NNvoted, ret.simArgType*ret.assoc)]
-			outNN["cirPMICon"] += [(NNvoted, ret.assoc*ret.simContext)]
-			outNN["cirArgConPMI"] += [(NNvoted, ret.simArgType*ret.simContext*ret.assoc)]
-			voters["argconmatch"] += [ret.simArgType*ret.simContext]
-			voters["argmatch"] += [ret.simArgType]
-			voters["conmatch"] += [ret.simContext]
-			comXY += ret.simArgType*ret.simContext
-			comX  += ret.simArgType
-			comY  += ret.simContext
-
-		# if 0 < len(voters["argmatch"]):
-		# 	comXY, comX, comY = \
-		# 			comXY / len(voters["argmatch"]), comX / len(voters["argmatch"]), comY / len(voters["argmatch"])
-		
-		# TAKE THE k_BEST SUM.
-		def _bestSum(_voter, _k):
-			_voter.sort(reverse=True)
-			return sum(_voter[:min(_k, len(_voter))])
-	
-
-		k = 10
-
-		return (0, 0, 0,
-						 #0, (0, 0, 0),
-						 0, (0, 0, 0),
-						 len(voters["argmatch"])) if 0 == len(voters["argmatch"]) else \
-						 (ret.assoc, _bestSum(voters["argmatch"], k), _bestSum(voters["conmatch"], k),
-							#_npmi(comXY, comX, comY), (comXY, comX, comY),
-							_npmi(_bestSum(voters["argconmatch"], k), _bestSum(voters["argmatch"], k), _bestSum(voters["conmatch"], k)),
-							(_bestSum(voters["argconmatch"], k), _bestSum(voters["argmatch"], k), _bestSum(voters["conmatch"], k)),
-							len(voters["argmatch"]))
-	
-	def langmodel3(self, words):
-		matched_fns = []
-		w1          = words.split(" ")[0]
-		lm_idx			= self.lm_idx2
-
-		if 3 == len(words.split(" ")):
-		 	lm_idx = self.lm_idx3
-
-		for k in sorted(lm_idx.keys()):
-			if w1 >= k:
-				matched_fns += k
-
-		for k in matched_fns[-2:]:
-			for fn in lm_idx[k]:
-				fn_cdb = os.path.join("/work/naoya-i/ngrams", fn).replace(".gz", ".cdb").replace("gm", "gram")
-
-				if not self.cdb_ngram.has_key(fn_cdb):
-					self.cdb_ngram[fn_cdb] = cdb.init(fn_cdb)
-					
-				r = self._cdbgetc(self.cdb_ngram[fn_cdb], words)
-
-				if None != r:
-					denom				 = 1.0 / self.lm_1gram_total
-					single_freqs = []
-
-					for w in words.split(" "):
-						freq = self._cdbgetc(self.cdb_1gram, w)
-						if None == freq: continue
-
-						denom *= int(freq)
-						single_freqs += [int(freq)]
-
-					denom *= 1.0 / self.lm_1gram_total
-					d	     = (1.0 * float(r) / (float(r)+1)) * (1.0 * min(single_freqs) / (min(single_freqs)+1))
-					
-					return int(r), d * math.log(float(r) / denom, 2)
-
-		return 0, -9999
-	
