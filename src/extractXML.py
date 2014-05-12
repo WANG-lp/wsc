@@ -17,10 +17,10 @@ for inputfile in sys.argv[1:]:
 			sys.stdout.write(ln) if ln.startswith("<") else None
 			# 		streamOutThin.write(re.sub(">(.*?)(<[^<]+)$", lambda x: ">%s%s" % (escape(x.group(1)), x.group(2)), ln)) if ln.startswith("<") and not "cirInstances" in ln else None
 			
-			sys.stderr.write(".")
+			if 0 == numProcessed % 10000: sys.stderr.write(".")
 			
 			numProcessed += 1
-			if 0 == numProcessed % 100: sys.stderr.write("%d\n" % numProcessed)
+			if 0 == numProcessed % 100000: sys.stderr.write("%d\n" % numProcessed)
 			
 print "</root>"
 print >>sys.stderr, numProcessed, ""

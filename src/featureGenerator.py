@@ -269,9 +269,12 @@ class feature_function_t:
 		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana), scn.getPrimaryPredicativeGovernor(sent, can)
 
 		# kNN FEATURES.
-		for fk, fnn in ranker.NN.iteritems():
-			r = ranker.getKNNRank(can.attrib["id"], fk)
-			yield "KNN_%s_%s" % (fk, r), 1
+		for K in xrange(50):
+			for fk, fnn in ranker.NN.iteritems():
+				r = ranker.getKNNRank(can.attrib["id"], fk, K)
+
+				if 0 == r:
+					yield "KNN%d_%s_%s" % (K, fk, r), 1
 			
 		# RANKING FEATURES.
 		for fk, fr in ranker.rankingsRv.iteritems():
