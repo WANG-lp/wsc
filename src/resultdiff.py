@@ -51,6 +51,8 @@ tmp2 = []
 for l in stdout2:
     tmp2.append(l.strip())
 
+print len(tmp1), len(tmp2)
+
 if len(tmp1) != len(tmp2):
     print "#Problems Error"
 
