@@ -16,7 +16,7 @@ cat local/train.sv | python src/filterFeature.py inc $setting | \
 cat local/test.sv | python src/filterFeature.py inc $setting | \
     python src/indexify.py local/train.isv.vocab - > local/test.isv
 
-/home/naoya-i/src/svm_rank/svm_rank_learn -c 10.0 local/train.isv local/train.model.svmrank
+/home/naoya-i/src/svm_rank/svm_rank_learn -c 4.0 local/train.isv local/train.model.svmrank
 /home/naoya-i/src/svm_rank/svm_rank_classify local/test.isv local/train.model.svmrank local/test.svmrank.predictions
 
 python ./src/checkWrongOrNodec.py $setting local/test.svmrank.predictions >> result
