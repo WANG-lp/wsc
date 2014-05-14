@@ -28,7 +28,7 @@ for t in "CORRECT WRONG NO_DECISION".split():
 		100.0 * freq[t] / sum(freq.values()), freq[t],
 		sum(freq.values()) )]
 
-print " & ".join(map(lambda x: x.replace("_", "\\_").replace("|", "+"), [sys.argv[1]] + rows)), "\\\\"
+print " & ".join(map(lambda x: x.replace("_", "\\_").replace("|", " + ").replace("^", "\\^"), [sys.argv[1]] + rows)), "\\\\"
 
 # for t in "CORRECT WRONG NO_DECISION".split():
 # 	print "%s\t%s" % (t, " ".join([str(x) for x in instances[t]]))

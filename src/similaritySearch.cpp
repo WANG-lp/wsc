@@ -18,6 +18,7 @@
 
 #include "google-word2vec.h"
 #include "lsh.h"
+#include "exactsearch.h"
 #include "optparse.h"
 #include "vectorize.h"
 #include "corefevents.h"
@@ -39,12 +40,11 @@ int main(int argc, char **argv) {
   
   google_word2vec_t gw2v(opts.of('k') + "/GoogleNews-vectors-negative300.bin",
                          opts.of('k') + "/GoogleNews-vectors-negative300.index.bin");
-  lsh_t   lsh(opts.of('i'));
-  string  line;
-  bool    fSimilaritySearchOn = false;
-  int     th       = 0;
-  size_t  maxRules = 10000;
-  float  *pQuery   = new float[lsh.getDim()];
+  exactsearch_t  es(opts.of('k') + "/corefevents.cdblist");
+  string         line;
+  bool           fSimilaritySearchOn = false;
+  int            th                  = 0;
+  size_t         maxRules            = 10000;
   
   corefevents_t                libce(opts.of('d'), true);
   corefevents_t::proposition_t prpIndexed, prpPredicted;
@@ -70,86 +70,20 @@ int main(int argc, char **argv) {
     
     if("" != line) continue;
     
-    if("pceach" != lsh.getHashType()) {
-      cerr << "SORRY..." << endl;
-      cerr << "Idk the hash type: " << lsh.getHashType() << endl;
-      continue;
-    }
-    
-    vector<uint64_t> offsets;
-    vector<string> keys;
-
-    // PREPARE THE KEYS.
-    keys.push_back(prpIndexed.predicate);
-    
-    if(fSimilaritySearchOn)
-      extractContextWords(&keys, prpIndexed.context);
-    
+    int timeElapsed;
     timeval t1, t2;
+    size_t numExactMatches;
     gettimeofday(&t1, NULL);
+
+    cerr << "Searching... (query: " << prpIndexed.predicate + ":" + prpIndexed.slot << "," << prpPredicted.predicate + ":" + prpPredicted.slot << ")" << endl;
+    vector<exactsearch_t::result_t> ret;
+    es.search(&ret, prpIndexed.predicate + ":" + prpIndexed.slot, prpPredicted.predicate + ":" + prpPredicted.slot);
+    numExactMatches = ret.size();
     
-    for(size_t i=0; i<keys.size(); i++) {
-      cerr << "Searching... " << flush;
-    
-      initVector(pQuery, lsh.getDim());
-      addWordVector(pQuery, keys[i], gw2v);
-
-      vector<uint64_t> ret;
-      lsh.search(&ret, pQuery, th, atoi(opts.of('m').c_str()));
-
-      unordered_set<uint64_t> setRet(ret.begin(), ret.end());
-      for(unordered_set<uint64_t>::iterator j=setRet.begin(); setRet.end()!=j; ++j)
-        offsets.push_back(*j);
-      
-      cerr << "Cool. " << ret.size() << " entries found." << endl;
-    }
-
     gettimeofday(&t2, NULL);
 
-    int timeElapsed = (t2.tv_sec - t1.tv_sec) * 1000 + (t2.tv_usec - t1.tv_usec)/1000;
-    vector<uint64_t> ret;
-
-    // IDENTIFY COMMON IRRs.
-    if(fSimilaritySearchOn) {
-      sort(offsets.begin(), offsets.end());
-
-      size_t counter = 0;
-      for(size_t i=0; i<offsets.size();) {
-        for(counter=0; i+counter<offsets.size(); counter++)
-          if(offsets[i]!=offsets[i+counter]) break;
-      
-        if(counter >= keys.size()) ret.push_back(offsets[i]);
-      
-        i += counter;
-      }
-    } else
-      ret = offsets;
-    
-    // FILTERING: REMOVE A SET OF INFERENCE RULE INSTANCES THAT DO NOT
-    // EXACTLY MATCH WITH THE INPUT PREDICATES.
-    vector<uint64_t> retFiltered;
-    string p1, p2;
-      
-    for(size_t i=0; i<ret.size(); i++) {
-      libce.getPredicates(&p1, &p2, ret[i]);
-
-      // REMOVE THE POS.
-      p1 = p1.substr(0, p1.find("-")) + p1.substr(p1.find("-")+2);
-      p2 = p2.substr(0, p2.find("-")) + p2.substr(p2.find("-")+2);
-
-      if((prpIndexed.predicate + ":" + prpIndexed.slot == p1 &&
-          prpPredicted.predicate + ":" + prpPredicted.slot == p2) ||
-         (prpIndexed.predicate + ":" + prpIndexed.slot == p2 &&
-          prpPredicted.predicate + ":" + prpPredicted.slot == p1)) {
-        retFiltered.push_back(ret[i]);
-      }
-    }
-
-    if(!fSimilaritySearchOn) {
-      ret = retFiltered;
-    }
-    // <-- FILTERING ENDS
-    
+    timeElapsed = (t2.tv_sec - t1.tv_sec) * 1000 + (t2.tv_usec - t1.tv_usec)/1000;
+  
     // <-- FILTERING: RANDOM SAMPLING
     std::srand(0);
     std::random_shuffle(ret.begin(), ret.end(), myrandom);
@@ -161,20 +95,20 @@ int main(int argc, char **argv) {
     // <-- FILTERING ENDS
       
     cerr << "Done!" << endl;
-    cerr << ret.size() << " entries have been found. (took " << float(timeElapsed)/1000.0 << " sec)." << endl;
+    cerr << ret.size() << " entries (original: " << numExactMatches << ") have been found. (took " << float(timeElapsed)/1000.0 << " sec)." << endl;
 
-    cout << retFiltered.size() << endl;
+    cout << numExactMatches << endl;
     cout << ret.size() << endl;
     
     // IDENTIFY THE COMMON IDS.
     for(size_t i=0; i<ret.size(); i++) {
       corefevents_t::result_t retScore;
-      libce.calcScore(&retScore, ret[i], 0, prpIndexed, prpPredicted, gw2v);
+      libce.calcScore(&retScore, ret[i].offset, ret[i].length, prpIndexed, prpPredicted, gw2v);
 
       cout.write((const char*)&retScore.iIndexed, sizeof(uint16_t));
       cout.write((const char*)&retScore.iPredicted, sizeof(uint16_t));
       
-      cout.write((const char*)&ret[i], sizeof(uint64_t));
+      cout.write((const char*)&ret[i].offset, sizeof(uint64_t));
       cout.write((const char*)&retScore.length, sizeof(uint16_t));
       
       cout.write((const char*)&retScore.score, sizeof(float));
@@ -200,8 +134,6 @@ int main(int argc, char **argv) {
     cerr << ret.size() << " entries have been listed (took " << float(timeElapsed)/1000.0 << " sec)." << endl;
   }
  
-  delete[] pQuery;
-  
   return 0;
   
 }

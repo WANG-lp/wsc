@@ -90,7 +90,7 @@ class iri_t:
 		ret     = []
 
 		# CALCULATE PMI
-		pr1, pr2 = "%s-%s:%s" % (predicate, pos1, slot), "%s-%s:%s" % (predictedPredicate, pos2, predictedSlot)
+		pr1, pr2 = "%s:%s" % (predicate, slot), "%s:%s" % (predictedPredicate, predictedSlot)
 		if pr1 > pr2: pr1, pr2 = pr2, pr1
 
 		spassoc = _npmi(1.0*numExactMatchIRIs / self.totalFreqPreds,
@@ -111,6 +111,7 @@ class iri_t:
 			try:
 				line = self.procSearchServer.stdout.readline().strip().split("\t")
 			except ValueError:
+				raise "Protocol Error"
 				continue
 
                         # result_t = collections.namedtuple(
@@ -130,7 +131,7 @@ class iri_t:
 if "__main__" == __name__:
 	# UNIT TEST.
 	iri = iri_t(
-		"/work/naoya-i/kb/corefevents.com.tsv",
+		"/work/naoya-i/kb/corefevents.tsv",
 		"/home/naoya-i/work/wsc/bin",
 		"/work/naoya-i/kb",
 		sys.argv[1])

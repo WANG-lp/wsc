@@ -83,11 +83,12 @@ private:
 
   struct stat m_fStatData;
   int         m_fdData;
+  bool        m_fLoaded;
   
 public:
   static const int MAX_POOL_SEARCH_RESULT = 1000000;
 
-  lsh_t(int nBits = 32, bool fUseMemoryMap = false, int nDim = 300) : m_pHashTable(NULL), m_nBits(nBits), m_nDim(nDim), m_fdData(-1) {
+ lsh_t(int nBits = 32, bool fUseMemoryMap = false, int nDim = 300) : m_pHashTable(NULL), m_nBits(nBits), m_nDim(nDim), m_fdData(-1), m_fLoaded(false) {
     
     // GENERATE THE RANDOM HYPER PLANES.
     srand(1);
@@ -154,12 +155,15 @@ public:
     
       cerr << "Done!" << endl;
     }
+
+    m_fLoaded = true;
   }
 
   ~lsh_t() {
     if(NULL != m_pHashTable) delete[] m_pHashTable;
   }
-  
+
+  inline bool isLoaded() const { return m_fLoaded; }
   inline int getBits() const { return m_nBits; }
   inline int getDim() const { return m_nDim; }
   inline const string &getHashType() const { return m_typeHash; }

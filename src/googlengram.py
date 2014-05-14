@@ -4,7 +4,7 @@ import cdb
 import os
 
 class googlengram_t:
-	def __init__(self, path = "/work/naoya-i/ngrams"):
+	def __init__(self, path = "/work/naoya-i/kb/ngrams"):
 		self.path   = path
 
 		self.idx  = {}

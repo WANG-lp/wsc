@@ -14,9 +14,11 @@ class nccj08_t:
 		for ln in open(db1):
 			if ln.startswith("["):
 				m = re.search("\[ ([^]]+) \]", ln)
+				events = m.groups()[0].split(" ")
 
-				for pr1, pr2 in itertools.combinations(m.groups()[0].split(" "), 2):
-					self.db[(pr1, pr2) if pr1 < pr2 else (pr2, pr1)] += [ncid]
+				if len(events) >= 2:
+					for pr1, pr2 in itertools.combinations(events, 2):
+						self.db[(pr1, pr2) if pr1 < pr2 else (pr2, pr1)] += [ncid]
 
 				ncid += 1
 

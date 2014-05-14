@@ -21,6 +21,7 @@ import marshal
 #
 def _isPredicate(x):  return x in "VB|VBD|VBG|VBN|VBP|VBZ|JJ|JJR|JJS".split("|")
 def _isNounPhrase(x): return x in "NN|NNP|NNS|NNPS".split("|")
+def _getPathKB(): return open("./pathKB.txt").read().strip()
 
 def _cdbdefget(f, key, de):
 	r = f.get(key)
@@ -108,12 +109,15 @@ class ranker_t:
                                 self.statistics["NCCJ08"] += [(vCan, "%s ~ %s" % (ff.nc.createQuery(gvAna.lemma, gvAna.rel), ff.nc.createQuery(gvCan.lemma, gvCan.rel)))]
 																
                                 # NARRATIVE CHAIN FEATURE
-                                for th in [5, 10, 25, 50, 100, 200, 400]:
+                                for th in [0, 5, 10, 25, 50, 100, 200, 400]:
                                     self.rankingsRv["NCNAIVE%sFREQ" % th] += [(vCan,
                                         ff.ncnaive[th].getFreq("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
 
                                     self.rankingsRv["NCNAIVE%sPMI" % th] += [(vCan,
                                         ff.ncnaive[th].getPMI("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
+																		
+                                    self.rankingsRv["NCNAIVE%sNPMI" % th] += [(vCan,
+                                        ff.ncnaive[th].getNPMI("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
 																
                                 # Q1, 2: CV
                                 if "O" == scn.getNEtype(can):
@@ -245,7 +249,7 @@ class feature_function_t:
 		self.pa							 = pa
 
 		self.libiri    = iri.iri_t(
-			os.path.join(dirExtKb, "corefevents.com.tsv"),
+			os.path.join(dirExtKb, "corefevents.tsv"),
 			os.path.join(os.path.dirname(sys.argv[0]), "../bin"),
 			dirExtKb,
 			os.path.join(dirExtKb, "corefevents.com.lsh")
@@ -253,15 +257,15 @@ class feature_function_t:
 
 		self.ncnaive = {}
 		
-		for th in [5, 10, 25, 50, 100, 200, 400]:
-			self.ncnaive[th] = ncnaive.ncnaive_t("/work/naoya-i/kb/ncnaive%s.cdb" % th, "/work/naoya-i/kb/tuples.cdb")
+		for th in [0, 5, 10, 25, 50, 100, 200, 400]:
+			self.ncnaive[th] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive%s.cdb" % th), os.path.join(_getPathKB(), "tuples.cdb"))
 			
-		self.nc        = nccj08.nccj08_t("/work/naoya-i/schemas-size12", "/work/naoya-i/kb/verb-pair-orders")
-		self.sp        = selpref.selpref_t(pathKB="/work/naoya-i/kb/")
-		self.sentpol   = sentimentpolarity.sentimentpolarity_t("/work/naoya-i/kb/wilson05_subj/subjclueslen1-HLTEMNLP05.tff")
+		self.nc        = nccj08.nccj08_t(os.path.join(_getPathKB(), "schemas-size12"), os.path.join(_getPathKB(), "verb-pair-orders"))
+		self.sp        = selpref.selpref_t(pathKB=_getPathKB())
+		self.sentpol   = sentimentpolarity.sentimentpolarity_t(os.path.join(_getPathKB(), "wilson05_subj/subjclueslen1-HLTEMNLP05.tff"))
 
 		# GOOGLE NGRAMS
-		self.gn        = googlengram.googlengram_t()		
+		self.gn        = googlengram.googlengram_t(os.path.join(_getPathKB(), "ngrams"))
 
 	def generateFeature(self, ana, can, sent, ranker, candidates):
 		conn				 = scn.getConn(sent)
@@ -394,7 +398,8 @@ class feature_function_t:
 	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2, cached = None):
 		if None == self.libiri: return 0
 		
-                for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
+                #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
+                for ret, raw in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=60000):
 
 			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
 			spa = sp * ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg

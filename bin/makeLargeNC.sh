@@ -1,5 +1,9 @@
 #!/bin/zsh
 
+awk '$1 > 0' /work/naoya-i/kb/corefevents.predicate-pairs.sorteduniqc.tsv | \
+    awk '{print $2 " ~ " $3 "\t" $1}' | cdbsrc | \
+    cdbmake /work/naoya-i/kb/ncnaive0.cdb /work/naoya-i/kb/ncnaive0.cdb.tmp &
+
 awk '$1 > 5' /work/naoya-i/kb/corefevents.predicate-pairs.sorteduniqc.tsv | \
     awk '{print $2 " ~ " $3 "\t" $1}' | cdbsrc | \
     cdbmake /work/naoya-i/kb/ncnaive5.cdb /work/naoya-i/kb/ncnaive5.cdb.tmp &

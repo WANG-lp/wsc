@@ -40,7 +40,7 @@ if None != fs.getvalue("query"):
 
 	# PRINT THE RESULT.
 	def _getCached(problemNo):
-		f														= open("/work/naoya-i/kb/corefevents.com.tsv")
+		f														= open("/work/naoya-i/kb/corefevents.tsv")
 		m														= mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
 		examples										= []
 		numCorrect, numWrong				= 0, 0
@@ -212,7 +212,7 @@ if None != fs.getvalue("query"):
 						))
 				continue
 
-			irp1, irp2, ia12, sentdist, irc1, irc2, src = ir.split("\t")
+			irp1, irp2, ia12, sentdist, irc1, irc2, ig1, ig2, src = ir.split("\t")
 			a1,   a2																		= ia12.split(",")
 			a12																					= "%s,%s" % (a1, a2)
 			sentdist																		= str(sentdist)

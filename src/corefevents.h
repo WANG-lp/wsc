@@ -79,6 +79,10 @@ public:
 
     (*pOut2) = buffer;
   }
+
+  string _getWord(const string &wr) {
+    return wr.substr(0, wr.find("-"));
+  }
   
   bool calcScore(result_t *pOut, uint64_t offset, int length, const proposition_t &prpIndexed, const proposition_t &prpPredicted, const google_word2vec_t &gw2v) {
     char     buffer[1024*16];
@@ -93,19 +97,19 @@ public:
     string   p1, s1, p2, s2, a1, a2, c1, c2, sentdist;
     istringstream ssRule(pOut->line);
     
-    getline(ssRule, p1, ':'); p1 = p1.substr(0, p1.find("-")); getline(ssRule, s1, '\t');
-    getline(ssRule, p2, ':'); p2 = p2.substr(0, p2.find("-")); getline(ssRule, s2, '\t');
+    getline(ssRule, p1, ':'); p1 = _getWord(p1); getline(ssRule, s1, '\t');
+    getline(ssRule, p2, ':'); p2 = _getWord(p2); getline(ssRule, s2, '\t');
     getline(ssRule, a1, ','); a1 = a1.substr(0, a1.find("-"));
     getline(ssRule, a2, '\t'); a2 = a2.substr(0, a2.find("-"));
     getline(ssRule, sentdist, '\t');
     getline(ssRule, c1, '\t'); getline(ssRule, c2, '\t');
 
-    pOut->spm1 = calcWordSimilarity(p1, prpIndexed.predicate, gw2v);
+    pOut->spm1 = calcWordSimilarity(p1, _getWord(prpIndexed.predicate), gw2v);
     pOut->scm1 = calcContextualSimilarity(c1, prpIndexed.context, gw2v);
     pOut->sm1  = calcSlotSimilarity(s1, prpIndexed.slot);
     pOut->sam1 = calcWordSimilarity(a1, prpIndexed.focusedArgument, gw2v);
     
-    pOut->spm2 = calcWordSimilarity(p2, prpIndexed.predicate, gw2v);
+    pOut->spm2 = calcWordSimilarity(p2, _getWord(prpIndexed.predicate), gw2v);
     pOut->scm2 = calcContextualSimilarity(c2, prpIndexed.context, gw2v);
     pOut->sm2  = calcSlotSimilarity(s2, prpIndexed.slot);
     pOut->sam2 = calcWordSimilarity(a2, prpIndexed.focusedArgument, gw2v);
@@ -119,7 +123,7 @@ public:
     }
 
     if("" != prpPredicted.predicate) {
-      pOut->spm = calcWordSimilarity(*pp, prpPredicted.predicate, gw2v);
+      pOut->spm = calcWordSimilarity(*pp, _getWord(prpPredicted.predicate), gw2v);
       pOut->scm = calcContextualSimilarity(*pc, prpPredicted.context, gw2v);
       pOut->sm  = calcSlotSimilarity(*ps, prpPredicted.slot);
       pOut->sam = calcWordSimilarity(*pa, prpPredicted.focusedArgument, gw2v);

@@ -56,9 +56,20 @@ public:
 
     if(!fUseMemoryMap) {
       ifstream ifsBin(fnBin.c_str(), ios::binary|ios::in);
-      m_pW2VDB = new char[FILE_SIZE];
-      ifsBin.read(m_pW2VDB, FILE_SIZE);
-      ifsBin.close();
+      
+      try {
+        m_pW2VDB = new char[FILE_SIZE];
+        ifsBin.read(m_pW2VDB, FILE_SIZE);
+        ifsBin.close();
+      } catch (const std::bad_alloc&) {
+        cerr << "Allocation failed. mmap is going to be used." << endl;
+        ifsBin.close();
+        
+        m_fdW2VDB = open(fnBin.c_str(), O_RDONLY);
+        fstat(m_fdW2VDB, &m_fStatW2VDB);
+        m_pW2VDB = (char*)mmap(0, m_fStatW2VDB.st_size, PROT_READ, MAP_SHARED, m_fdW2VDB, 0);
+      
+      }
       
     } else {
       m_fdW2VDB = open(fnBin.c_str(), O_RDONLY);
@@ -67,7 +78,6 @@ public:
       
       cerr << "Mapped to memory." << endl;
     }
-      
     
     cerr << "Done!" << endl;
   }
