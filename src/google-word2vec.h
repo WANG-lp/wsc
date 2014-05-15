@@ -83,7 +83,7 @@ public:
   }
 
   ~google_word2vec_t() {
-    if(-1   != m_fdW2VDB) {
+    if(-1 != m_fdW2VDB) {
       munmap(m_pW2VDB, m_fStatW2VDB.st_size);
       close(m_fdW2VDB);
     } else {

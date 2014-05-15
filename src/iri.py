@@ -40,7 +40,7 @@ class iri_t:
 
 		opts = []
 
-		if fUseMemoryMap: opts += ["-d"]
+		if fUseMemoryMap: opts += ["-q"]
 		
 		self.procSearchServer = subprocess.Popen(
 			"%s -i %s -k %s -d %s -m %d %s" % (

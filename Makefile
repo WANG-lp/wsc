@@ -7,7 +7,11 @@ tools: hash hashTuples similaritySearch reducer
 unittest:
 	g++ -o ./bin/unittest ./src/unittest.cpp /home/naoya-i/src/tinycdb-0.78/libcdb.a
 
+distance:
+	g++ -O2 -msse4.2 -fopenmp -D GLIBCXX -g -o ./bin/distance ./src/distance.cpp $$HOME/src/tinycdb-0.78/libcdb.a
+
 hash:
+
 	g++ -O2 -msse4.2 -fopenmp -D GLIBCXX -o ./bin/hash ./src/hash.cpp
 
 hashTuples:
