@@ -30,7 +30,9 @@ def _isTarget(i, problemlist, options):
 	
 def main(options, args):
 	xmlText = etree.parse(options.input + ".xml")
-	
+        if options.cat: catflag = True
+        else : catflag = False
+        
 	# EXTRACT COREFERENCE RELATIONS IDENTIFIED BY CORE NLP
 	coref				= xmlText.xpath("/root/document/coreference/coreference")
 	corefChains = collections.defaultdict(list)
@@ -40,7 +42,7 @@ def main(options, args):
 			for tok in xrange(int(men.xpath("./start/text()")[0]), int(men.xpath("./end/text()")[0])):
 				corefChains[(int(men.xpath("./sentence/text()")[0]), tok)] += [id_chain]
 
-	ff            = featureGenerator.feature_function_t(options, options.extkb)
+	ff            = featureGenerator.feature_function_t(options, options.extkb, catflag)
 	bp            = bypass_t(xmlText, corefChains)
 	
 	for i, ln in enumerate(open(options.input)):
@@ -52,7 +54,7 @@ def main(options, args):
 		# PARSE THE INPUT TUPLE.
 		ti = eval(ln)
 		
-		_writeFeatures(ff, i, ti, bp)
+		_writeFeatures(ff, i, ti, bp, catflag)
 		sys.stdout.flush()
 
 def _toWordConstant(w):
@@ -61,9 +63,9 @@ def _toWordConstant(w):
 def _getBrothers(sent, x):
 	return scn.getToken(sent, x[2]), scn.getToken(sent, x[4]), scn.getToken(sent, x[3].split(",")[0] if x[3].split(",")[0] != x[4] else x[3].split(",")[1])
 
-def _printContextualInfo(sent, anaphor, antecedent, antecedent_false):
-	gvAna, gvAnte, gvFalseAnte = scn.getPrimaryPredicativeGovernor(sent, anaphor), scn.getPrimaryPredicativeGovernor(sent, antecedent), \
-			scn.getPrimaryPredicativeGovernor(sent, antecedent_false)
+def _printContextualInfo(sent, anaphor, antecedent, antecedent_false, catflag):
+	gvAna, gvAnte, gvFalseAnte = scn.getPrimaryPredicativeGovernor(sent, anaphor, catflag), scn.getPrimaryPredicativeGovernor(sent, antecedent, catflag), \
+			scn.getPrimaryPredicativeGovernor(sent, antecedent_false, catflag)
 	
 	print "<governors anaphor=\"%s-%s:%s\" antecedent=\"%s-%s:%s\" falseAntecedent=\"%s-%s:%s\" />" % (
 		gvAna.lemma if None != gvAna else None,
@@ -84,7 +86,7 @@ def _printContextualInfo(sent, anaphor, antecedent, antecedent_false):
 		scn.getFirstOrderContext(sent, gvFalseAnte.token) if None != gvFalseAnte else "-"
 		)
 	
-def _writeFeatures(ff, i, tupleInstance, bypass):
+def _writeFeatures(ff, i, tupleInstance, bypass, catflag):
 	sent																	= bypass.xmlText.xpath("/root/document/sentences/sentence[@id='%s']" % (1+i))[0]	
 	anaphor, antecedent, antecedent_false =	_getBrothers(sent, tupleInstance)
 
@@ -94,7 +96,7 @@ def _writeFeatures(ff, i, tupleInstance, bypass):
 	candidates = [antecedent, antecedent_false]
 
 	# FOR EACH CANDIDATE ANTECEDENT, WE GENERATE THE FEATURES.
-	ranker = featureGenerator.ranker_t(ff, anaphor, candidates, sent)
+	ranker = featureGenerator.ranker_t(ff, anaphor, candidates, sent, catflag)
 
 	# WRITE THE HEADER AND BASIC INFORMATION OF ANAPHOR AND ANTECEDENTS
 	print "<problem id=\"%s\" text=\"%s\" anaphor=\"%s-%s-%s\" antecedent=\"%s-%s-%s\" falseAntecedent=\"%s-%s-%s\">" % (
@@ -104,13 +106,13 @@ def _writeFeatures(ff, i, tupleInstance, bypass):
 		scn.getLemma(antecedent_false), scn.getPOS(antecedent_false)[0].lower(), scn.getNEtype(antecedent_false),
 		)
 
-	_printContextualInfo(sent, anaphor, antecedent, antecedent_false)
+	_printContextualInfo(sent, anaphor, antecedent, antecedent_false, catflag)
 
 	for can in candidates:
 		print "<feature-vector for=\"%s\">%s</feature-vector>" % (
 			"correct" if can == antecedent else "wrong",
 			"%d qid:%d %s" % (1 if can == antecedent else 2, 1+i,
-												" ".join(["%s:%s" % x for x in ff.generateFeature(anaphor, can, sent, ranker, candidates)])
+												" ".join(["%s:%s" % x for x in ff.generateFeature(anaphor, can, sent, ranker, candidates, catflag)])
 												))
 
 	#
@@ -189,5 +191,6 @@ if "__main__" == __name__:
 	cmdparser.add_option("--problemno", help  = "(Debug) Process only specified problem.")
 	cmdparser.add_option("--extkb", help	= ".", default="/work/naoya-i/kb")
 	cmdparser.add_option("--quicktest", help	= ".", action="store_true")
-
+	cmdparser.add_option("--cat", help	= "Catenative ON", action="store_true")
+        # cmdparser.add_option("--nocat", help	= "Catenative OFF", action="store_true")
 	main(*cmdparser.parse_args())
