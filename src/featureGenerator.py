@@ -251,7 +251,8 @@ class feature_function_t:
 			os.path.join(dirExtKb, "corefevents.tsv"),
 			os.path.join(os.path.dirname(sys.argv[0]), "../bin"),
 			dirExtKb,
-			os.path.join(dirExtKb, "corefevents.com.lsh")
+			os.path.join(dirExtKb, "corefevents.com.lsh"),
+			fUseMemoryMap=pa.quicktest
 			)
 
 		self.ncnaive = {}
@@ -398,7 +399,7 @@ class feature_function_t:
 		if None == self.libiri: return 0
 		
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
-                for ret, raw in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=60000):
+                for ret, raw in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=1000000):
 
 			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
 			spa = sp * ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg
@@ -407,7 +408,7 @@ class feature_function_t:
 
                         if None != cached: cached += [(NNvoted, ret)]
 			assert(abs(spac - ret.score) < 0.1)
-			
+
 			outNN["iriPred"] += [(NNvoted, sp)]
 			outNN["iriPredArg"] += [(NNvoted, spa)]
 			outNN["iriPredCon"] += [(NNvoted, spc)]

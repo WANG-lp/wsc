@@ -116,7 +116,7 @@ public:
       
     string *pp, *ps, *pa, *pc;
     
-    if(pOut->spm1*pOut->sam1*pOut->sm1*pOut->scm1 > pOut->spm2*pOut->sam2*pOut->sm2*pOut->scm2) {
+    if(pOut->spm1*pOut->sm1 > pOut->spm2*pOut->sm2) {
       pp = &p2; pc = &c2; ps = &s2; pa = &a2; pOut->iIndexed = 0; pOut->iPredicted = 1;
     } else {
       pp = &p1; pc = &c1; ps = &s1; pa = &a1; pOut->iIndexed = 1; pOut->iPredicted = 0;
@@ -139,5 +139,13 @@ public:
     
     return true;
   }
-  
+
+  static float calcDistance(const proposition_t &p1, const proposition_t &p2, const google_word2vec_t &gw2v) {
+    return 
+      calcWordSimilarity(p1.predicate, p2.predicate, gw2v) *
+      calcSlotSimilarity(p1.slot, p2.slot) *
+      calcWordSimilarity(p1.focusedArgument, p2.focusedArgument, gw2v) *
+      calcContextualSimilarity(p1.context, p2.context, gw2v);
+  }
+
 };

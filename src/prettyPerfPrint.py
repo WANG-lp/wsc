@@ -2,7 +2,7 @@
 import os
 import sys
 
-offset = 7 #0
+offset = 7 #7 #0
 f = open("graph.tmp", "w")
 
 for ln in sys.stdin:

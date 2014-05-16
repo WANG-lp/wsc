@@ -34,12 +34,14 @@ int main(int argc, char **argv) {
                   " -k <PATH TO KNOWLEDGE BASE>"
                   " -d <COREF EVENTS TSV>"
                   " -m <PARALLELS>"
+                  " [-q] "
                   ,
-                  "k:i:m:d:", "kimd", argc, argv);
+                  "k:i:m:d:q", "kimd", argc, argv);
   if(!opts.isGood()) return 0;
   
   google_word2vec_t gw2v(opts.of('k') + "/GoogleNews-vectors-negative300.bin",
-                         opts.of('k') + "/GoogleNews-vectors-negative300.index.bin");
+                         opts.of('k') + "/GoogleNews-vectors-negative300.index.bin",
+                         opts.hasKey('q'));
   exactsearch_t  es(opts.of('k') + "/corefevents.cdblist");
   string         line;
   bool           fSimilaritySearchOn = false;
