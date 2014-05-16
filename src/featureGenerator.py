@@ -122,7 +122,7 @@ class ranker_t:
                                 # Q1, 2: CV
                                 if "O" == scn.getNEtype(can):
                                     tkNextAna = scn.getNextPredicateToken(sent, ana)
-                                    qCV = [wCan, scn.getSurf(tkNextAna)]
+                                    qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
                                     ret = ff.gn.search(qCV)
                                     self.statistics["CV"] += [(vCan, " ".join(qCV))]
                                     self.rankingsRv["googleCV"] += [(vCan, ret)]
@@ -130,14 +130,14 @@ class ranker_t:
                                     # Q3, Q4: CVW
                                     tkNeighbor = scn.getNextToken(sent, tkNextAna)
                                     if None != tkNeighbor:
-                                        qCV = [wCan, scn.getSurf(tkNextAna), scn.getSurf(tkNeighbor)]
+                                        qCV = [scn.getSurf(can), scn.getSurf(tkNextAna), scn.getSurf(tkNeighbor)]
                                         ret = ff.gn.search(qCV)
                                         self.statistics["CVW"] += [(vCan, " ".join(qCV))]
                                         self.rankingsRv["googleCVW"] += [(vCan, ret)]
 
                                     if "JJ" in gvAna.POS:
                                         # Q5, Q6: JC
-                                        qCV = [scn.getSurf(gvAna.token), wCan]
+                                        qCV = [scn.getSurf(gvAna.token), scn.getSurf(can)]
                                         ret = ff.gn.search(qCV)
                                         self.statistics["JC"] += [(vCan, " ".join(qCV))]
                                         self.rankingsRv["googleJC"] += [(vCan, ret)]
@@ -415,5 +415,8 @@ class feature_function_t:
 			outNN["iriPredArg"] += [(NNvoted, spa)]
 			outNN["iriPredCon"] += [(NNvoted, spc)]
 			outNN["iriPredArgCon"] += [(NNvoted, spac)]
+			outNN["iriArg"] += [(NNvoted, ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg)]
+			outNN["iriCon"] += [(NNvoted, ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
+			outNN["iriArgCon"] += [(NNvoted, ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
 
 		return 0
