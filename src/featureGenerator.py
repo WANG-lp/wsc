@@ -80,17 +80,17 @@ def _phrasalget(gv, sent):
 
         
 class ranker_t:
-	def __init__(self, ff, ana, candidates, sent):
+	def __init__(self, ff, ana, candidates, sent, catflag):
 		self.NN = collections.defaultdict(list)
 		self.rankingsRv = collections.defaultdict(list)
 		self.statistics = collections.defaultdict(list)
-
+                self.catflag = catflag
 		# FOR REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
 		# FOR EACH CANDIDATE.
 		for can in candidates:
 			wPrn, wCan	 = scn.getLemma(ana), scn.getLemma(can)
 			vCan				 = can.attrib["id"]
-			gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana), scn.getPrimaryPredicativeGovernor(sent, can)
+			gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, catflag), scn.getPrimaryPredicativeGovernor(sent, can, catflag)
 			
 			self.rankingsRv["position"] += [(vCan, -int(can.attrib["id"]))]
 
@@ -245,9 +245,10 @@ class ranker_t:
 
 # LOAD THE KEY-VALUE STORE.
 class feature_function_t:
-	def __init__(self, pa, dirExtKb):
+	def __init__(self, pa, dirExtKb, catflag):
 		self.pa							 = pa
-
+                self.catflag = catflag
+                
 		self.libiri    = iri.iri_t(
 			os.path.join(dirExtKb, "corefevents.tsv"),
 			os.path.join(os.path.dirname(sys.argv[0]), "../bin"),
@@ -268,10 +269,10 @@ class feature_function_t:
 		# GOOGLE NGRAMS
 		self.gn        = googlengram.googlengram_t(os.path.join(_getPathKB(), "ngrams"))
 
-	def generateFeature(self, ana, can, sent, ranker, candidates):
+	def generateFeature(self, ana, can, sent, ranker, candidates, catflag):
 		conn				 = scn.getConn(sent)
 		position		 = "left" if "R1" == ranker.getRank(can.attrib["id"], "position") else "right"
-		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana), scn.getPrimaryPredicativeGovernor(sent, can)
+		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, catflag), scn.getPrimaryPredicativeGovernor(sent, can, catflag)
 
 		# kNN FEATURES.
 		for K in xrange(50):
@@ -331,7 +332,7 @@ class feature_function_t:
 			yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma), 1
 
 		# HEURISTIC POLARITY.
-		for fHPOL in self.heuristicPolarity(ana, can, sent, ranker, candidates):
+		for fHPOL in self.heuristicPolarity(ana, can, sent, ranker, candidates, catflag):
 			yield fHPOL
 
 		# NC VERB ORDER.
@@ -341,10 +342,10 @@ class feature_function_t:
 			if diff > 25: yield "NCCJ08_VO_SAME_ORDER", 1
 			elif diff < -25: yield "NCCJ08_VO_REVERSE_ORDER", 1
 
-	def heuristicPolarity(self, ana, can, sent, ranker, candidates):
+	def heuristicPolarity(self, ana, can, sent, ranker, candidates, catflag):
 		conn				 = scn.getConn(sent)
-		gvCan1, gvCan2 = scn.getPrimaryPredicativeGovernor(sent, candidates[0]), scn.getPrimaryPredicativeGovernor(sent, candidates[1])
-		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana), scn.getPrimaryPredicativeGovernor(sent, can)
+		gvCan1, gvCan2 = scn.getPrimaryPredicativeGovernor(sent, candidates[0], catflag), scn.getPrimaryPredicativeGovernor(sent, candidates[1], catflag)
+		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, catflag), scn.getPrimaryPredicativeGovernor(sent, can, catflag)
 		polAna, polCan1, polCan2 = 0, 0, 0
 		position		 = "left" if "R1" == ranker.getRank(can.attrib["id"], "position") else "right"
 
