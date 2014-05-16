@@ -30,8 +30,7 @@ def _isTarget(i, problemlist, options):
 	
 def main(options, args):
 	xmlText = etree.parse(options.input + ".xml")
-        if options.cat: catflag = True
-        else : catflag = False
+        print >>sys.stderr, "Catenative = %s" % (options.cat)
         
 	# EXTRACT COREFERENCE RELATIONS IDENTIFIED BY CORE NLP
 	coref				= xmlText.xpath("/root/document/coreference/coreference")
@@ -42,7 +41,7 @@ def main(options, args):
 			for tok in xrange(int(men.xpath("./start/text()")[0]), int(men.xpath("./end/text()")[0])):
 				corefChains[(int(men.xpath("./sentence/text()")[0]), tok)] += [id_chain]
 
-	ff            = featureGenerator.feature_function_t(options, options.extkb, catflag)
+	ff            = featureGenerator.feature_function_t(options, options.extkb)
 	bp            = bypass_t(xmlText, corefChains)
 	
 	for i, ln in enumerate(open(options.input)):
@@ -54,7 +53,7 @@ def main(options, args):
 		# PARSE THE INPUT TUPLE.
 		ti = eval(ln)
 		
-		_writeFeatures(ff, i, ti, bp, catflag)
+		_writeFeatures(ff, i, ti, bp, options.cat)
 		sys.stdout.flush()
 
 def _toWordConstant(w):
@@ -112,8 +111,8 @@ def _writeFeatures(ff, i, tupleInstance, bypass, catflag):
 		print "<feature-vector for=\"%s\">%s</feature-vector>" % (
 			"correct" if can == antecedent else "wrong",
 			"%d qid:%d %s" % (1 if can == antecedent else 2, 1+i,
-												" ".join(["%s:%s" % x for x in ff.generateFeature(anaphor, can, sent, ranker, candidates, catflag)])
-												))
+                        " ".join(["%s:%s" % x for x in ff.generateFeature(anaphor, can, sent, ranker, candidates, catflag)])
+                        ))
 
 	#
 	# FOR MORE INFORMATIVE OUTPUTS
@@ -191,6 +190,6 @@ if "__main__" == __name__:
 	cmdparser.add_option("--problemno", help  = "(Debug) Process only specified problem.")
 	cmdparser.add_option("--extkb", help	= ".", default="/work/naoya-i/kb")
 	cmdparser.add_option("--quicktest", help	= ".", action="store_true")
-	cmdparser.add_option("--cat", help	= "Catenative ON", action="store_true")
+	cmdparser.add_option("--cat", help	= "Catenative ON", action="store_true", default=False)
         # cmdparser.add_option("--nocat", help	= "Catenative OFF", action="store_true")
 	main(*cmdparser.parse_args())
