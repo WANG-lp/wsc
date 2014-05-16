@@ -84,7 +84,6 @@ class ranker_t:
 		self.NN = collections.defaultdict(list)
 		self.rankingsRv = collections.defaultdict(list)
 		self.statistics = collections.defaultdict(list)
-                self.catflag = catflag
 		# FOR REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
 		# FOR EACH CANDIDATE.
 		for can in candidates:
@@ -245,9 +244,8 @@ class ranker_t:
 
 # LOAD THE KEY-VALUE STORE.
 class feature_function_t:
-	def __init__(self, pa, dirExtKb, catflag):
+	def __init__(self, pa, dirExtKb):
 		self.pa							 = pa
-                self.catflag = catflag
                 
 		self.libiri    = iri.iri_t(
 			os.path.join(dirExtKb, "corefevents.tsv"),
