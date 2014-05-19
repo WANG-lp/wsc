@@ -15,7 +15,7 @@ def _getClass(xk, yk, x, y, fInvertPolarity = False):
 
 	return xk != 0, yk != 0, x > y
 
-methods = "numRules iriPred iriPredArg iriPredArgCon iriPredCon iriPredKNN".split()
+methods = "numRules iriPred iriPredArg iriPredArgCon iriPredCon iriPredKNN iriAddPredArg iriAddPredCon iriAddPredArgCon".split()
 m   	  = dict([(k, collections.defaultdict(int)) for k in methods])
 
 for ln in sys.stdin:
@@ -35,6 +35,9 @@ for ln in sys.stdin:
 	m["iriPredArgCon"][_getClass(ln[1], ln[2], ln[9], ln[10])] += 1
 	m["iriPredCon"][_getClass(ln[1], ln[2], ln[11], ln[12])] += 1
 	m["iriPredKNN"][_getClass(ln[1], ln[2], ln[13], ln[14])] += 1
+	m["iriAddPredArg"][_getClass(ln[1], ln[2], ln[15], ln[16])] += 1
+	m["iriAddPredCon"][_getClass(ln[1], ln[2], ln[17], ln[18])] += 1
+	m["iriAddPredArgCon"][_getClass(ln[1], ln[2], ln[19], ln[20])] += 1
 		
 vec = []
 

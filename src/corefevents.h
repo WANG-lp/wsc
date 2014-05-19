@@ -110,12 +110,12 @@ public:
     pOut->spm1 = calcWordSimilarity(p1, _getWord(prpIndexed.predicate), gw2v);
     pOut->scm1 = calcContextualSimilarity(c1, prpIndexed.context, gw2v);
     pOut->sm1  = calcSlotSimilarity(s1, prpIndexed.slot);
-    pOut->sam1 = calcWordSimilarity(a1, prpIndexed.focusedArgument, gw2v);
+    pOut->sam1 = 1; //calcWordSimilarity(a1, prpIndexed.focusedArgument, gw2v);
     
     pOut->spm2 = calcWordSimilarity(p2, _getWord(prpIndexed.predicate), gw2v);
     pOut->scm2 = calcContextualSimilarity(c2, prpIndexed.context, gw2v);
     pOut->sm2  = calcSlotSimilarity(s2, prpIndexed.slot);
-    pOut->sam2 = calcWordSimilarity(a2, prpIndexed.focusedArgument, gw2v);
+    pOut->sam2 = 1; //calcWordSimilarity(a2, prpIndexed.focusedArgument, gw2v);
       
     string *pp, *ps, *pa, *pc;
     

@@ -8,5 +8,8 @@ seq 1 49 | parallel -k -j16 "/home/naoya-i/bin/xpath $argv[1] problem @id \
     \"feature[@type='kNN_score_iriPredArgCon,K={}']/@correct:None\" \"feature[@type='kNN_score_iriPredArgCon,K={}']/@wrong:None\" \
     \"feature[@type='kNN_score_iriPredCon,K={}']/@correct:None\" \"feature[@type='kNN_score_iriPredCon,K={}']/@wrong:None\" \
     \"feature[@type='kNN_score_iriPred,K={}']/@correct:None\" \"feature[@type='kNN_score_iriPred,K={}']/@wrong:None\" \
+    \"feature[@type='kNN_score_iriAddPredArg,K={}']/@correct:None\" \"feature[@type='kNN_score_iriAddPredArg,K={}']/@wrong:None\" \
+    \"feature[@type='kNN_score_iriAddPredCon,K={}']/@correct:None\" \"feature[@type='kNN_score_iriAddPredCon,K={}']/@wrong:None\" \
+    \"feature[@type='kNN_score_iriAddPredArgCon,K={}']/@correct:None\" \"feature[@type='kNN_score_iriAddPredArgCon,K={}']/@wrong:None\" \
     | python ./src/performance.py {}"
 

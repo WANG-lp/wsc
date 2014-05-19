@@ -402,7 +402,7 @@ class feature_function_t:
                 for ret, raw in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=1000000):
 
 			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
-			spa = sp * ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg
+			spa = sp * ret.sPredictedArg
 			spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 
@@ -413,8 +413,11 @@ class feature_function_t:
 			outNN["iriPredArg"] += [(NNvoted, spa)]
 			outNN["iriPredCon"] += [(NNvoted, spc)]
 			outNN["iriPredArgCon"] += [(NNvoted, spac)]
-			outNN["iriArg"] += [(NNvoted, ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg)]
+			outNN["iriArg"] += [(NNvoted, ret.sPredictedArg)]
 			outNN["iriCon"] += [(NNvoted, ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
-			outNN["iriArgCon"] += [(NNvoted, ret.sIndexArg[ret.iIndexed]*ret.sPredictedArg*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
+			outNN["iriArgCon"] += [(NNvoted, ret.sPredictedArg*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
+			outNN["iriAddPredCon"] += [(NNvoted, sp + 0.5*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
+			outNN["iriAddPredArgCon"] += [(NNvoted, sp + 0.2*ret.sPredictedArg + 0.5*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
+			outNN["iriAddPredArg"] += [(NNvoted, sp + 0.2*ret.sPredictedArg)]
 
 		return 0
