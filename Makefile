@@ -22,3 +22,6 @@ similaritySearch:
 
 reducer:
 	g++ -O2 -D GLIBCXX -o ./bin/compress ./src/compress.cpp
+
+learner:
+	g++ -g -O2 -fopenmp -D GLIBCXX -o ./bin/learn ./src/learn.cpp

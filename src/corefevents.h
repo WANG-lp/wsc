@@ -84,7 +84,7 @@ public:
     return wr.substr(0, wr.find("-"));
   }
   
-  bool calcScore(result_t *pOut, uint64_t offset, int length, const proposition_t &prpIndexed, const proposition_t &prpPredicted, const google_word2vec_t &gw2v) {
+  bool calcScore(result_t *pOut, uint64_t offset, int length, const proposition_t &prpIndexed, const proposition_t &prpPredicted, char whichArg, const google_word2vec_t &gw2v) {
     char     buffer[1024*16];
 
     for(uint64_t i=offset; '\n'!=m_pCorefEvents[i]; i++) {
@@ -104,15 +104,18 @@ public:
     getline(ssRule, sentdist, '\t');
     getline(ssRule, c1, '\t'); getline(ssRule, c2, '\t');
 
+    if(0 == whichArg)      a2 = a1;
+    else if(1 == whichArg) a1 = a2;
+
     pOut->spm1 = calcWordSimilarity(p1, _getWord(prpIndexed.predicate), gw2v);
     pOut->scm1 = calcContextualSimilarity(c1, prpIndexed.context, gw2v);
     pOut->sm1  = calcSlotSimilarity(s1, prpIndexed.slot);
-    pOut->sam1 = calcWordSimilarity(a1, prpIndexed.focusedArgument, gw2v);
+    pOut->sam1 = 1; //calcWordSimilarity(a1, prpIndexed.focusedArgument, gw2v);
     
     pOut->spm2 = calcWordSimilarity(p2, _getWord(prpIndexed.predicate), gw2v);
     pOut->scm2 = calcContextualSimilarity(c2, prpIndexed.context, gw2v);
     pOut->sm2  = calcSlotSimilarity(s2, prpIndexed.slot);
-    pOut->sam2 = calcWordSimilarity(a2, prpIndexed.focusedArgument, gw2v);
+    pOut->sam2 = 1; //calcWordSimilarity(a2, prpIndexed.focusedArgument, gw2v);
       
     string *pp, *ps, *pa, *pc;
     

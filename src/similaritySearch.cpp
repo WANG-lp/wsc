@@ -100,37 +100,39 @@ int main(int argc, char **argv) {
     cerr << ret.size() << " entries (original: " << numExactMatches << ") have been found. (took " << float(timeElapsed)/1000.0 << " sec)." << endl;
 
     cout << numExactMatches << endl;
-    cout << ret.size() << endl;
+    cout << 2*ret.size() << endl;
     
     // IDENTIFY THE COMMON IDS.
     for(size_t i=0; i<ret.size(); i++) {
-      corefevents_t::result_t retScore;
-      libce.calcScore(&retScore, ret[i].offset, ret[i].length, prpIndexed, prpPredicted, gw2v);
+      for(int j=0; j<2; j++) {
+        corefevents_t::result_t retScore;
+        libce.calcScore(&retScore, ret[i].offset, ret[i].length, prpIndexed, prpPredicted, j, gw2v);
 
-      cout.write((const char*)&retScore.iIndexed, sizeof(uint16_t));
-      cout.write((const char*)&retScore.iPredicted, sizeof(uint16_t));
+        cout.write((const char*)&retScore.iIndexed, sizeof(uint16_t));
+        cout.write((const char*)&retScore.iPredicted, sizeof(uint16_t));
       
-      cout.write((const char*)&ret[i].offset, sizeof(uint64_t));
-      cout.write((const char*)&retScore.length, sizeof(uint16_t));
+        cout.write((const char*)&ret[i].offset, sizeof(uint64_t));
+        cout.write((const char*)&retScore.length, sizeof(uint16_t));
       
-      cout.write((const char*)&retScore.score, sizeof(float));
+        cout.write((const char*)&retScore.score, sizeof(float));
       
-      cout.write((const char*)&retScore.spm1, sizeof(float));
-      cout.write((const char*)&retScore.scm1, sizeof(float));
-      cout.write((const char*)&retScore.sm1, sizeof(float));
-      cout.write((const char*)&retScore.sam1, sizeof(float));
+        cout.write((const char*)&retScore.spm1, sizeof(float));
+        cout.write((const char*)&retScore.scm1, sizeof(float));
+        cout.write((const char*)&retScore.sm1, sizeof(float));
+        cout.write((const char*)&retScore.sam1, sizeof(float));
 
-      cout.write((const char*)&retScore.spm2, sizeof(float));
-      cout.write((const char*)&retScore.scm2, sizeof(float));
-      cout.write((const char*)&retScore.sm2, sizeof(float));
-      cout.write((const char*)&retScore.sam2, sizeof(float));
+        cout.write((const char*)&retScore.spm2, sizeof(float));
+        cout.write((const char*)&retScore.scm2, sizeof(float));
+        cout.write((const char*)&retScore.sm2, sizeof(float));
+        cout.write((const char*)&retScore.sam2, sizeof(float));
 
-      cout.write((const char*)&retScore.spm, sizeof(float));
-      cout.write((const char*)&retScore.scm, sizeof(float));
-      cout.write((const char*)&retScore.sm, sizeof(float));
-      cout.write((const char*)&retScore.sam, sizeof(float));
+        cout.write((const char*)&retScore.spm, sizeof(float));
+        cout.write((const char*)&retScore.scm, sizeof(float));
+        cout.write((const char*)&retScore.sm, sizeof(float));
+        cout.write((const char*)&retScore.sam, sizeof(float));
 
-      cout << retScore.line << endl;
+        cout << retScore.line << endl;
+      }
     }
 
     cerr << ret.size() << " entries have been listed (took " << float(timeElapsed)/1000.0 << " sec)." << endl;

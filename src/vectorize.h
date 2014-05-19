@@ -72,7 +72,7 @@ static inline float calcContextualSimilarity(const string &c1, const string &c2,
     numContext++;
   }
 
-  numContext = numContext2;
+  //numContext = numContext2;
 
   return (0.0+(0.0 == numContext ? 0.0 : dot / numContext)); //(1.0+(0.0 == numContext ? 0.0 : dot / numContext));
 }
