@@ -39,7 +39,7 @@ def _catenativeget(gv, sent):
     # catenativelistB = ['allowed', 'forbid', 'permit', 'request', 'require']
     # catenativelistC = ['admit', 'advise', 'allow', 'appreciate', 'avoid', 'complete', 'consider', 'delay', 'deny', 'detest', 'dislike', 'enjoy', 'escape', 'finish', 'forbid', 'imagine', 'imply', 'keep', 'mind', 'miss', 'need', 'permit', 'practise', 'quit', 'recall', 'recommend', 'regret', 'resent', 'resist', 'resume', 'risk', 'stand', 'suggest', 'tolerate', 'want']
     # catenativelistD = ['bear', 'begin', 'bother', 'continue', 'disdain', 'intend', 'like', 'love', 'neglect', 'prefer', 'regret', 'start', 'come', 'go', 'get', 'forget', 'like', 'mean', 'need', 'remember', 'propose', 'stop', 'try']
-    # # catenativelistOther = ['able']
+    # # catenativelistOther = ['able', 'manage']
     # catenativelistObj = ['ask', 'beg', 'allow', 'forbid', 'permit', 'request', 'require', 'admit', 'advise', 'imagine', 'need', 'recommend', 'suggest', 'tolerate', 'want', 'help', 'let', 'tell', 'make']
     # catenativelist = list(set(catenativelistA)|set(catenativelistB)|set(catenativelistC)|set(catenativelistD)|set(catenativelistObj))
 
@@ -58,7 +58,7 @@ def _catenativeget(gv, sent):
                       'intend', 'resume', 'detest', 'let', 'plan', 'imagine', 'ask',
                       'come', 'wait', 'regret', 'refuse', 'undertake', 'attempt',
                       'remember', 'disdain', 'try', 'request', 'keep', 'admit', 'swear',
-                      'stand', 'allow', 'permit', 'strive', 'neglect', 'struggle']
+                      'stand', 'allow', 'permit', 'strive', 'neglect', 'struggle', 'manage']
     
     
     if gv.lemma in catenativelist:
