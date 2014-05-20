@@ -4,6 +4,8 @@ import subprocess
 import struct
 
 import collections
+
+import cgitb; cgitb.enable()
 import cgi
 import os
 import time
@@ -77,34 +79,42 @@ if None != fs.getvalue("query"):
 
 		elif "a" == fs.getvalue("sortkey"):
 			return \
-				x.sIndexArg[x.iIndexed] * x.sPredictedArg
+				0.2 * x.sPredictedArg
 
 		elif "pa" == fs.getvalue("sortkey"):
 			return \
-				x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred * \
-				x.sIndexArg[x.iIndexed] * x.sPredictedArg
+				x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred + \
+				0.2 * x.sPredictedArg
 			
 		elif "c" == fs.getvalue("sortkey"):
 			return \
-				x.sIndexContext[x.iIndexed] * x.sPredictedContext
+				0.5 * x.sIndexContext[x.iIndexed] * x.sPredictedContext
 
 		elif "pc" == fs.getvalue("sortkey"):
 			return \
-				x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred * \
-				x.sIndexContext[x.iIndexed] * x.sPredictedContext
+				(x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred) + \
+				(0.5 * x.sIndexContext[x.iIndexed] * x.sPredictedContext)
 			
 		elif "pac" == fs.getvalue("sortkey"):
 			return \
-				x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred * \
-				x.sIndexArg[x.iIndexed] * x.sPredictedArg * \
-				x.sIndexContext[x.iIndexed] * x.sPredictedContext
+				(x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred) + \
+				(0.2 * x.sPredictedArg) + \
+				(0.5 * x.sIndexContext[x.iIndexed] * x.sPredictedContext)
 			
 		return x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred * \
-			x.sIndexSlot[x.iIndexed] * x.sPredictedSlot * \
-			x.sIndexArg[x.iIndexed] * x.sPredictedArg * \
-			x.sIndexContext[x.iIndexed] * x.sPredictedContext
+			x.sIndexSlot[x.iIndexed] * x.sPredictedSlot + \
+			(0.2 * x.sPredictedArg) + \
+			(0.5 * x.sIndexContext[x.iIndexed] * x.sPredictedContext)
+
+	if 0 > int(fs.getvalue("k")):
+		examplesCorrect, examplesWrong = filter(lambda x: 1 == x[0], results.examples), filter(lambda x: 0 == x[0], results.examples)
+		sortedRetCor, sortedRetWrong = sorted(examplesCorrect, key=lambda x: _sortedScore(x[1]), reverse=True)[:min(len(results.examples), -int(fs.getvalue("k")))], \
+																	 sorted(examplesWrong, key=lambda x: _sortedScore(x[1]), reverse=True)[:min(len(results.examples), -int(fs.getvalue("k")))]
+		sortedRet = sorted(sortedRetCor + sortedRetWrong, key=lambda x: _sortedScore(x[1]), reverse=True)
 		
-	sortedRet = sorted(results.examples, key=lambda x: _sortedScore(x[1]), reverse=True)[:min(len(results.examples), int(fs.getvalue("k")))]
+	else:
+		sortedRet = sorted(results.examples, key=lambda x: _sortedScore(x[1]), reverse=True)[:min(len(results.examples), int(fs.getvalue("k")))]
+		
 	timeSort, timeStart = time.time() - timeStart, time.time()
 
 	def _coloring(t):
@@ -180,7 +190,7 @@ if None != fs.getvalue("query"):
 
 		if p1 > p2: p1, p2, c1, c2 = p2, p1, c2, c1
 		
-		header = "R Score Predicates Shared&nbsp;Arg Contexts Source"
+		header = "R Score Predicates Shared&nbsp;Arg Contexts"
 
 		votesCorrect, votesWrong = 0, 0
 		scoreCorrect, scoreWrong = 0, 0
@@ -216,41 +226,61 @@ if None != fs.getvalue("query"):
 			a1,   a2																		= ia12.split(",")
 			a12																					= "%s,%s" % (a1, a2)
 			sentdist																		= str(sentdist)
+
+			if results.ana_gov == irp1:
+				corcon1 = results.ana_con
+			elif results.ante_gov == irp1:
+				corcon1 = results.ante_con
+			elif results.ante_false_gov ==  irp1:
+				corcon1 = results.ante_false_con
+
+			if results.ana_gov == irp2:
+				corcon2 = results.ana_con
+			elif results.ante_gov == irp2:
+				corcon2 = results.ante_con
+			elif results.ante_false_gov ==  irp2:
+				corcon2 = results.ante_false_con
+
+			docfile, docid = src.lstrip("# ").split(":")
 			
 			print "<tr height=\"150px\"><td><a name=\"next%s\"></a>%s</td></tr>" % (nextAnchor, "</td><td>".join([
 				"%d" % (1+r),
-				("%.4f <br />p: %.2f<br />a: %.2f<br />c: %.2f<br />s: %.2f") % (
-							(float(inst.sIndexPred[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedPred))*
-							(float(inst.sIndexArg[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedArg))*
-							(float(inst.sIndexContext[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedContext))*
-							(float(inst.sIndexSlot[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedSlot)),
-
-							float(inst.sIndexPred[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedPred),
-							float(inst.sIndexArg[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedArg),
-							float(inst.sIndexContext[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedContext),
-							float(inst.sIndexSlot[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedSlot),
-							),
+				("%.4f <br />p: %.2f<br />a: %.2f<br /><a target=\"_blank\" href=\"siminspect.py?c1=%s&c2=%s\">c: %.2f</a><br />s: %.2f") % (
+					(float(inst.sIndexPred[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedPred))*
+					(float(inst.sIndexArg[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedArg))*
+					(float(inst.sIndexContext[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedContext))*
+					(float(inst.sIndexSlot[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedSlot)),
+					
+					float(inst.sIndexPred[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedPred),
+					float(inst.sIndexArg[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedArg),
+					urllib2.quote(irc1), corcon1,
+					float(inst.sIndexContext[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedContext),
+					float(inst.sIndexSlot[int(inst.iIndexed)]) if 0 == inst.iIndexed else float(inst.sPredictedSlot),
+				),
 				"%s <br />(%s)" % (irp1, "indexed" if 0 == inst.iIndexed else "predicted"),
-				"<br />".join(a12.split(",")[0].split("-")), _prettyC(c1, irc1),
-				"<a target=\"_blank\" href=\"https://www.google.co.jp/search?q=%s\">G</a>" % (urllib2.quote("\"%s\"+\"%s\"" % (irp1, irp2))),
+				"<br />".join(a12.split(",")[0].split("-")),
+				_prettyC(c1, irc1) + "<br />(<a target=\"_blank\" href=\"./viewText.py?file=%s&docid=%s&s1=%s&s2=%s\">G</a>)" % (
+					docfile, docid, irp1.split("-")[0], irp2.split("-")[0],
+					),
 			]))
 
 			print "<tr height=\"150px\"><td><a name=\"next%s\"></a>%s</td></tr>" % (nextAnchor, "</td><td>".join([
 				"%.2f<br />(p: %.2f)" % (_sortedScore(inst), inst.sRuleAssoc),
-				("%.4f <br />p: %.2f<br />a: %.2f<br />c: %.2f<br />s: %.2f") % (
-							(float(inst.sIndexPred[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedPred))*
-							(float(inst.sIndexArg[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedArg))*
-							(float(inst.sIndexContext[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedContext))*
-							(float(inst.sIndexSlot[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedSlot)),
+				("%.4f <br />p: %.2f<br />a: %.2f<br /><a target=\"_blank\" href=\"siminspect.py?c1=%s&c2=%s\">c: %.2f</a><br />s: %.2f") % (
+					(float(inst.sIndexPred[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedPred))*
+					(float(inst.sIndexArg[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedArg))*
+					(float(inst.sIndexContext[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedContext))*
+					(float(inst.sIndexSlot[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedSlot)),
 							
-							float(inst.sIndexPred[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedPred),
-							float(inst.sIndexArg[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedArg),
-							float(inst.sIndexContext[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedContext),
-							float(inst.sIndexSlot[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedSlot),
-							),
+					float(inst.sIndexPred[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedPred),
+					float(inst.sIndexArg[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedArg),
+					urllib2.quote(irc2), corcon2,
+					float(inst.sIndexContext[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedContext),
+					float(inst.sIndexSlot[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedSlot),
+				),
 				"%s <br />(%s)" % (irp2, "indexed" if 1 == inst.iIndexed else "predicted"),
-				"<br />".join(a12.split(",")[1].split("-")), _prettyC(c2, irc2),
-						"<a target=\"_blank\" href=\"https://www.google.co.jp/search?q=%s\">G</a>" % (urllib2.quote("\"%s\"+\"%s\"" % (irp1, irp2))),
+				"<br />".join(a12.split(",")[1].split("-")),
+				_prettyC(c2, irc2),
 						]))
 			
 			# print "<tr height=\"150px\"><td><a name=\"next%s\"></a>%s</td></tr>" % (nextAnchor, "</td><td>".join([
