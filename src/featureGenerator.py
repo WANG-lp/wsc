@@ -68,8 +68,9 @@ def _catenativeget(gv, sent):
     else:
         return gv
 
-def _phrasalget(gv, dirPhDic):
+def _phrasalget(gv, sent, dirPhDic):
     phrasedict = marshal.load( open(os.path.join(dirPhDic, "phrasedict.msl")) )
+    # dirPhDic = "/home/jun-s/work/wsc/data"
     # phrasedict = marshal.load( open("/home/jun-s/work/wsc/data/phrasedict.msl") )
     # phrasedict = {'come': {'come_back': ['answer', 'denote', 'reappear', 're-emerge', 'refer', 'reply', 'respond'], 'come_by': ['acquire']}}
 
