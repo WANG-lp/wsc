@@ -159,7 +159,7 @@ def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
                                 if pa.cat:
                                     tmp1 = fgn._catenativeget(tmp1, sent)
                                 if pa.ph:
-                                    tmp1 = fgn._phrasalget(tmp1, sent)
+                                    tmp1 = fgn._phrasalget(tmp1, sent, pa.extkb)
                                 return tmp1
                                 
 	for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/dependent[@idx='%s']/.." % x.attrib["id"]):
@@ -174,7 +174,7 @@ def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
                                 if pa.cat:
                                     tmp1 = fgn._catenativeget(tmp1, sent)
                                 if pa.ph:
-                                    tmp1 = fgn._phrasalget(tmp1, sent) 
+                                    tmp1 = fgn._phrasalget(tmp1, sent, pa.extkb) 
                                 return tmp1
 
 def checkObjectCatenative(sent, idx):
