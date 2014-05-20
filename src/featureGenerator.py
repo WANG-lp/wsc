@@ -39,7 +39,7 @@ def _catenativeget(gv, sent):
     # catenativelistB = ['allowed', 'forbid', 'permit', 'request', 'require']
     # catenativelistC = ['admit', 'advise', 'allow', 'appreciate', 'avoid', 'complete', 'consider', 'delay', 'deny', 'detest', 'dislike', 'enjoy', 'escape', 'finish', 'forbid', 'imagine', 'imply', 'keep', 'mind', 'miss', 'need', 'permit', 'practise', 'quit', 'recall', 'recommend', 'regret', 'resent', 'resist', 'resume', 'risk', 'stand', 'suggest', 'tolerate', 'want']
     # catenativelistD = ['bear', 'begin', 'bother', 'continue', 'disdain', 'intend', 'like', 'love', 'neglect', 'prefer', 'regret', 'start', 'come', 'go', 'get', 'forget', 'like', 'mean', 'need', 'remember', 'propose', 'stop', 'try']
-    # # catenativelistOther = ['able']
+    # # catenativelistOther = ['able', 'manage']
     # catenativelistObj = ['ask', 'beg', 'allow', 'forbid', 'permit', 'request', 'require', 'admit', 'advise', 'imagine', 'need', 'recommend', 'suggest', 'tolerate', 'want', 'help', 'let', 'tell', 'make']
     # catenativelist = list(set(catenativelistA)|set(catenativelistB)|set(catenativelistC)|set(catenativelistD)|set(catenativelistObj))
 
@@ -58,7 +58,7 @@ def _catenativeget(gv, sent):
                       'intend', 'resume', 'detest', 'let', 'plan', 'imagine', 'ask',
                       'come', 'wait', 'regret', 'refuse', 'undertake', 'attempt',
                       'remember', 'disdain', 'try', 'request', 'keep', 'admit', 'swear',
-                      'stand', 'allow', 'permit', 'strive', 'neglect', 'struggle']
+                      'stand', 'allow', 'permit', 'strive', 'neglect', 'struggle', 'manage']
     
     
     if gv.lemma in catenativelist:
@@ -147,18 +147,18 @@ class ranker_t:
                                         for p2 in gvCan.lemma:
                                             ff.iri(self.NN,
                                                    vCan,
-                                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
-                                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
+                                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
                                                    self.statistics["iriInstances"],
                                             )
                                 elif isinstance(gvAna.lemma, list):
-                                    print gvAna.lemma
-                                    print "anaphora govonor is phrasal verb"
+                                    # print gvAna.lemma
+                                    # print "anaphora govonor is phrasal verb"
                                     for p1 in gvAna.lemma:
                                         print p1
                                         ff.iri(self.NN,
                                                vCan,
-                                               p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                               p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
                                                gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
                                                self.statistics["iriInstances"],
                                         )
@@ -172,7 +172,7 @@ class ranker_t:
                                         ff.iri(self.NN,
                                                vCan,
                                                gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
-                                               p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                               p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
                                                self.statistics["iriInstances"],
                                         )
                                         
@@ -330,15 +330,15 @@ class feature_function_t:
 			yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma), 1
 
 		# HEURISTIC POLARITY.
-		for fHPOL in self.heuristicPolarity(ana, can, sent, ranker, candidates, catflag):
-			yield fHPOL
+		# for fHPOL in self.heuristicPolarity(ana, can, sent, ranker, candidates, catflag):
+		# 	yield fHPOL
 
 		# NC VERB ORDER.
-		if None != gvAna and None != gvCan:
-			diff = self.nc.getVerbPairOrder(gvCan.lemma, gvAna.lemma) - self.nc.getVerbPairOrder(gvAna.lemma, gvCan.lemma)
+		# if None != gvAna and None != gvCan:
+		# 	diff = self.nc.getVerbPairOrder(gvCan.lemma, gvAna.lemma) - self.nc.getVerbPairOrder(gvAna.lemma, gvCan.lemma)
 			
-			if diff > 25: yield "NCCJ08_VO_SAME_ORDER", 1
-			elif diff < -25: yield "NCCJ08_VO_REVERSE_ORDER", 1
+		# 	if diff > 25: yield "NCCJ08_VO_SAME_ORDER", 1
+		# 	elif diff < -25: yield "NCCJ08_VO_REVERSE_ORDER", 1
 
 	def heuristicPolarity(self, ana, can, sent, ranker, candidates, catflag):
 		conn				 = scn.getConn(sent)

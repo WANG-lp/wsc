@@ -15,6 +15,12 @@ def getFirstOrderContext(sent, tk):
 		["d:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getDependents(sent, tk)] +
 		["g:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getGovernors(sent, tk)] )
 
+def getFirstOrderContext4phrasal(sent, tk):
+	return " ".join(
+		["d:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getDependents4phrasal(sent, tk)] +
+		["g:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getGovernors(sent, tk)] )
+
+        
 def getToken(sent, x, conn = None):
 	r = sent.xpath("./tokens/token/word[text()='%s']/.." % x.split(" ")[-1].strip().replace("'", ""))
 
@@ -101,6 +107,18 @@ def getDependents(sent, x):
 		for y in 
 		sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/governor[@idx='%s']/.." % x.attrib["id"])]
 
+def getDependents4phrasal(sent, x):
+    ret = []
+    phrasedeplist = ["advmod", "prt", "prep", "amod", "dobj"]
+    for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/governor[@idx='%s']/.." % x.attrib["id"]):
+        # print "Phrasal verb context"
+        # print y.attrib["type"]        
+        if not y.attrib["type"].strip() in phrasedeplist:
+            # print y.attrib["type"]
+            ret.append((y.attrib["type"], getTokenById(sent, y.find("dependent").attrib["idx"])))
+    return ret
+	
+        
 def convRel(r, tk, sent):
 	# if "agent" == r:
 	# 	return "dobj"
@@ -140,7 +158,7 @@ def getPrimaryPredicativeGovernor(sent, x, catflag, contentGovernor = True):
 				tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
                                 if catflag:
                                     tmp1 = fgn._catenativeget(tmp1, sent)
-                                # tmp1 = fgn._phrasalget(tmp1, sent)
+                                tmp1 = fgn._phrasalget(tmp1, sent)
                                 return tmp1
                                 
 	for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/dependent[@idx='%s']/.." % x.attrib["id"]):
@@ -154,7 +172,7 @@ def getPrimaryPredicativeGovernor(sent, x, catflag, contentGovernor = True):
 				tmp1 = governor_t(convRel(y.attrib["type"], tk, sent), tk, getLemma(tk), getPOS(tk))
                                 if catflag:
                                     tmp1 = fgn._catenativeget(tmp1, sent)
-                                # tmp1 = fgn._phrasalget(tmp1, sent) 
+                                tmp1 = fgn._phrasalget(tmp1, sent) 
                                 return tmp1
 
 def checkObjectCatenative(sent, idx):
