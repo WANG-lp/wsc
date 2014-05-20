@@ -397,6 +397,10 @@ class feature_function_t:
 				
 	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2, cached = None):
 		if None == self.libiri: return 0
+
+		# REMOVE SHARED ARGUMENT FROM CONTEXT.
+		c1 = " ".join(filter(lambda x: "%s:%s" % (r1, a1.rsplit("-", 1)[0]) not in x, c1.split(" ")))
+		c2 = " ".join(filter(lambda x: "%s:%s" % (r2, a2.rsplit("-", 1)[0]) not in x, c2.split(" ")))
 		
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
                 for ret, raw in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=1000000):

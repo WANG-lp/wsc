@@ -43,7 +43,6 @@ static inline float calcContextualSimilarity(const string &c1, const string &c2,
   string        element;
   unordered_set<string> keys;
   unordered_map<string, vector<string> > c1e, c2e;
-  int          numContext2 = 0;
   
   while(ssContext1 >> element) {
     c1e[element.substr(0, element.find(":", 2))].push_back(element.substr(element.find(":", 2)+1, element.find("-")-element.find(":", 2)-1));
@@ -53,10 +52,9 @@ static inline float calcContextualSimilarity(const string &c1, const string &c2,
   while(ssContext2 >> element) {
     c2e[element.substr(0, element.find(":", 2))].push_back(element.substr(element.find(":", 2)+1, element.find("-")-element.find(":", 2)-1));
     keys.insert(element.substr(0, element.find(":", 2)));
-    numContext2++;
   }
 
-  float dot = 0, numContext = 0;
+  float dot = 0, sum = 0;
   
   for(unordered_set<string>::iterator iter_k=keys.begin(); keys.end()!=iter_k; ++iter_k) {
     float eMax = -9999.0;
@@ -69,12 +67,10 @@ static inline float calcContextualSimilarity(const string &c1, const string &c2,
     if(-9999 != eMax)
       dot += _weight(*iter_k) * eMax;
 
-    numContext++;
+    sum += _weight(*iter_k);
   }
 
-  //numContext = numContext2;
-
-  return (0.0+(0.0 == numContext ? 0.0 : dot / numContext)); //(1.0+(0.0 == numContext ? 0.0 : dot / numContext));
+  return (0.0+(0.0 == sum ? 0.0 : dot / sum)); //(1.0+(0.0 == numContext ? 0.0 : dot / numContext));
 }
 
 static inline float calcSlotSimilarity(const string &s1, const string &s2) {
