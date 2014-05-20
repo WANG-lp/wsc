@@ -12,7 +12,15 @@ k1 = options[2]
 k2 = options[5]
 
 def mappingtarget(target):
-    mappingdict = {"p": "kNN_score_iriPred", "pa": "kNN_score_iriPredArg", "pac": "kNN_score_iriPredArgCon", "pc": "kNN_score_iriPredCon", "p+c": "kNN_score_iriAddPredCon", "n": "iriPredNumRules"}
+    mappingdict = {
+			"p": "kNN_score_iriPred",
+			"pa": "kNN_score_iriPredArg",
+			"pac": "kNN_score_iriPredArgCon",
+			"pc": "kNN_score_iriPredCon",
+			"p+c": "kNN_score_iriAddPredCon",
+			"p+a+c": "kNN_score_iriAddPredArgCon",
+			"n": "iriPredNumRules"
+		}
     return mappingdict[target]
 
 def _getClass(xk, yk, x, y, fInvertPolarity = False):
