@@ -31,6 +31,7 @@ def _isTarget(i, problemlist, options):
 def main(options, args):
 	xmlText = etree.parse(options.input + ".xml")
         print >>sys.stderr, "Catenative = %s" % (options.cat)
+        print >>sys.stderr, "Phrasal = %s" % (options.ph)
         
 	# EXTRACT COREFERENCE RELATIONS IDENTIFIED BY CORE NLP
 	coref				= xmlText.xpath("/root/document/coreference/coreference")
@@ -53,7 +54,7 @@ def main(options, args):
 		# PARSE THE INPUT TUPLE.
 		ti = eval(ln)
 		
-		_writeFeatures(ff, i, ti, bp, options.cat)
+		_writeFeatures(ff, i, ti, bp, options)
 		sys.stdout.flush()
 
 def _toWordConstant(w):
@@ -62,9 +63,9 @@ def _toWordConstant(w):
 def _getBrothers(sent, x):
 	return scn.getToken(sent, x[2]), scn.getToken(sent, x[4]), scn.getToken(sent, x[3].split(",")[0] if x[3].split(",")[0] != x[4] else x[3].split(",")[1])
 
-def _printContextualInfo(sent, anaphor, antecedent, antecedent_false, catflag):
-	gvAna, gvAnte, gvFalseAnte = scn.getPrimaryPredicativeGovernor(sent, anaphor, catflag), scn.getPrimaryPredicativeGovernor(sent, antecedent, catflag), \
-			scn.getPrimaryPredicativeGovernor(sent, antecedent_false, catflag)
+def _printContextualInfo(sent, anaphor, antecedent, antecedent_false, options):
+	gvAna, gvAnte, gvFalseAnte = scn.getPrimaryPredicativeGovernor(sent, anaphor, options), scn.getPrimaryPredicativeGovernor(sent, antecedent, options), \
+			scn.getPrimaryPredicativeGovernor(sent, antecedent_false, options)
 	
 	print "<governors anaphor=\"%s-%s:%s\" antecedent=\"%s-%s:%s\" falseAntecedent=\"%s-%s:%s\" />" % (
 		gvAna.lemma if None != gvAna else None,
@@ -85,7 +86,7 @@ def _printContextualInfo(sent, anaphor, antecedent, antecedent_false, catflag):
 		scn.getFirstOrderContext(sent, gvFalseAnte.token) if None != gvFalseAnte else "-"
 		)
 	
-def _writeFeatures(ff, i, tupleInstance, bypass, catflag):
+def _writeFeatures(ff, i, tupleInstance, bypass, options):
 	sent																	= bypass.xmlText.xpath("/root/document/sentences/sentence[@id='%s']" % (1+i))[0]	
 	anaphor, antecedent, antecedent_false =	_getBrothers(sent, tupleInstance)
 
@@ -95,7 +96,7 @@ def _writeFeatures(ff, i, tupleInstance, bypass, catflag):
 	candidates = [antecedent, antecedent_false]
 
 	# FOR EACH CANDIDATE ANTECEDENT, WE GENERATE THE FEATURES.
-	ranker = featureGenerator.ranker_t(ff, anaphor, candidates, sent, catflag)
+	ranker = featureGenerator.ranker_t(ff, anaphor, candidates, sent, options)
 
 	# WRITE THE HEADER AND BASIC INFORMATION OF ANAPHOR AND ANTECEDENTS
 	print "<problem id=\"%s\" text=\"%s\" anaphor=\"%s-%s-%s\" antecedent=\"%s-%s-%s\" falseAntecedent=\"%s-%s-%s\">" % (
@@ -105,13 +106,13 @@ def _writeFeatures(ff, i, tupleInstance, bypass, catflag):
 		scn.getLemma(antecedent_false), scn.getPOS(antecedent_false)[0].lower(), scn.getNEtype(antecedent_false),
 		)
 
-	_printContextualInfo(sent, anaphor, antecedent, antecedent_false, catflag)
+	_printContextualInfo(sent, anaphor, antecedent, antecedent_false, options)
 
 	for can in candidates:
 		print "<feature-vector for=\"%s\">%s</feature-vector>" % (
 			"correct" if can == antecedent else "wrong",
 			"%d qid:%d %s" % (1 if can == antecedent else 2, 1+i,
-                        " ".join(["%s:%s" % x for x in ff.generateFeature(anaphor, can, sent, ranker, candidates, catflag)])
+                                          " ".join(["%s:%s" % x for x in ff.generateFeature(anaphor, can, sent, ranker, candidates, options)])
                         ))
 
 	#
@@ -191,5 +192,5 @@ if "__main__" == __name__:
 	cmdparser.add_option("--extkb", help	= ".", default="/work/naoya-i/kb")
 	cmdparser.add_option("--quicktest", help	= ".", action="store_true")
 	cmdparser.add_option("--cat", help	= "Catenative ON", action="store_true", default=False)
-        # cmdparser.add_option("--nocat", help	= "Catenative OFF", action="store_true")
+        cmdparser.add_option("--ph", help	= "Phrasal ON", action="store_true", default=False)
 	main(*cmdparser.parse_args())
