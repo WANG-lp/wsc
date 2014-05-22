@@ -25,3 +25,6 @@ reducer:
 
 learner:
 	g++ -g -O2 -fopenmp -D GLIBCXX -o ./bin/learn ./src/learn.cpp
+
+downsampler:
+	g++ -g -O2 -fopenmp -D GLIBCXX -o ./bin/ncdownsampler ./src/ncdownsampler.cpp
