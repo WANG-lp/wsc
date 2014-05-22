@@ -44,12 +44,19 @@ def main(options, args):
 
 	ff            = featureGenerator.feature_function_t(options, options.extkb)
 	bp            = bypass_t(xmlText, corefChains)
-	
+
+        parseerrlist = open(os.path.join(options.extkb, "parseerrno.txt")).read().strip().split(' ')
+        # parseerrlist = open("./data/parseerrno.txt").read().strip().split(' ')
+        
 	for i, ln in enumerate(open(options.input)):
 		if None != options.problemno and not _isTarget(i, options.problemno, options):
 			continue
-		
+                
 		print >>sys.stderr, "Processing No. %d..." % (i)
+
+                if str(i) in parseerrlist:
+                    print >>sys.stderr, "No. %d has Parse Errors" % (i)
+                    continue
 
 		# PARSE THE INPUT TUPLE.
 		ti = eval(ln)
