@@ -45,7 +45,11 @@ def main(options, args):
 	ff            = featureGenerator.feature_function_t(options, options.extkb)
 	bp            = bypass_t(xmlText, corefChains)
 
-        parseerrlist = open(os.path.join(options.extkb, "parseerrno.txt")).read().strip().split(' ')
+        if options.input.endswith("test.tuples"):
+            parseerrlist = open(os.path.join(options.extkb, "parseerrno.txt")).read().strip().split(' ')
+        elif options.input.endswith("train.tuples"):
+            parseerrlist = open(os.path.join(options.extkb, "parseerrno.train.txt")).read().strip().split(' ')
+        
         # parseerrlist = open("./data/parseerrno.txt").read().strip().split(' ')
         
 	for i, ln in enumerate(open(options.input)):
