@@ -119,8 +119,8 @@ if None != fs.getvalue("query"):
 
 	def _coloring(t):
 		return t.replace(
-			results.ante_lemma.split("-")[0], "<strong style=\"color:red\">%s</strong>" % results.ante_lemma.split("-")[0]).replace(
-			results.ante_false_lemma.split("-")[0], "<strong style=\"color:blue\">%s</strong>" % results.ante_false_lemma.split("-")[0]).replace(
+			results.ante_lemma.split("-")[0], "<strong style=\"color:red\">%s<sup>+</sup></strong>" % results.ante_lemma.split("-")[0]).replace(
+			results.ante_false_lemma.split("-")[0], "<strong style=\"color:blue\">%s<sup>-</sup></strong>" % results.ante_false_lemma.split("-")[0]).replace(
 				results.ana_lemma.split("-")[0], "<strong>%s</strong>" % results.ana_lemma.split("-")[0])
 
 	print """<h2>Problem:</h2>

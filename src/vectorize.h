@@ -33,8 +33,10 @@ static inline float calcWordSimilarity(const string &w1, const string &w2, const
 
   vLen1 = sqrt(vLen1); vLen2 = sqrt(vLen2);
   vLen1 *= vLen2;
-    
-  return 0.0 == vLen1 ? 0.0 : 0.5*(1+(dot/vLen1));
+
+  float normalizedSim = 0.0 == vLen1 ? 0.0 : 0.5*(1+(dot/vLen1));
+  
+  return normalizedSim; // normalizedSim < 0.55 ? 0.0 : normalizedSim;
 }
 
 static inline float calcContextualSimilarity(const string &c1, const string &c2, const google_word2vec_t &gw2v) {
