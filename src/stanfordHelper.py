@@ -234,26 +234,20 @@ def getPhrasal(sent, phgv, phdict):
         # FOLLOWED BY A TO-INFINITIVE or A GERUND
         if tp in phrasedeplist:
             ret += lm
-            
-            # print "xcomp = "
             # print sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)
-            # ret += getContentPredicativeGovernor(sent, sent.xpath("./tokens/token[@id='%s']" % idx)[0])
-            # ret += [(tp, sent.xpath("./tokens/token[@id='%s']" % idx)[0], lm[0], ps[0])]
             
     if ret != []:
         candphrase = phgv.lemma + "_" + "_".join(ret)
-        # print phgv.lemma
-        # print "_"
-        # print "_".join(ret)
-        # print candphrase
         
         if candphrase in phdict:
             paraphraselist = phdict[candphrase]
             # print candphrase, paraphraselist, "Match Phrase"
-            if len(paraphraselist) == 1:
-                return governor_t(phgv.rel, phgv.token, paraphraselist[0], phgv.POS)
-            else:
-                return governor_t(phgv.rel, phgv.token, paraphraselist, phgv.POS)
+            # paraphraselist = [phrasal verb] + [paraphrases]
+            paraphraselist = [candphrase] + paraphraselist
+            # if len(paraphraselist) == 1:
+            #     return governor_t(phgv.rel, phgv.token, paraphraselist[0], phgv.POS)
+            # else:
+            return governor_t(phgv.rel, phgv.token, paraphraselist, phgv.POS)
         else:
             return phgv
     else:
