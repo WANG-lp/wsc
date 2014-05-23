@@ -47,12 +47,12 @@ static inline float calcContextualSimilarity(const string &c1, const string &c2,
   unordered_map<string, vector<string> > c1e, c2e;
   
   while(ssContext1 >> element) {
-    c1e[element.substr(0, element.find(":", 2))].push_back(element.substr(element.find(":", 2)+1, element.find("-")-element.find(":", 2)-1));
+    c1e[element.substr(0, element.find(":", 2))].push_back(element.substr(element.find(":", 2)+1));
     keys.insert(element.substr(0, element.find(":", 2)));
   }
   
   while(ssContext2 >> element) {
-    c2e[element.substr(0, element.find(":", 2))].push_back(element.substr(element.find(":", 2)+1, element.find("-")-element.find(":", 2)-1));
+    c2e[element.substr(0, element.find(":", 2))].push_back(element.substr(element.find(":", 2)+1));
     keys.insert(element.substr(0, element.find(":", 2)));
   }
 
@@ -63,7 +63,9 @@ static inline float calcContextualSimilarity(const string &c1, const string &c2,
     
     for(int i=0; i<c1e[*iter_k].size(); i++) {
       for(int j=0; j<c2e[*iter_k].size(); j++) {
-        eMax = max(eMax, calcWordSimilarity(c1e[*iter_k][i], c2e[*iter_k][j], gw2v));
+        eMax = max(eMax, calcWordSimilarity(c1e[*iter_k][i].substr(0, c1e[*iter_k][i].find("-")),
+                                            c2e[*iter_k][j].substr(0, c2e[*iter_k][i].find("-")),
+                                            gw2v));
       } }
 
     if(-9999 != eMax)

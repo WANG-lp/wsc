@@ -7,5 +7,5 @@ cd $HOME/wsc
 PYTHONPATH=$HOME/lib64/python2.6/site-packages python $HOME/wsc/src/generateTrainingSet.py \
     --input $HOME/wsc/data/dp-train.tuples \
     --problemno $idx \
-    --quicktest --cat \
+    --quicktest --nolog \
     --extkb $HOME/work1/extkb > $HOME/work1/wsc/trainingset.result.$idx.xml

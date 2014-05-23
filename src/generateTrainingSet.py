@@ -154,34 +154,36 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options):
 				)
 
 	# OTHER STATISTICS
-	for fk, fvs in ranker.statistics.iteritems():
-                NumRulesCorrect = 0
-                NumRulesWrong = 0
-		if "cirInstances" == fk or "iriInstances" == fk:
-			for voted, inst in fvs:
-                                if int(antecedent.attrib["id"]) == int(voted):
-                                    NumRulesCorrect += 1 
-                                else:
-                                    NumRulesWrong += 1
-                                                                
-				print "<statistics type=\"%s\" label=\"%s\">%s</statistics>" % (
-					fk,
-					"Correct" if int(antecedent.attrib["id"]) == int(voted) else "Wrong",
-					"\t".join([repr(inst._asdict()[v]) for v in inst._fields])
+	if not options.nolog:
+		for fk, fvs in ranker.statistics.iteritems():
+			NumRulesCorrect = 0
+			NumRulesWrong = 0
+			
+			if "cirInstances" == fk or "iriInstances" == fk:
+				for voted, inst in fvs:
+					if int(antecedent.attrib["id"]) == int(voted):
+						NumRulesCorrect += 1 
+					else:
+						NumRulesWrong += 1
+
+					print "<statistics type=\"%s\" label=\"%s\">%s</statistics>" % (
+						fk,
+						"Correct" if int(antecedent.attrib["id"]) == int(voted) else "Wrong",
+						"\t".join([repr(inst._asdict()[v]) for v in inst._fields])
 					)
-                        print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
-                            "iriNumRules",
-                            NumRulesCorrect,
-                            NumRulesWrong
-                        )
-
-
-		else:
-			print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
-				fk,
-				ranker.getRankValue(antecedent.attrib["id"], fk, 0.0, ranker.statistics),
-				ranker.getRankValue(antecedent_false.attrib["id"], fk, 0.0, ranker.statistics),
+					
+				print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
+					"iriNumRules",
+					NumRulesCorrect,
+					NumRulesWrong
 				)
+
+			else:
+				print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
+					fk,
+					ranker.getRankValue(antecedent.attrib["id"], fk, 0.0, ranker.statistics),
+					ranker.getRankValue(antecedent_false.attrib["id"], fk, 0.0, ranker.statistics),
+					)
 		
 	print "</problem>"
 
@@ -198,6 +200,7 @@ if "__main__" == __name__:
 	cmdparser.add_option("--problemno", help  = "(Debug) Process only specified problem.")
 	cmdparser.add_option("--extkb", help	= ".", default="/work/naoya-i/kb")
 	cmdparser.add_option("--quicktest", help	= ".", action="store_true")
+	cmdparser.add_option("--nolog", help	= ".", action="store_true")
 	cmdparser.add_option("--cat", help	= "Catenative ON", action="store_true", default=False)
         cmdparser.add_option("--ph", help	= "Phrasal ON", action="store_true", default=False)
 	main(*cmdparser.parse_args())

@@ -112,15 +112,15 @@ class ranker_t:
                                 self.statistics["NCCJ08"] += [(vCan, "%s ~ %s" % (ff.nc.createQuery(gvAna.lemma, gvAna.rel), ff.nc.createQuery(gvCan.lemma, gvCan.rel)))]
 																
                                 # NARRATIVE CHAIN FEATURE
-                                for th in [0, 5, 10, 25, 50, 100, 200, 400]:
-                                    self.rankingsRv["NCNAIVE%sFREQ" % th] += [(vCan,
-                                        ff.ncnaive[th].getFreq("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                                for i in xrange(0, 8):
+                                    self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan,
+																																							ff.ncnaive[i].getFreq("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
 
-                                    self.rankingsRv["NCNAIVE%sPMI" % th] += [(vCan,
-                                        ff.ncnaive[th].getPMI("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                                    self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan,
+																																						 ff.ncnaive[i].getPMI("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
 																		
-                                    self.rankingsRv["NCNAIVE%sNPMI" % th] += [(vCan,
-                                        ff.ncnaive[th].getNPMI("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                                    self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan,
+																																							ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
 																
                                 # Q1, 2: CV
                                 if "O" == scn.getNEtype(can):
@@ -250,7 +250,8 @@ class ranker_t:
 class feature_function_t:
 	def __init__(self, pa, dirExtKb):
 		self.pa							 = pa
-                
+
+		self.libiri = None
 		self.libiri    = iri.iri_t(
 			os.path.join(dirExtKb, "corefevents.tsv"),
 			os.path.join(os.path.dirname(sys.argv[0]), "../bin"),
@@ -261,8 +262,9 @@ class feature_function_t:
 
 		self.ncnaive = {}
 		
-		for th in [0, 5, 10, 25, 50, 100, 200, 400]:
-			self.ncnaive[th] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive%s.cdb" % th), os.path.join(_getPathKB(), "tuples.cdb"))
+		for i in xrange(0, 8):
+			p                = 1.0/(2**i)
+			self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive.ds.%s.cdb" % p), os.path.join(_getPathKB(), "tuples.cdb"))
 			
 		self.nc        = nccj08.nccj08_t(os.path.join(_getPathKB(), "schemas-size12"), os.path.join(_getPathKB(), "verb-pair-orders"))
 		self.sp        = selpref.selpref_t(pathKB=_getPathKB())
@@ -334,15 +336,15 @@ class feature_function_t:
 			yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma), 1
 
 		# HEURISTIC POLARITY.
-		# for fHPOL in self.heuristicPolarity(ana, can, sent, ranker, candidates, pa.cat):
-		# 	yield fHPOL
+		for fHPOL in self.heuristicPolarity(ana, can, sent, ranker, candidates, pa):
+			yield fHPOL
 
 		# NC VERB ORDER.
-		# if None != gvAna and None != gvCan:
-		# 	diff = self.nc.getVerbPairOrder(gvCan.lemma, gvAna.lemma) - self.nc.getVerbPairOrder(gvAna.lemma, gvCan.lemma)
+		if None != gvAna and None != gvCan:
+			diff = self.nc.getVerbPairOrder(gvCan.lemma, gvAna.lemma) - self.nc.getVerbPairOrder(gvAna.lemma, gvCan.lemma)
 			
-		# 	if diff > 25: yield "NCCJ08_VO_SAME_ORDER", 1
-		# 	elif diff < -25: yield "NCCJ08_VO_REVERSE_ORDER", 1
+			if diff > 25: yield "NCCJ08_VO_SAME_ORDER", 1
+			elif diff < -25: yield "NCCJ08_VO_REVERSE_ORDER", 1
 
 	def heuristicPolarity(self, ana, can, sent, ranker, candidates, pa):
 		conn				 = scn.getConn(sent)
