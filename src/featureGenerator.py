@@ -106,7 +106,6 @@ class ranker_t:
 
                                 for (gvanalemma, gvcanlemma) in itertools.product(gvanalemmas, gvcanlemmas):
 
-                                    print >>sys.stderr, "event pair = (%s, %s)" % (gvanalemma, gvcanlemma)
                                     # SELECTIONAL PREFERENCE
                                     if "O" == scn.getNEtype(can):
                                         ret = ff.sp.calc("%s-%s" % (gvanalemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
@@ -363,8 +362,15 @@ class feature_function_t:
 			yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma), 1
 
 		# HEURISTIC POLARITY.
-		# for fHPOL in self.heuristicPolarity(ana, can, sent, ranker, candidates, pa.cat):
-		# 	yield fHPOL
+                fhpoldic = collections.defaultdict(int)
+		for fHPOL in self.heuristicPolarity(ana, can, sent, ranker, candidates, pa):
+                        # print >>sys.stderr, fHPOL
+                        fhpoldic[fHPOL[0]] += 1
+                for k, v in fhpoldic.iteritems():
+                        itemleft = "%s-%d" % (k, v)
+                        yield (itemleft, 1)
+                        # yield "(%s-%d, 1)" % (k, v)
+                        # print >>sys.stderr, "(%s-%d, 1)" % (k, v)
 
 		# NC VERB ORDER.
 		# if None != gvAna and None != gvCan:
@@ -380,51 +386,62 @@ class feature_function_t:
 		polAna, polCan1, polCan2 = 0, 0, 0
 		position		 = "left" if "R1" == ranker.getRank(can.attrib["id"], "position") else "right"
 
-		if None != gvAna:
-			polAna = self.sentpol.getPolarity(gvAna.lemma) if gvAna.rel == "nsubj" or scn.getDeepSubject(sent, gvAna.token) == ana.attrib["id"] else None
+                if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
+                else: gvanalemmas = gvAna.lemma[0].split("_")[:1] + gvAna.lemma[1:]
+                if not isinstance(gvCan1.lemma, list): gvcan1lemmas = [gvCan.lemma]
+                else: gvcan1lemmas = gvCan1.lemma[0].split("_")[:1] + gvCan.lemma[1:]
+                if not isinstance(gvCan2.lemma, list): gvcan2lemmas = [gvCan.lemma]
+                else: gvcan2lemmas = gvCan2.lemma[0].split("_")[:1] + gvCan.lemma[1:]
 
-			# FLIPPING
-			if None != polAna and (scn.getNeg(sent, gvAna.token) or (None != conn and scn.getLemma(conn) in "but although though however".split())): polAna *= -1
+                for gvanalemma in gvanalemmas:
+                
+                    for (gvcan1lemma, gvcan2lemma) in itertools.product(gvcan1lemmas, gvcan2lemmas):
+                
+                        if None != gvAna:
+                            polAna = self.sentpol.getPolarity(gvanalemma) if gvAna.rel == "nsubj" or scn.getDeepSubject(sent, gvAna.token) == ana.attrib["id"] else None
 
-		if None != gvCan1:
-			polCan1 = self.sentpol.getPolarity(gvCan1.lemma) if gvCan1.rel == "nsubj" or scn.getDeepSubject(sent, gvCan1.token) == candidates[0].attrib["id"] else None
+                            # FLIPPING
+                            if None != polAna and (scn.getNeg(sent, gvAna.token) or (None != conn and scn.getLemma(conn) in "but although though however".split())): polAna *= -1
 
-			# FLIPPING
-			if None != polCan1 and scn.getNeg(sent, gvCan1.token): polCan1 *= -1
+                        if None != gvCan1:
+                            polCan1 = self.sentpol.getPolarity(gvcan1lemma) if gvCan1.rel == "nsubj" or scn.getDeepSubject(sent, gvCan1.token) == candidates[0].attrib["id"] else None
+
+                            # FLIPPING
+                            if None != polCan1 and scn.getNeg(sent, gvCan1.token): polCan1 *= -1
 			
-		if None != gvCan2:
-			polCan2 = self.sentpol.getPolarity(gvCan2.lemma) if gvCan2.rel == "nsubj" or scn.getDeepSubject(sent, gvCan2.token) == candidates[1].attrib["id"] else None
+                        if None != gvCan2:
+                            polCan2 = self.sentpol.getPolarity(gvcan2lemma) if gvCan2.rel == "nsubj" or scn.getDeepSubject(sent, gvCan2.token) == candidates[1].attrib["id"] else None
 
-			# FLIPPING
-			if None != polCan2 and scn.getNeg(sent, gvCan2.token): polCan2 *= -1
+                            # FLIPPING
+                            if None != polCan2 and scn.getNeg(sent, gvCan2.token): polCan2 *= -1
 
-		# INFERENCE.
-		if 1 == polCan1 and None == polCan2: polCan2 = -1
-		if -1 == polCan1 and None == polCan2: polCan2 = 1
-		if None == polCan1 and 1 == polCan2: polCan1 = -1
-		if None == polCan1 and -1 == polCan2: polCan1 = 1
+                        # INFERENCE.
+                        if 1 == polCan1 and None == polCan2: polCan2 = -1
+                        if -1 == polCan1 and None == polCan2: polCan2 = 1
+                        if None == polCan1 and 1 == polCan2: polCan1 = -1
+                        if None == polCan1 and -1 == polCan2: polCan1 = 1
 
-		def _L(_x):
-			if None == _x: return None
-			return scn.getLemma(scn.getTokenById(sent, _x))
+                        def _L(_x):
+                            if None == _x: return None
+                            return scn.getLemma(scn.getTokenById(sent, _x))
 			
-		ranker.statistics["POLDS"] += [(candidates[0].attrib["id"], "%s,%s" % (_L(scn.getDeepSubject(sent, gvAna.token)) if None != gvAna else None, _L(scn.getDeepSubject(sent, gvCan1.token)) if None != gvCan1 else None))]
-		ranker.statistics["POLDS"] += [(candidates[1].attrib["id"], "%s,%s" % (_L(scn.getDeepSubject(sent, gvAna.token)) if None != gvAna else None, _L(scn.getDeepSubject(sent, gvCan2.token)) if None != gvCan2 else None))]
-		ranker.statistics["POL"] += [(candidates[0].attrib["id"], "%s,%s" % (polAna, polCan1))]
-		ranker.statistics["POL"] += [(candidates[1].attrib["id"], "%s,%s" % (polAna, polCan2))]
+                        ranker.statistics["POLDS"] += [(candidates[0].attrib["id"], "%s,%s" % (_L(scn.getDeepSubject(sent, gvAna.token)) if None != gvAna else None, _L(scn.getDeepSubject(sent, gvCan1.token)) if None != gvCan1 else None))]
+                        ranker.statistics["POLDS"] += [(candidates[1].attrib["id"], "%s,%s" % (_L(scn.getDeepSubject(sent, gvAna.token)) if None != gvAna else None, _L(scn.getDeepSubject(sent, gvCan2.token)) if None != gvCan2 else None))]
+                        ranker.statistics["POL"] += [(candidates[0].attrib["id"], "%s,%s" % (polAna, polCan1))]
+                        ranker.statistics["POL"] += [(candidates[1].attrib["id"], "%s,%s" % (polAna, polCan2))]
 
-		if None != polAna and None != polCan1 and None != polCan2 and 0 != polAna*polCan1*polCan2:
+                        if None != polAna and None != polCan1 and None != polCan2 and 0 != polAna*polCan1*polCan2:
 			
-			# HPOL1
-			if can == candidates[0] and polCan1 == polAna: yield "%s_HPOL_MATCH" % position, 1
-			if can == candidates[1] and polCan2 == polAna: yield "%s_HPOL_MATCH" % position, 1
+                            # HPOL1
+                            if can == candidates[0] and polCan1 == polAna: yield "%s_HPOL_MATCH" % position, 1
+                            if can == candidates[1] and polCan2 == polAna: yield "%s_HPOL_MATCH" % position, 1
 
-			# HPOL2
-			if can == candidates[0]: yield "%s_HPOL_%s-%s" % (position, polAna, polCan1), 1
-			if can == candidates[1]: yield "%s_HPOL_%s-%s" % (position, polAna, polCan2), 1
+                            # HPOL2
+                            if can == candidates[0]: yield "%s_HPOL_%s-%s" % (position, polAna, polCan1), 1
+                            if can == candidates[1]: yield "%s_HPOL_%s-%s" % (position, polAna, polCan2), 1
 
-			# HPOL3
-			if None != conn:
+                            # HPOL3
+                            if None != conn:
 				if can == candidates[0]: yield "%s_HPOL_%s-%s-%s" % (position, polAna, scn.getLemma(conn), polCan1), 1
 				if can == candidates[1]: yield "%s_HPOL_%s-%s-%s" % (position, polAna, scn.getLemma(conn), polCan2), 1
 				
