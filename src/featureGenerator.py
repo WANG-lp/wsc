@@ -99,28 +99,36 @@ class ranker_t:
 
 			if None != gvAna and None != gvCan:
 
-                                # SELECTIONAL PREFERENCE
-                                if "O" == scn.getNEtype(can):
-                                    ret = ff.sp.calc("%s-%s" % (gvAna.lemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
-                                    self.rankingsRv["selpref"] += [(vCan, ret[0])]
-                                    self.rankingsRv["selprefCnt"] += [(vCan, ret[1])]
-																		
-                                # NARRATIVE CHAIN FEATURE (C&J08'S OUTPUT)
-                                self.rankingsRv["NCCJ08"] += [(vCan, 1 if 1 <= len(ff.nc.getChains(
-                                    ff.nc.createQuery(gvAna.lemma, gvAna.rel),
-                                    ff.nc.createQuery(gvCan.lemma, gvCan.rel))) else 0)]
-                                self.statistics["NCCJ08"] += [(vCan, "%s ~ %s" % (ff.nc.createQuery(gvAna.lemma, gvAna.rel), ff.nc.createQuery(gvCan.lemma, gvCan.rel)))]
-																
-                                # NARRATIVE CHAIN FEATURE
-                                for th in [0, 5, 10, 25, 50, 100, 200, 400]:
-                                    self.rankingsRv["NCNAIVE%sFREQ" % th] += [(vCan,
-                                        ff.ncnaive[th].getFreq("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                                if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
+                                else: gvanalemmas = gvAna.lemma[0].split("_")[:1] + gvAna.lemma[1:]
+                                if not isinstance(gvCan.lemma, list): gvcanlemmas = [gvCan.lemma]
+                                else: gvcanlemmas = gvCan.lemma[0].split("_")[:1] + gvCan.lemma[1:]
 
-                                    self.rankingsRv["NCNAIVE%sPMI" % th] += [(vCan,
-                                        ff.ncnaive[th].getPMI("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                                for (gvanalemma, gvcanlemma) in itertools.product(gvanalemmas, gvcanlemmas):
+
+                                    print >>sys.stderr, "event pair = (%s, %s)" % (gvanalemma, gvcanlemma)
+                                    # SELECTIONAL PREFERENCE
+                                    if "O" == scn.getNEtype(can):
+                                        ret = ff.sp.calc("%s-%s" % (gvanalemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
+                                        self.rankingsRv["selpref"] += [(vCan, ret[0])]
+                                        self.rankingsRv["selprefCnt"] += [(vCan, ret[1])]
+                                        
+                                    # NARRATIVE CHAIN FEATURE (C&J08'S OUTPUT)
+                                    self.rankingsRv["NCCJ08"] += [(vCan, 1 if 1 <= len(ff.nc.getChains(
+                                        ff.nc.createQuery(gvanalemma, gvAna.rel),
+                                        ff.nc.createQuery(gvcanlemma, gvCan.rel))) else 0)]
+                                    self.statistics["NCCJ08"] += [(vCan, "%s ~ %s" % (ff.nc.createQuery(gvanalemma, gvAna.rel), ff.nc.createQuery(gvcanlemma, gvCan.rel)))]
+                                
+                                    # NARRATIVE CHAIN FEATURE
+                                    for th in [0, 5, 10, 25, 50, 100, 200, 400]:
+                                        self.rankingsRv["NCNAIVE%sFREQ" % th] += [(vCan,
+                                            ff.ncnaive[th].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
+
+                                        self.rankingsRv["NCNAIVE%sPMI" % th] += [(vCan,
+                                            ff.ncnaive[th].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
 																		
-                                    self.rankingsRv["NCNAIVE%sNPMI" % th] += [(vCan,
-                                        ff.ncnaive[th].getNPMI("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                                        self.rankingsRv["NCNAIVE%sNPMI" % th] += [(vCan,
+                                            ff.ncnaive[th].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
 																
                                 # Q1, 2: CV
                                 if "O" == scn.getNEtype(can):
