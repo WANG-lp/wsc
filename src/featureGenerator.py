@@ -117,10 +117,10 @@ class ranker_t:
 																																							ff.ncnaive[i].getFreq("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
 
                                     self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan,
-																																						 ff.ncnaive[i].getPMI("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
+																																						 ff.ncnaive[i].getPMI("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
 																		
                                     self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan,
-																																							ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel)))]
+																																							ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvAna.lemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvCan.lemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
 																
                                 # Q1, 2: CV
                                 if "O" == scn.getNEtype(can):
@@ -240,16 +240,19 @@ class ranker_t:
 
 		for i, xc in enumerate(self.rankingsRv[t]):
 			if x == xc[0]: return "R1" if 0 == i else "R2"
+
+	def sort(self):
+		for fk in self.NN.keys():
+			self.NN[fk].sort(key=lambda y: y[1], reverse=True)
 		
 	def getKNNRank(self, x, t, K=20):
 		votes = collections.defaultdict(int)
-		Ksorted = sorted(self.NN[t], key=lambda y: y[1], reverse=True)[:K]
 
-		for votedCan, votedScore in Ksorted:
+		for votedCan, votedScore in self.NN[t][:K]:
 			votes[votedCan] += votedScore
 
 		if len(votes) >= 2 and votes.values()[0] == votes.values()[1]:
-			return 0 if Ksorted[-1][0] != x else 1
+			return 0 if self.NN[t][:K][-1][0] != x else 1
 
 		for i, xc in enumerate(sorted(votes.iteritems(), key=lambda y: y[1], reverse=True)):
 			if x == xc[0]: return i
@@ -259,7 +262,7 @@ class ranker_t:
 	def getKNNRankValue(self, x, t, K=20, score=False, de=0):
 		votes = collections.defaultdict(int)
 
-		for votedCan, votedScore in sorted(self.NN[t], key=lambda y: y[1], reverse=True)[:K]:
+		for votedCan, votedScore in self.NN[t][:K]:
 			votes[votedCan] += 1 if not score else votedScore
 
 		for i, xc in enumerate(votes.iteritems()):
@@ -300,6 +303,8 @@ class feature_function_t:
 		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
 
 		# kNN FEATURES.
+		ranker.sort()
+		
 		for K in xrange(50):
 			for fk, fnn in ranker.NN.iteritems():
 				r = ranker.getKNNRank(can.attrib["id"], fk, K)
@@ -426,7 +431,7 @@ class feature_function_t:
 		if None == self.libiri: return 0
 		
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
-                for ret, raw in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=1000000):
+                for ret, raw in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
 
 			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
 			spa = sp * ret.sPredictedArg
