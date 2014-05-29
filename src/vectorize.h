@@ -9,13 +9,27 @@
 
 using namespace std;
 
-static inline float _weight(const string &k) {
+static inline float _weight(const string &k, const string &w, const unordered_map<string, float> &weightMap) {
   /* if(string::npos != k.find("dobj")  || string::npos != k.find("iobj") || */
   /*    string::npos != k.find("nsubj") || string::npos != k.find("prep_") || */
   /*    string::npos != k.find("acomp")) return 1.0; */
-  if(string::npos != k.find("dobj")  || string::npos != k.find("iobj") ||
-     string::npos != k.find("nsubj") || string::npos != k.find("advcl")) return 1.0;
-  return 0.2;
+
+  for(unordered_map<string, float>::const_iterator i=weightMap.begin(); weightMap.end()!=i; ++i) {
+    if(string::npos != k.find(i->first)) return i->second;
+    if(string::npos != w.find(i->first)) return i->second;
+  }
+  
+  return 1.0;
+}
+
+static inline void breakDownContext(unordered_set<string> *pOutKeys, unordered_map<string, vector<string> > *pOutElements, const string &c) {
+  istringstream ssContext(c);
+  string        element;
+  
+  while(ssContext >> element) {
+    (*pOutElements)[element.substr(0, element.find(":", 2))].push_back(element.substr(element.find(":", 2)+1));
+    pOutKeys->insert(element.substr(0, element.find(":", 2)));
+  }
 }
 
 static inline float calcWordSimilarity(const string &w1, const string &w2, const google_word2vec_t &gw2v) {
@@ -39,8 +53,11 @@ static inline float calcWordSimilarity(const string &w1, const string &w2, const
   return normalizedSim; // normalizedSim < 0.55 ? 0.0 : normalizedSim;
 }
 
-static inline float calcContextualSimilarity(const string &c1, const string &c2, const google_word2vec_t &gw2v) {
-  
+static inline float calcContextualSimilarity(const string &c1, const string &c2, const unordered_map<string, float> &weightMap, const google_word2vec_t &gw2v) {
+  /*
+    c1: context of inference rule in kb.
+    c2: context of input query.
+   */
   istringstream ssContext1(c1), ssContext2(c2);
   string        element;
   unordered_set<string> keys;
@@ -60,18 +77,24 @@ static inline float calcContextualSimilarity(const string &c1, const string &c2,
   
   for(unordered_set<string>::iterator iter_k=keys.begin(); keys.end()!=iter_k; ++iter_k) {
     float eMax = -9999.0;
+    string wordC2max;
     
     for(int i=0; i<c1e[*iter_k].size(); i++) {
       for(int j=0; j<c2e[*iter_k].size(); j++) {
-        eMax = max(eMax, calcWordSimilarity(c1e[*iter_k][i].substr(0, c1e[*iter_k][i].find("-")),
-                                            c2e[*iter_k][j].substr(0, c2e[*iter_k][i].find("-")),
-                                            gw2v));
+        float sim = calcWordSimilarity(c1e[*iter_k][i].substr(0, c1e[*iter_k][i].find("-")),
+                                       c2e[*iter_k][j].substr(0, c2e[*iter_k][j].find("-")),
+                                       gw2v);
+        if(eMax < sim) {
+          eMax = sim;
+          wordC2max = c2e[*iter_k][j];
+        }
       } }
 
-    if(-9999 != eMax)
-      dot += _weight(*iter_k) * eMax;
+    if(-9999 != eMax) {
+      dot += _weight(*iter_k, wordC2max, weightMap) * eMax;
+    }
 
-    sum += _weight(*iter_k);
+    sum += _weight(*iter_k, wordC2max, weightMap);
   }
 
   return (0.0+(0.0 == sum ? 0.0 : dot / sum)); //(1.0+(0.0 == numContext ? 0.0 : dot / numContext));

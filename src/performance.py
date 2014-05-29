@@ -59,8 +59,8 @@ for k in methods:
 		# numWrong += m[k][c] if not c[2] else 0
 		# numNoDec += m[k][c] if not(c[0] or c[1]) else 0
 		
-		numTTCorrect += m[k][c] if (c[0] and c[1]) and c[2] else 0
-		numTTWrong += m[k][c] if (c[0] and c[1]) and not c[2] else 0
+		numTTCorrect += m[k][c] if (c[0] or c[1]) and c[2] else 0
+		numTTWrong += m[k][c] if (c[0] or c[1]) and not c[2] else 0
 
 		numTFCorrect += m[k][c] if (c[0] and not c[1]) and c[2] else 0
 		numTFWrong += m[k][c] if (c[0] and not c[1]) and not c[2] else 0

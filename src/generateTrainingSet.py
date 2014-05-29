@@ -1,4 +1,6 @@
 
+from xml.sax.saxutils import escape
+
 import optparse
 import multiprocessing
 
@@ -51,7 +53,11 @@ def main(options, args):
             parseerrlist = open(os.path.join(options.extkb, "parseerrno.train.txt")).read().strip().split(' ')
         
         # parseerrlist = open("./data/parseerrno.txt").read().strip().split(' ')
-        
+
+	if options.fullxml:
+		print "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>"
+		print "<root>"
+		
 	for i, ln in enumerate(open(options.input)):
 		if None != options.problemno and not _isTarget(i, options.problemno, options):
 			continue
@@ -68,6 +74,9 @@ def main(options, args):
 		_writeFeatures(ff, i, ti, bp, options)
 		sys.stdout.flush()
 
+	if options.fullxml:
+		print "</root>"
+		
 def _toWordConstant(w):
 	return "W%s%s" % (w.attrib["id"], scn.getLemma(w))
 	
@@ -122,9 +131,12 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options):
 	for can in candidates:
 		print "<feature-vector for=\"%s\">%s</feature-vector>" % (
 			"correct" if can == antecedent else "wrong",
-			"%d qid:%d %s" % (1 if can == antecedent else 2, 1+i,
-                                          " ".join(["%s:%s" % x for x in ff.generateFeature(anaphor, can, sent, ranker, candidates, options)])
-                        ))
+			"\n".join([
+				"%d qid:%d %s" % (
+					1 if can == antecedent else 2, 1+i, escape(" ".join(["%s:%s" % x for x in fv])))
+				for fv in ff.generateFeatureSet(anaphor, can, sent, ranker, candidates, options)
+			])
+		)
 
 	#
 	# FOR MORE INFORMATIVE OUTPUTS
@@ -158,36 +170,36 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options):
 				)
 
 	# OTHER STATISTICS
-	if not options.nolog:
-		for fk, fvs in ranker.statistics.iteritems():
-			NumRulesCorrect = 0
-			NumRulesWrong = 0
-			
-			if "cirInstances" == fk or "iriInstances" == fk:
-				for voted, inst in fvs:
-					if int(antecedent.attrib["id"]) == int(voted):
-						NumRulesCorrect += 1 
-					else:
-						NumRulesWrong += 1
+	for fk, fvs in ranker.statistics.iteritems():
+		NumRulesCorrect = 0
+		NumRulesWrong = 0
 
+		if "cirInstances" == fk or "iriInstances" == fk:
+			for voted, inst in fvs:
+				if int(antecedent.attrib["id"]) == int(voted):
+					NumRulesCorrect += 1 
+				else:
+					NumRulesWrong += 1
+
+				if not options.nolog:
 					print "<statistics type=\"%s\" label=\"%s\">%s</statistics>" % (
 						fk,
 						"Correct" if int(antecedent.attrib["id"]) == int(voted) else "Wrong",
 						"\t".join([repr(inst._asdict()[v]) for v in inst._fields])
 					)
-					
-				print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
-					"iriNumRules",
-					NumRulesCorrect,
-					NumRulesWrong
-				)
 
-			else:
-				print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
-					fk,
-					ranker.getRankValue(antecedent.attrib["id"], fk, 0.0, ranker.statistics),
-					ranker.getRankValue(antecedent_false.attrib["id"], fk, 0.0, ranker.statistics),
-					)
+			print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
+				"iriNumRules",
+				NumRulesCorrect,
+				NumRulesWrong
+			)
+
+		else:
+			print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
+				fk,
+				ranker.getRankValue(antecedent.attrib["id"], fk, 0.0, ranker.statistics),
+				ranker.getRankValue(antecedent_false.attrib["id"], fk, 0.0, ranker.statistics),
+				)
 		
 	print "</problem>"
 
@@ -204,6 +216,7 @@ if "__main__" == __name__:
 	cmdparser.add_option("--problemno", help  = "(Debug) Process only specified problem.")
 	cmdparser.add_option("--extkb", help	= ".", default="/work/naoya-i/kb")
 	cmdparser.add_option("--quicktest", help	= ".", action="store_true")
+	cmdparser.add_option("--fullxml", help	= ".", action="store_true")
 	cmdparser.add_option("--nolog", help	= ".", action="store_true")
 	cmdparser.add_option("--cat", help	= "Catenative ON", action="store_true", default=False)
         cmdparser.add_option("--ph", help	= "Phrasal ON", action="store_true", default=False)

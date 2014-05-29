@@ -83,10 +83,11 @@ def _phrasalget(gv, sent, dirPhDic):
         
 class ranker_t:
 	def __init__(self, ff, ana, candidates, sent, pa):
+		self.NNexamples = []
 		self.NN = collections.defaultdict(list)
 		self.rankingsRv = collections.defaultdict(list)
 		self.statistics = collections.defaultdict(list)
-                self.pa	= pa
+		self.pa	= pa
 
 		# FOR REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
 		# FOR EACH CANDIDATE.
@@ -231,6 +232,11 @@ class ranker_t:
                                            gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
                                            self.statistics["iriInstances"],
                                     )
+                                    # ff.iriEnumerate(self.NNexamples,
+                                    #        vCan,
+                                    #        gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                    #        gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                    # )
 
 
 		for rank in self.rankingsRv.values():
@@ -305,6 +311,19 @@ class feature_function_t:
 		# GOOGLE NGRAMS
 		self.gn        = googlengram.googlengram_t(os.path.join(_getPathKB(), "ngrams"))
 
+	def generateFeatureSet(self, ana, can, sent, ranker, candidates, pa):
+		vCan = can.attrib["id"]		
+		basicFeature = map(None, self.generateFeature(ana, can, sent, ranker, candidates, pa))
+		numVectors = 0
+		
+		for vote, vector in ranker.NNexamples:
+			if vote == vCan:
+				numVectors += 1
+				yield basicFeature + vector
+
+		if 0 == numVectors:
+			yield basicFeature
+
 	def generateFeature(self, ana, can, sent, ranker, candidates, pa):
 		conn				 = scn.getConn(sent)
 		position		 = "left" if "R1" == ranker.getRank(can.attrib["id"], "position") else "right"
@@ -364,11 +383,17 @@ class feature_function_t:
 
 		# ANTECEDENT-DEPENDENT.
 		if None != gvAna:
-			yield "%s_LEX_ADHC1VA_%s,%s" % (position, scn.getLemma(can), gvAna.lemma), 1
+			if isinstance(gvAna.lemma, list):
+				yield "%s_LEX_ADHC1VA_%s,%s" % (position, scn.getLemma(can), gvAna.lemma[0]), 1
+			else:
+				yield "%s_LEX_ADHC1VA_%s,%s" % (position, scn.getLemma(can), gvAna.lemma), 1
 
 		if None != gvCan:
-			yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma), 1
-
+			if isinstance(gvCan.lemma, list):
+				yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma[0]), 1
+			else:
+				yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma), 1
+				
 		# HEURISTIC POLARITY.
                 fhpoldic = collections.defaultdict(int)
 		for fHPOL in self.heuristicPolarity(ana, can, sent, ranker, candidates, pa):
@@ -381,11 +406,11 @@ class feature_function_t:
                         # print >>sys.stderr, "(%s-%d, 1)" % (k, v)
 
 		# NC VERB ORDER.
-		if None != gvAna and None != gvCan:
-			diff = self.nc.getVerbPairOrder(gvCan.lemma, gvAna.lemma) - self.nc.getVerbPairOrder(gvAna.lemma, gvCan.lemma)
+		# if None != gvAna and None != gvCan:
+		# 	diff = self.nc.getVerbPairOrder(gvCan.lemma, gvAna.lemma) - self.nc.getVerbPairOrder(gvAna.lemma, gvCan.lemma)
 			
-			if diff > 25: yield "NCCJ08_VO_SAME_ORDER", 1
-			elif diff < -25: yield "NCCJ08_VO_REVERSE_ORDER", 1
+		# 	if diff > 25: yield "NCCJ08_VO_SAME_ORDER", 1
+		# 	elif diff < -25: yield "NCCJ08_VO_REVERSE_ORDER", 1
 
 	def heuristicPolarity(self, ana, can, sent, ranker, candidates, pa):
 		conn				 = scn.getConn(sent)
@@ -452,9 +477,22 @@ class feature_function_t:
                             if None != conn:
 				if can == candidates[0]: yield "%s_HPOL_%s-%s-%s" % (position, polAna, scn.getLemma(conn), polCan1), 1
 				if can == candidates[1]: yield "%s_HPOL_%s-%s-%s" % (position, polAna, scn.getLemma(conn), polCan2), 1
+
+	def iriEnumerate(self, outExamples, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2):
+		if None == self.libiri: return 0
+		
+		for vector in self.libiri.predict(
+				"%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2,
+				threshold = 1, pos1=ps1, pos2=ps2, limit=1000, fVectorMode=True):
+			
+			outExamples += [(NNvoted, vector)]
 				
 	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2, cached = None):
 		if None == self.libiri: return 0
+
+		# ELIMINATE THE ELEMENT WITH THE SAME ROLE AS ROLE.
+		c1 = " ".join(filter(lambda x: x.split(":")[1] != r1, c1.split(" ")))
+		c2 = " ".join(filter(lambda x: x.split(":")[1] != r2, c2.split(" ")))
 		
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
                 for ret, raw in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):

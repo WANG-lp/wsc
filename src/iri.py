@@ -1,4 +1,6 @@
 
+import re
+
 import cdb
 import math
 
@@ -34,7 +36,7 @@ def _npmi(xy, x, y):
                 return 0
 
 class iri_t:
-	def __init__(self, fnCorefEventsTsv, pathServer, dirKb, fnLSH, numPara = 12, fUseMemoryMap = False):
+	def __init__(self, fnCorefEventsTsv, pathServer, dirKb, fnLSH, fnWeightMap = "data/weightmap.tsv", numPara = 12, fUseMemoryMap = False):
 		# LOADING THE HASH TABLE.5
 		print >>sys.stderr, "Loading..."
 
@@ -43,19 +45,21 @@ class iri_t:
 		if fUseMemoryMap: opts += ["-q"]
 		
 		self.procSearchServer = subprocess.Popen(
-			"%s -i %s -k %s -d %s -m %d %s" % (
+			"%s -i %s -k %s -d %s -m %d -w %s %s" % (
 				os.path.join(pathServer, "similaritySearch"), fnLSH, dirKb,
-				fnCorefEventsTsv, numPara, " ".join(opts)),
+				fnCorefEventsTsv, numPara, fnWeightMap, " ".join(opts)),
 			shell = True,
 			stdin = subprocess.PIPE, stdout = subprocess.PIPE, )#stderr = subprocess.PIPE)
 
 		# FOR PMI
 		self.cdbPreds = cdb.init(os.path.join(dirKb, "tuples.cdb"))
 		self.totalFreqPreds = int(open(os.path.join(dirKb, "tuples.totalfreq.txt")).read())
+
+		self.fnWeightMap = fnWeightMap
 		
 		assert("200 OK" == self.procSearchServer.stdout.readline().strip())
 
-	def predict(self, predicate, context, slot, focusedArgument, predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None, threshold = 0, limit = 10000, pos1 = '', pos2 = ''):
+	def predict(self, predicate, context, slot, focusedArgument, predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None, threshold = 0, limit = 10000, pos1 = '', pos2 = '', fVectorMode = False):
 		keyCache = predicate + context + str(threshold)
 
 		if "" != pos1: pos1 = pos1.lower()[0]
@@ -81,6 +85,7 @@ class iri_t:
 
 		print >>self.procSearchServer.stdin, "t", threshold
 		print >>self.procSearchServer.stdin, "m", limit
+		print >>self.procSearchServer.stdin, "v", "y" if fVectorMode else "n"
 		print >>self.procSearchServer.stdin, ""
 
 		# READ THE NUMBER OF IRIs.
@@ -99,6 +104,10 @@ class iri_t:
 		print >>sys.stderr, pr1, pr2, numExactMatchIRIs, int(_cdbdefget(self.cdbPreds, pr1, 1)), int(_cdbdefget(self.cdbPreds, pr2, 1))
 		
 		for i in xrange(numIRIs):
+			if fVectorMode:
+				yield map(lambda x: tuple(x.rsplit(":", 1)), self.procSearchServer.stdout.readline().strip().split(" "))
+				continue
+				
 			iIndexed, iPredicted, offset, length, \
 					score, \
 			 		spm1, scm1, sm1, sam1, \
@@ -134,16 +143,23 @@ if "__main__" == __name__:
 		"/work/naoya-i/kb/corefevents.tsv",
 		"/home/naoya-i/work/wsc/bin",
 		"/work/naoya-i/kb",
-		sys.argv[1])
+		sys.argv[1],
+		fUseMemoryMap=True
+	)
 
 	try:
 		threshold = 0
 		limit     = 1000
+		vectorMode = False
 		
 		while True:
 			x					 = raw_input("? ")
 			numResults = 0
 
+			if x.startswith("v "):
+				vectorMode = "v y" == x.strip()
+				continue
+				
 			if x.startswith("t "):
 				threshold = int(x[2:])
 				print "Threshold =", threshold
@@ -154,24 +170,34 @@ if "__main__" == __name__:
 				print "Limit =", limit
 				continue
 			
-			if len(x.strip().split("\t")) != 4 and len(x.strip().split("\t")) != 8:
+			if len(re.split("[,\t]", x.strip())) != 4 and len(re.split("[,\t]", x.strip())) != 8:
 				print "Format: predicate[TAB]context[TAB]slot[TAB]focused argument", "or"
 				print "Format: predicate[TAB]context[TAB]slot[TAB]focused argument[TAB]predicate[TAB]context[TAB]slot[TAB]focused argument", "or"
 				continue
 
 			try:
-				iris = sorted(iri.predict(*x.strip().split("\t"), threshold=threshold, limit=limit),
-											key=lambda x:
+				ret = iri.predict(*re.split("[,\t]", x.strip()), threshold=threshold, limit=limit, fVectorMode=vectorMode)
+
+				if vectorMode:
+					for vector in ret:
+						print vector
+						
+				else:
+					iris = sorted(ret,
+												key=lambda x:
 												x[0].sIndexPred[x[0].iIndexed]*x[0].sPredictedPred+\
 												x[0].sIndexSlot[x[0].iIndexed]*x[0].sPredictedSlot+\
 												x[0].sIndexContext[x[0].iIndexed]*x[0].sPredictedContext+\
 												0.1*(x[0].sIndexArg[x[0].iIndexed]*x[0].sPredictedArg)
-											, reverse=True)
+												, reverse=True)
 
 			except KeyboardInterrupt:
 				print "Aborted."
 				continue
 
+			if vectorMode:
+				continue
+			
 			try:
 				f = open("/home/naoya-i/work/wsc/local/webint/kbsearch-%s.html" % sys.argv[2], "w")
 

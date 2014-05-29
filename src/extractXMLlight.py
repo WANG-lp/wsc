@@ -13,9 +13,11 @@ for inputfile in sys.argv[1:]:
 	
 		for ln in open(fn):
 			if "iriInstances" not in ln:
+
 				ln = re.sub(">(.*?)(<[^<]+)$", lambda x: ">%s%s" % (escape(x.group(1)), x.group(2)), ln)
 				ln = ln.replace("&", "&amp;")
-				sys.stdout.write(ln) if ln.startswith("<") else None
+				# sys.stdout.write(ln) if ln.startswith("<") else None
+				sys.stdout.write(ln)
 				# 		streamOutThin.write(re.sub(">(.*?)(<[^<]+)$", lambda x: ">%s%s" % (escape(x.group(1)), x.group(2)), ln)) if ln.startswith("<") and not "cirInstances" in ln else None
 			
 			if 0 == numProcessed % 10000: sys.stderr.write(".")
