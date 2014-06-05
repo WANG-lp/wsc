@@ -163,6 +163,7 @@ class ranker_t:
                                            p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
                                            p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
                                            self.statistics["iriInstances"],
+																					 self.NNexamples,
                                        )
 
                                     if "nsubj" == gvAna.rel: gvanarel = "nsubj"
@@ -177,6 +178,7 @@ class ranker_t:
                                                    p1, gvanarel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
                                                    p2, gvcanrel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
                                                    self.statistics["iriInstances"],
+																									 self.NNexamples,
                                             )
                                 elif isinstance(gvAna.lemma, list):
                                     # print gvAna.lemma
@@ -187,6 +189,7 @@ class ranker_t:
                                            p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
                                            gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
                                            self.statistics["iriInstances"],
+																					 self.NNexamples,
                                         )
 
                                     if "nsubj" == gvAna.rel: gvanarel = "nsubj"
@@ -199,6 +202,7 @@ class ranker_t:
                                                p1, gvanarel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
                                                gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
                                                self.statistics["iriInstances"],
+																							 self.NNexamples,
                                         )
 
 
@@ -211,6 +215,7 @@ class ranker_t:
                                            gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
                                            p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
                                            self.statistics["iriInstances"],
+																					 self.NNexamples,
                                        )
 
                                     if "nsubj" == gvCan.rel: gvcanrel = "nsubj"
@@ -223,14 +228,16 @@ class ranker_t:
                                                gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
                                                p2, gvcanrel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
                                                self.statistics["iriInstances"],
+																							 self.NNexamples,
                                         )
                                         
                                 else:                                
                                     ff.iri(self.NN,
                                            vCan,
                                            gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
-                                           gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                           gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(),
                                            self.statistics["iriInstances"],
+																					 self.NNexamples,
                                     )
                                     # ff.iriEnumerate(self.NNexamples,
                                     #        vCan,
@@ -310,6 +317,10 @@ class feature_function_t:
 
 		# GOOGLE NGRAMS
 		self.gn        = googlengram.googlengram_t(os.path.join(_getPathKB(), "ngrams"))
+		# self.deptypes  = map(lambda x: "d:%s" % x.strip(), open(os.path.join(dirExtKb, "stanfordDepTypes.txt"))) +\
+		# 								 map(lambda x: "g:%s" % x.strip(), open(os.path.join(dirExtKb, "stanfordDepTypes.txt"))) +\
+		# 								 ["UNIFORM"]
+		self.deptypes = ["UNIFORM"]
 
 	def generateFeatureSet(self, ana, can, sent, ranker, candidates, pa):
 		vCan = can.attrib["id"]		
@@ -332,13 +343,14 @@ class feature_function_t:
 		# kNN FEATURES.
 		ranker.sort()
 		
-		for K in xrange(50):
+		for K in xrange(10):
 			for fk, fnn in ranker.NN.iteritems():
 				r = ranker.getKNNRank(can.attrib["id"], fk, K)
 
-				if 0 == r:
-					yield "KNN%d_%s_%s" % (K, fk, r), 1
-			
+				#if 0 == r:
+				yield "KNN%d_%s_%s" % (K, fk, r), 1
+				yield "SKNN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue(can.attrib["id"], fk, K)
+					
 		# RANKING FEATURES.
 		for fk, fr in ranker.rankingsRv.iteritems():
 			if "position" == fk: continue
@@ -347,7 +359,10 @@ class feature_function_t:
 
 			if "selpref" == fk:
 				yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
-					
+
+			if "NCNAIVE0NPMI" == fk:
+				yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
+				
 			if "R1" == r:
 				if "google" in fk:
 					if min(fr[1][1], fr[0][1]) > 0 and max(fr[1][1], fr[0][1]) > 0 and \
@@ -487,12 +502,14 @@ class feature_function_t:
 			
 			outExamples += [(NNvoted, vector)]
 				
-	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2, cached = None):
+	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2, cached = None, outExamples = None):
 		if None == self.libiri: return 0
 
 		# ELIMINATE THE ELEMENT WITH THE SAME ROLE AS ROLE.
-		c1 = " ".join(filter(lambda x: x.split(":")[1] != r1, c1.split(" ")))
-		c2 = " ".join(filter(lambda x: x.split(":")[1] != r2, c2.split(" ")))
+		c1 = " ".join(filter(lambda x: x.split(":")[1] != r1, c1.strip().split(" "))) if "" != c1.strip() else c1
+		c2 = " ".join(filter(lambda x: x.split(":")[1] != r2, c2.strip().split(" "))) if "" != c2.strip() else c2
+
+		nnVectors = []
 		
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
                 for ret, raw in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
@@ -501,7 +518,7 @@ class feature_function_t:
 			spa = sp * ret.sPredictedArg
 			spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-
+			
                         if None != cached: cached += [(NNvoted, ret)]
 			assert(abs(spac - ret.score) < 0.1)
 
@@ -516,4 +533,27 @@ class feature_function_t:
 			outNN["iriAddPredArgCon"] += [(NNvoted, sp + 0.2*ret.sPredictedArg + 0.5*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
 			outNN["iriAddPredArg"] += [(NNvoted, sp + 0.2*ret.sPredictedArg)]
 
+			# CONTEX TYPE-WISE EVAL.
+			def _calcConSim(_c, _funcWeight):
+				sc, scZ = 0.0, 0.0
+				
+				for _t, _v in _c:
+					sc  += _funcWeight(_t)*float(_v)
+					scZ += _funcWeight(_t)
+
+				return sc/scZ
+
+			for weightedType in self.deptypes:
+				# funcWeight = lambda x: 100.0 if None != re.match("^%s$" % weightedType, x) else 1.0
+				# funcWeight = lambda x: 100.0 if weightedType in x else 1.0
+				funcWeight = lambda x: 0.1 if weightedType in x else 1.0
+				sc_i, sc_p = _calcConSim(raw[ret.iIndexed], funcWeight), _calcConSim(raw[2], funcWeight)
+
+				outNN["iriPredArgConW_%s" % weightedType] += [(NNvoted, spa * sc_i * sc_p)]
+				
+			nnVectors += [(spac, raw)]
+
+		# for score, goodVec in sorted(nnVectors, key=lambda x: x[0], reverse=True)[:5]:
+		# 	outExamples += [(NNvoted, goodVec)]
+		
 		return 0

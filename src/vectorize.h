@@ -1,3 +1,4 @@
+#pragma once
 
 #include <tr1/unordered_set>
 #include <tr1/unordered_map>
@@ -8,6 +9,8 @@
 #include <math.h>
 
 using namespace std;
+
+typedef unordered_map<string, float> sparse_vector_t;
 
 static inline float _weight(const string &k, const string &w, const unordered_map<string, float> &weightMap) {
   /* if(string::npos != k.find("dobj")  || string::npos != k.find("iobj") || */
@@ -20,6 +23,21 @@ static inline float _weight(const string &k, const string &w, const unordered_ma
   }
   
   return 1.0;
+}
+
+static inline string toString(const sparse_vector_t &fv) {
+  string ret;
+  
+  // CONVERT THE FEATURE VECTOR TO STRING.
+  for(sparse_vector_t::const_iterator i=fv.begin(); fv.end()!=i; ++i) {
+    if("" != ret) ret += " ";
+
+    char tuple[1024];
+    sprintf(tuple, "%s:%f", i->first.c_str(), i->second);
+    ret += tuple;
+  }
+
+  return ret;
 }
 
 static inline void breakDownContext(unordered_set<string> *pOutKeys, unordered_map<string, vector<string> > *pOutElements, const string &c) {
@@ -53,7 +71,7 @@ static inline float calcWordSimilarity(const string &w1, const string &w2, const
   return normalizedSim; // normalizedSim < 0.55 ? 0.0 : normalizedSim;
 }
 
-static inline float calcContextualSimilarity(const string &c1, const string &c2, const unordered_map<string, float> &weightMap, const google_word2vec_t &gw2v) {
+static inline float calcContextualSimilarity(const string &c1, const string &c2, const unordered_map<string, float> &weightMap, const google_word2vec_t &gw2v, sparse_vector_t *pOut = NULL) {
   /*
     c1: context of inference rule in kb.
     c2: context of input query.
@@ -91,9 +109,13 @@ static inline float calcContextualSimilarity(const string &c1, const string &c2,
       } }
 
     if(-9999 != eMax) {
-      dot += _weight(*iter_k, wordC2max, weightMap) * eMax;
-    }
+      if(NULL != pOut) (*pOut)[*iter_k] = eMax;
 
+      dot += _weight(*iter_k, wordC2max, weightMap) * eMax;
+    } else {
+      if(NULL != pOut) (*pOut)[*iter_k] = 0;
+    }
+    
     sum += _weight(*iter_k, wordC2max, weightMap);
   }
 

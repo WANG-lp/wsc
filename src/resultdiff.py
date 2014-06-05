@@ -70,13 +70,21 @@ for problemno in sorted(set(tmp1.keys()) & set(tmp2.keys()), key=lambda x: int(x
 
     if (lRules1, rRules1) != (True, True) or (lRules2, rRules2) != (True, True):
         continue
-        
+
+    sdiff1, sdiff2 = float(ln1[3])-float(ln1[4]), float(ln2[3])-float(ln2[4])
+
+    ln1 = [(x if "." not in x else "%.4f" % float(x)).rjust(6) for x in ln1]
+    ln2 = [(x if "." not in x else "%.4f" % float(x)).rjust(6) for x in ln2]
+		
     if (tf1, tf2) == (True, True):
-        sys.stdout.write("%s\tCorrect\tCorrect\n" %ln1[0])
+        print "\t".join([ln1[0], "Correct", "Correct", ln1[1], ln1[2], "|", ln1[3], ln1[4], "|", ln2[1], ln2[2],  "|",ln2[3], ln2[4], str(sdiff2)])
+				
     elif (tf1, tf2) == (True, False):
-        sys.stdout.write("%s\tCorrect\tWrong\t### -\n" %ln1[0])
+        print "\t".join([ln1[0], "Correct", "Wrong", ln1[1], ln1[2],  "|", ln1[3], ln1[4], "|", ln2[1], ln2[2],  "|",ln2[3], ln2[4], str(sdiff2), "### -"])
+												 
     elif (tf1, tf2) == (False, True):
-        sys.stdout.write("%s\tWrong\tCorrect\t### +\n" %ln1[0])
+        print "\t".join([ln1[0], "Wrong", "Correct", ln1[1], ln1[2],  "|",ln1[3], ln1[4], "|", ln2[1], ln2[2],  "|",ln2[3], ln2[4], str(sdiff2), "### +"])
+												 
     elif (tf1, tf2) == (False, False):
-        sys.stdout.write("%s\tWrong\tWrong\n" %ln1[0])
+        print "\t".join([ln1[0], "Wrong", "Wrong", ln1[1], ln1[2],  "|",ln1[3], ln1[4], "|", ln2[1], ln2[2],  "|",ln2[3], ln2[4], str(sdiff2)])
 

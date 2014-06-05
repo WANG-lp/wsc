@@ -19,16 +19,17 @@ using namespace std;
 using namespace tr1;
 
 class google_word2vec_t {
-private:
+public:
   typedef unordered_map<string, pair<size_t, uint16_t> > dict_t;
-
+  
+private:
   struct stat m_fStatW2VDB;
   int         m_fdW2VDB;
   
   char   *m_pW2VDB;
   dict_t  m_dict;
 
-public:
+public:  
   static const size_t FILE_SIZE = 3644258522;
   static const int DIMENSION = 300;
 
@@ -91,6 +92,8 @@ public:
     }
   }
 
+  inline const dict_t &getDictionary() const { return m_dict; }
+  
   inline bool getWordVector(float *pOut, const string &word) const {
     dict_t::const_iterator iterEntry = m_dict.find(word);
     if(m_dict.end() == iterEntry) return false;

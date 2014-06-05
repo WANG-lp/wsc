@@ -28,3 +28,7 @@ learner:
 
 downsampler:
 	g++ -g -O2 -fopenmp -D GLIBCXX -o ./bin/ncdownsampler ./src/ncdownsampler.cpp
+
+word2vec_simsearch:
+	g++ -g -O2 -fopenmp -D GLIBCXX -o ./bin/word2vec_simsearch ./src/word2vec_simsearch.cpp
+

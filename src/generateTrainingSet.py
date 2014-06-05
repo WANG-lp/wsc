@@ -152,7 +152,7 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options):
 
 	# k-NEAREST NEIGHBOR SCORES
 	for fk, fvs in ranker.NN.iteritems():
-		for K in xrange(1, 50):
+		for K in xrange(1, 10):
 			print "<feature type=\"kNN_%s,K=%d\" correct=\"%s\" wrong=\"%s\" />" % (
 				fk, K,
 				ranker.getKNNRankValue(antecedent.attrib["id"], fk, K),

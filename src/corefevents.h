@@ -8,13 +8,15 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "vectorize.h"
+
 using namespace std;
 
 class corefevents_t {
 public:
   typedef unordered_map<uint32_t,string> vocab_t;
   typedef unordered_map<uint16_t,string> vocabct_t;
-  typedef unordered_map<string, float> sparse_vector_t;
+  
   
 private:
   int          m_fd;
@@ -23,13 +25,14 @@ private:
 
 public:
   struct result_t {
-    string   line;
-    float    score;
-    float    spm1, sam1, sm1, scm1;
-    float    spm2, sam2, sm2, scm2;
-    float    spm, sam, sm, scm;
-    uint16_t iIndexed, iPredicted;
-    uint16_t length;
+    string          line;
+    float           score;
+    float           spm1, sam1, sm1, scm1;
+    float           spm2, sam2, sm2, scm2;
+    float           spm, sam, sm, scm;
+    uint16_t        iIndexed, iPredicted;
+    uint16_t        length;
+    sparse_vector_t vcon1, vcon2, vcon;
   };
 
   struct proposition_t {
@@ -118,15 +121,8 @@ public:
     sparse_vector_t fv;
     _fvArgSim(&fv, e1, ie1, e2, ie2, gw2v);
     _fvConSim(&fv, e1, ie1, e2, ie2, gw2v);
-    
-    // CONVERT THE FEATURE VECTOR TO STRING.
-    for(unordered_map<string, float>::iterator i=fv.begin(); fv.end()!=i; ++i) {
-      if("" != *pOut) *pOut += " ";
 
-      char tuple[1024];
-      sprintf(tuple, "%s:%f", i->first.c_str(), i->second);
-      *pOut += tuple;
-    }
+    *pOut = toString(fv);
   }
   
   bool calcScore(result_t *pOut, uint64_t offset, int length, const proposition_t &prpIndexed, const proposition_t &prpPredicted, char whichArg, const unordered_map<string, float> &weightMap, const google_word2vec_t &gw2v) {
@@ -139,12 +135,12 @@ public:
     else if(1 == whichArg) e1.focusedArgument = e2.focusedArgument;
 
     pOut->spm1 = calcWordSimilarity(e1.predicate, _getWord(prpIndexed.predicate), gw2v);
-    pOut->scm1 = calcContextualSimilarity(e1.context, prpIndexed.context, weightMap, gw2v);
+    pOut->scm1 = calcContextualSimilarity(e1.context, prpIndexed.context, weightMap, gw2v, &pOut->vcon1);
     pOut->sm1  = calcSlotSimilarity(e1.slot, prpIndexed.slot);
     pOut->sam1 = 1; //calcWordSimilarity(a1, prpIndexed.focusedArgument, gw2v);
     
     pOut->spm2 = calcWordSimilarity(e2.predicate, _getWord(prpIndexed.predicate), gw2v);
-    pOut->scm2 = calcContextualSimilarity(e2.context, prpIndexed.context, weightMap, gw2v);
+    pOut->scm2 = calcContextualSimilarity(e2.context, prpIndexed.context, weightMap, gw2v, &pOut->vcon2);
     pOut->sm2  = calcSlotSimilarity(e2.slot, prpIndexed.slot);
     pOut->sam2 = 1; //calcWordSimilarity(a2, prpIndexed.focusedArgument, gw2v);
       
@@ -162,7 +158,7 @@ public:
 
     if("" != prpPredicted.predicate) {
       pOut->spm = calcWordSimilarity(pe->predicate, _getWord(prpPredicted.predicate), gw2v);
-      pOut->scm = calcContextualSimilarity(pe->context, prpPredicted.context, weightMap, gw2v);
+      pOut->scm = calcContextualSimilarity(pe->context, prpPredicted.context, weightMap, gw2v, &pOut->vcon);
       pOut->sm  = calcSlotSimilarity(pe->slot, prpPredicted.slot);
       pOut->sam = calcWordSimilarity(_getWord(pe->focusedArgument), _getWord(prpPredicted.focusedArgument), gw2v);
 
