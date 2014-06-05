@@ -235,6 +235,10 @@ def getPhrasal(sent, phgv, phdict):
         if tp in phrasedeplist:
             ret += lm
             # print sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)
+
+    # similarlist = []
+    # if phgv.lemma in phdict:
+    #     similarlist = phdict[phgv.lemma]
             
     if ret != []:
         candphrase = phgv.lemma + "_" + "_".join(ret)
@@ -243,14 +247,24 @@ def getPhrasal(sent, phgv, phdict):
             paraphraselist = phdict[candphrase]
             # print candphrase, paraphraselist, "Match Phrase"
             # paraphraselist = [phrasal verb] + [paraphrases]
-            paraphraselist = [candphrase] + paraphraselist
+            paraphraselist = [candphrase] + paraphraselist 
+            # paraphraselist = paraphraselist + similarlist
+            
             # if len(paraphraselist) == 1:
             #     return governor_t(phgv.rel, phgv.token, paraphraselist[0], phgv.POS)
             # else:
             return governor_t(phgv.rel, phgv.token, paraphraselist, phgv.POS)
         else:
             return phgv
+            # if similarlist == []:
+            #     return phgv
+            # else:
+            #     return governor_t(phgv.rel, phgv.token, similarlist, phgv.POS)
     else:
+    #     if similarlist == []:
+    #         return phgv
+    #     else:
+    #         return governor_t(phgv.rel, phgv.token, similarlist, phgv.POS)
         return phgv
 
     

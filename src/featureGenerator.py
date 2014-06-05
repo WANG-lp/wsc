@@ -179,6 +179,27 @@ class ranker_t:
                                 elif isinstance(gvAna.lemma, list):
                                     # print gvAna.lemma
                                     # print "anaphora govonor is phrasal verb"
+
+                                    # for predicate in gvAna.lemma:
+                                    #     if "_" in predicate:
+                                    #         p1 = predicate.split("_")[0]
+                                    #         ff.iri(self.NN,
+                                    #                vCan,
+                                    #                p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                    #                gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                    #                self.statistics["iriInstances"],
+                                    #            )
+                                    #     else:
+                                    #         if "nsubj" == gvAna.rel: gvanarel = "nsubj"
+                                    #         else: gvanarel = "dobj"
+
+                                    #         ff.iri(self.NN,
+                                    #                vCan,
+                                    #                p1, gvanarel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
+                                    #                gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                    #                self.statistics["iriInstances"],
+                                    #         )
+                                        
                                     p1 = gvAna.lemma[0].split("_")[0]
                                     ff.iri(self.NN,
                                            vCan,
@@ -191,7 +212,6 @@ class ranker_t:
                                     else: gvanarel = "dobj"
                                     
                                     for p1 in gvAna.lemma[1:]:
-                                        print p1
                                         ff.iri(self.NN,
                                                vCan,
                                                p1, gvanarel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
@@ -203,6 +223,29 @@ class ranker_t:
                                 elif isinstance(gvCan.lemma, list):
                                     # print len(gvCan.lemma)
                                     # print "candidate govonors is phrasal verb"
+
+                                    # for predicate in gvCan.lemma:
+                                    #     if "_" in predicate:
+                                    #         p2 = predicate.split("_")[0]
+                                    #         ff.iri(self.NN,
+                                    #                vCan,
+                                    #                gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                    #                p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                    #                self.statistics["iriInstances"],
+                                    #            )
+                                    #     else:
+                                    #         if "nsubj" == gvCan.rel: gvcanrel = "nsubj"
+                                    #         else: gvcanrel = "dobj"
+
+                                    #         ff.iri(self.NN,
+                                    #                vCan,
+                                    #                gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                    #                p2, gvcanrel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
+                                    #                self.statistics["iriInstances"],
+                                    #            )
+
+
+                                    
                                     p2 = gvCan.lemma[0].split("_")[0]
                                     ff.iri(self.NN,
                                            vCan,

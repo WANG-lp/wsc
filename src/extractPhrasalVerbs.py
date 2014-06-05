@@ -10,9 +10,13 @@ def _printHypernyms(s):
 		for lh in sh.lemmas:
 			print "\t".join([l.name, lh.name])
 
+def _printSynonyms(s):
+        # FIND A SINGLE WORD PARAPHRASES AND PRINT THEM OUT.
+        for lh in s.lemmas:
+            print "\t".join([l.name, lh.name])
 
 for s in wn.all_synsets():
 	for l in s.lemmas:
 		if ("_" in l.name) and (".v." in str(l)):
-			_printHypernyms(s)
+			_printSynonyms(s)
 			
