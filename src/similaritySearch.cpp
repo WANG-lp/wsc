@@ -34,9 +34,10 @@ int main(int argc, char **argv) {
                   " -k <PATH TO KNOWLEDGE BASE>"
                   " -d <COREF EVENTS TSV>"
                   " -m <PARALLELS>"
+                  " [-w <WEIGHT MAP>]"
                   " [-q] "
                   ,
-                  "k:i:m:d:q", "kimd", argc, argv);
+                  "k:i:m:d:qw:", "kimd", argc, argv);
   if(!opts.isGood()) return 0;
   
   google_word2vec_t gw2v(opts.of('k') + "/GoogleNews-vectors-negative300.bin",
@@ -44,12 +45,22 @@ int main(int argc, char **argv) {
                          opts.hasKey('q'));
   exactsearch_t  es(opts.of('k') + "/corefevents.cdblist");
   string         line;
-  bool           fSimilaritySearchOn = false;
+  bool           fSimilaritySearchOn = false, fVectorGeneration = false;
   int            th                  = 0;
   size_t         maxRules            = 10000;
   
   corefevents_t                libce(opts.of('d'), true);
   corefevents_t::proposition_t prpIndexed, prpPredicted;
+  unordered_map<string, float> weightMap;
+
+  if(opts.hasKey('w')) {
+    ifstream ifsWeightMap(opts.of('w').c_str());
+    string   nameWeight;
+    float    value;
+    
+    while(ifsWeightMap >> nameWeight >> value)
+      weightMap[nameWeight] = value;
+  }
   
   cout << "200 OK" << endl;
   
@@ -69,6 +80,7 @@ int main(int argc, char **argv) {
     if('+' == line[0]) fSimilaritySearchOn = line.substr(2) == "y";
     if('t' == line[0]) th = atoi(line.substr(2).c_str());
     if('m' == line[0]) maxRules = atoi(line.substr(2).c_str());
+    if('v' == line[0]) fVectorGeneration = line.substr(2) == "y";
     
     if("" != line) continue;
     
@@ -77,7 +89,9 @@ int main(int argc, char **argv) {
     size_t numExactMatches;
     gettimeofday(&t1, NULL);
 
-    cerr << "Searching... (query: " << prpIndexed.predicate + ":" + prpIndexed.slot << "," << prpPredicted.predicate + ":" + prpPredicted.slot << ")" << endl;
+    cerr << "Searching... " << endl;
+    cerr << "(query: " << prpIndexed.predicate + ":" + prpIndexed.slot + "@" + prpIndexed.context
+         << ", " << prpPredicted.predicate + ":" + prpPredicted.slot + "@" + prpPredicted.context << endl;
     vector<exactsearch_t::result_t> ret;
     es.search(&ret, prpIndexed.predicate + ":" + prpIndexed.slot, prpPredicted.predicate + ":" + prpPredicted.slot);
     numExactMatches = ret.size();
@@ -100,13 +114,21 @@ int main(int argc, char **argv) {
     cerr << ret.size() << " entries (original: " << numExactMatches << ") have been found. (took " << float(timeElapsed)/1000.0 << " sec)." << endl;
 
     cout << numExactMatches << endl;
-    cout << 2*ret.size() << endl;
+    cout << (fVectorGeneration ? ret.size() : 2*ret.size()) << endl;
     
     // IDENTIFY THE COMMON IDS.
     for(size_t i=0; i<ret.size(); i++) {
+      if(fVectorGeneration) {
+        string vector;
+        libce.generateVector(&vector, ret[i].offset, prpIndexed, prpPredicted, gw2v);
+
+        cout << vector << endl;
+        continue;
+      }
+      
       for(int j=0; j<2; j++) {
         corefevents_t::result_t retScore;
-        libce.calcScore(&retScore, ret[i].offset, ret[i].length, prpIndexed, prpPredicted, j, gw2v);
+        libce.calcScore(&retScore, ret[i].offset, ret[i].length, prpIndexed, prpPredicted, j, weightMap, gw2v);
 
         cout.write((const char*)&retScore.iIndexed, sizeof(uint16_t));
         cout.write((const char*)&retScore.iPredicted, sizeof(uint16_t));

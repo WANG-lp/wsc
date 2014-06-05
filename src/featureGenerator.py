@@ -83,10 +83,11 @@ def _phrasalget(gv, sent, dirPhDic):
         
 class ranker_t:
 	def __init__(self, ff, ana, candidates, sent, pa):
+		self.NNexamples = []
 		self.NN = collections.defaultdict(list)
 		self.rankingsRv = collections.defaultdict(list)
 		self.statistics = collections.defaultdict(list)
-                self.pa	= pa
+		self.pa	= pa
 
 		# FOR REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
 		# FOR EACH CANDIDATE.
@@ -99,6 +100,7 @@ class ranker_t:
 
 			if None != gvAna and None != gvCan:
 
+																		
                                 if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
                                 else: gvanalemmas = gvAna.lemma[0].split("_")[:1] + gvAna.lemma[1:]
                                 if not isinstance(gvCan.lemma, list): gvcanlemmas = [gvCan.lemma]
@@ -119,15 +121,15 @@ class ranker_t:
                                     self.statistics["NCCJ08"] += [(vCan, "%s ~ %s" % (ff.nc.createQuery(gvanalemma, gvAna.rel), ff.nc.createQuery(gvcanlemma, gvCan.rel)))]
                                 
                                     # NARRATIVE CHAIN FEATURE
-                                    for th in [0, 5, 10, 25, 50, 100, 200, 400]:
-                                        self.rankingsRv["NCNAIVE%sFREQ" % th] += [(vCan,
-                                            ff.ncnaive[th].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                                    for i in xrange(0, 8):
+                                        self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan,
+                                            ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
 
-                                        self.rankingsRv["NCNAIVE%sPMI" % th] += [(vCan,
-                                            ff.ncnaive[th].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                                        self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan,
+                                            ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
 																		
-                                        self.rankingsRv["NCNAIVE%sNPMI" % th] += [(vCan,
-                                            ff.ncnaive[th].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                                        self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan,
+                                            ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
 																
                                 # Q1, 2: CV
                                 if "O" == scn.getNEtype(can):
@@ -273,6 +275,11 @@ class ranker_t:
                                            gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
                                            self.statistics["iriInstances"],
                                     )
+                                    # ff.iriEnumerate(self.NNexamples,
+                                    #        vCan,
+                                    #        gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                    #        gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                    # )
 
 
 		for rank in self.rankingsRv.values():
@@ -290,16 +297,19 @@ class ranker_t:
 
 		for i, xc in enumerate(self.rankingsRv[t]):
 			if x == xc[0]: return "R1" if 0 == i else "R2"
+
+	def sort(self):
+		for fk in self.NN.keys():
+			self.NN[fk].sort(key=lambda y: y[1], reverse=True)
 		
 	def getKNNRank(self, x, t, K=20):
 		votes = collections.defaultdict(int)
-		Ksorted = sorted(self.NN[t], key=lambda y: y[1], reverse=True)[:K]
 
-		for votedCan, votedScore in Ksorted:
+		for votedCan, votedScore in self.NN[t][:K]:
 			votes[votedCan] += votedScore
 
 		if len(votes) >= 2 and votes.values()[0] == votes.values()[1]:
-			return 0 if Ksorted[-1][0] != x else 1
+			return 0 if self.NN[t][:K][-1][0] != x else 1
 
 		for i, xc in enumerate(sorted(votes.iteritems(), key=lambda y: y[1], reverse=True)):
 			if x == xc[0]: return i
@@ -309,7 +319,7 @@ class ranker_t:
 	def getKNNRankValue(self, x, t, K=20, score=False, de=0):
 		votes = collections.defaultdict(int)
 
-		for votedCan, votedScore in sorted(self.NN[t], key=lambda y: y[1], reverse=True)[:K]:
+		for votedCan, votedScore in self.NN[t][:K]:
 			votes[votedCan] += 1 if not score else votedScore
 
 		for i, xc in enumerate(votes.iteritems()):
@@ -321,7 +331,8 @@ class ranker_t:
 class feature_function_t:
 	def __init__(self, pa, dirExtKb):
 		self.pa							 = pa
-                
+
+		self.libiri = None
 		self.libiri    = iri.iri_t(
 			os.path.join(dirExtKb, "corefevents.tsv"),
 			os.path.join(os.path.dirname(sys.argv[0]), "../bin"),
@@ -332,8 +343,9 @@ class feature_function_t:
 
 		self.ncnaive = {}
 		
-		for th in [0, 5, 10, 25, 50, 100, 200, 400]:
-			self.ncnaive[th] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive%s.cdb" % th), os.path.join(_getPathKB(), "tuples.cdb"))
+		for i in xrange(0, 8):
+			p                = 1.0/(2**i)
+			self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive.ds.%s.cdb" % p), os.path.join(_getPathKB(), "tuples.cdb"))
 			
 		self.nc        = nccj08.nccj08_t(os.path.join(_getPathKB(), "schemas-size12"), os.path.join(_getPathKB(), "verb-pair-orders"))
 		self.sp        = selpref.selpref_t(pathKB=_getPathKB())
@@ -342,12 +354,27 @@ class feature_function_t:
 		# GOOGLE NGRAMS
 		self.gn        = googlengram.googlengram_t(os.path.join(_getPathKB(), "ngrams"))
 
+	def generateFeatureSet(self, ana, can, sent, ranker, candidates, pa):
+		vCan = can.attrib["id"]		
+		basicFeature = map(None, self.generateFeature(ana, can, sent, ranker, candidates, pa))
+		numVectors = 0
+		
+		for vote, vector in ranker.NNexamples:
+			if vote == vCan:
+				numVectors += 1
+				yield basicFeature + vector
+
+		if 0 == numVectors:
+			yield basicFeature
+
 	def generateFeature(self, ana, can, sent, ranker, candidates, pa):
 		conn				 = scn.getConn(sent)
 		position		 = "left" if "R1" == ranker.getRank(can.attrib["id"], "position") else "right"
 		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
 
 		# kNN FEATURES.
+		ranker.sort()
+		
 		for K in xrange(50):
 			for fk, fnn in ranker.NN.iteritems():
 				r = ranker.getKNNRank(can.attrib["id"], fk, K)
@@ -399,11 +426,17 @@ class feature_function_t:
 
 		# ANTECEDENT-DEPENDENT.
 		if None != gvAna:
-			yield "%s_LEX_ADHC1VA_%s,%s" % (position, scn.getLemma(can), gvAna.lemma), 1
+			if isinstance(gvAna.lemma, list):
+				yield "%s_LEX_ADHC1VA_%s,%s" % (position, scn.getLemma(can), gvAna.lemma[0]), 1
+			else:
+				yield "%s_LEX_ADHC1VA_%s,%s" % (position, scn.getLemma(can), gvAna.lemma), 1
 
 		if None != gvCan:
-			yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma), 1
-
+			if isinstance(gvCan.lemma, list):
+				yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma[0]), 1
+			else:
+				yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma), 1
+				
 		# HEURISTIC POLARITY.
                 fhpoldic = collections.defaultdict(int)
 		for fHPOL in self.heuristicPolarity(ana, can, sent, ranker, candidates, pa):
@@ -487,12 +520,25 @@ class feature_function_t:
                             if None != conn:
 				if can == candidates[0]: yield "%s_HPOL_%s-%s-%s" % (position, polAna, scn.getLemma(conn), polCan1), 1
 				if can == candidates[1]: yield "%s_HPOL_%s-%s-%s" % (position, polAna, scn.getLemma(conn), polCan2), 1
+
+	def iriEnumerate(self, outExamples, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2):
+		if None == self.libiri: return 0
+		
+		for vector in self.libiri.predict(
+				"%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2,
+				threshold = 1, pos1=ps1, pos2=ps2, limit=1000, fVectorMode=True):
+			
+			outExamples += [(NNvoted, vector)]
 				
 	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2, cached = None):
 		if None == self.libiri: return 0
+
+		# ELIMINATE THE ELEMENT WITH THE SAME ROLE AS ROLE.
+		c1 = " ".join(filter(lambda x: x.split(":")[1] != r1, c1.split(" ")))
+		c2 = " ".join(filter(lambda x: x.split(":")[1] != r2, c2.split(" ")))
 		
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
-                for ret, raw in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=1000000):
+                for ret, raw in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
 
 			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
 			spa = sp * ret.sPredictedArg

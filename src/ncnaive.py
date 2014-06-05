@@ -31,17 +31,17 @@ class ncnaive_t:
 		f = self.cdb.get("%s ~ %s" % ((pr1, pr2) if pr1 < pr2 else (pr2, pr1)))
 		return int(f) if None != f else 0
 
-	def getPMI(self, pr1, pr2):
+	def getPMI(self, pr1, pr2, discount=1.0):
 		x, y = float(_cdbdefget(self.cdbPreds, pr1, 0)), float(_cdbdefget(self.cdbPreds, pr2, 0))
 		xy = float(_cdbdefget(self.cdb, "%s ~ %s" % ((pr1, pr2) if pr1 < pr2 else (pr2, pr1)), 0))
 		
-		return _pmi(xy/self.totalFreqPreds, x/self.totalFreqPreds, y/self.totalFreqPreds)
+		return _pmi(xy/(self.totalFreqPreds*discount), x/self.totalFreqPreds, y/self.totalFreqPreds)
 
-	def getNPMI(self, pr1, pr2):
+	def getNPMI(self, pr1, pr2, discount=1.0):
 		x, y = float(_cdbdefget(self.cdbPreds, pr1, 0)), float(_cdbdefget(self.cdbPreds, pr2, 0))
-		xy = float(_cdbdefget(self.cdb, "%s ~ %s" % ((pr1, pr2) if pr1 < pr2 else (pr2, pr1)), 0))
+		xy   = float(_cdbdefget(self.cdb, "%s ~ %s" % ((pr1, pr2) if pr1 < pr2 else (pr2, pr1)), 0))
 		
-		return _npmi(xy/self.totalFreqPreds, x/self.totalFreqPreds, y/self.totalFreqPreds)
+		return _npmi(xy/(self.totalFreqPreds * discount), x/self.totalFreqPreds, y/self.totalFreqPreds)
 		
 if "__main__" == __name__:
 	nc = ncnaive_t("/work/naoya-i/kb/ncnaive50.cdb", "/work/naoya-i/kb/tuples.cdb")

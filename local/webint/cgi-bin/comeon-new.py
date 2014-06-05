@@ -64,6 +64,9 @@ if None != fs.getvalue("query"):
 			if "Correct" in ln: numCorrect += 1
 			elif "Wrong" in ln: numWrong += 1
 
+		for i in xrange(3):
+			contexts[i] = " ".join(filter(lambda x: x.split(":")[1] != governors[i].split(":")[1], contexts[i].split(" ")))
+		
 		return result_t(*(
 				[lemmas[0], governors[0], contexts[0], lemmas[1], governors[1], contexts[1], lemmas[2], governors[2], contexts[2], numCorrect, numWrong, examples, text]
 				))
