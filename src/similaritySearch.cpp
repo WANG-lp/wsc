@@ -28,20 +28,24 @@ using namespace tr1;
 
 static int myrandom (int i) { return std::rand()%i; }
 
+string _wnpostomine(const string &pos) {
+  if("s" == pos) return "j";
+  return pos;
+}
+
 int main(int argc, char **argv) {
   optparse_t opts("Usage:\n  similaritySearch"
-                  " -i <INPUT LSH>"
                   " -k <PATH TO KNOWLEDGE BASE>"
                   " -d <COREF EVENTS TSV>"
                   " -m <PARALLELS>"
                   " [-w <WEIGHT MAP>]"
                   " [-q] "
                   ,
-                  "k:i:m:d:qw:", "kimd", argc, argv);
+                  "k:m:d:qw:", "kmd", argc, argv);
   if(!opts.isGood()) return 0;
   
   google_word2vec_t gw2v(opts.of('k') + "/GoogleNews-vectors-negative300.bin",
-                         opts.of('k') + "/GoogleNews-vectors-negative300.index.bin",
+                         opts.of('k') + "/GoogleNews-vectors-negative300.index.cdb",
                          opts.hasKey('q'));
   exactsearch_t  es(opts.of('k') + "/corefevents.cdblist");
   string         line;
@@ -52,6 +56,7 @@ int main(int argc, char **argv) {
   corefevents_t                libce(opts.of('d'), true);
   corefevents_t::proposition_t prpIndexed, prpPredicted;
   unordered_map<string, float> weightMap;
+  google_word2vec_t::vocab_t   vocab;
 
   if(opts.hasKey('w')) {
     ifstream ifsWeightMap(opts.of('w').c_str());
@@ -61,6 +66,8 @@ int main(int argc, char **argv) {
     while(ifsWeightMap >> nameWeight >> value)
       weightMap[nameWeight] = value;
   }
+
+  gw2v.readVocab(&vocab, opts.of('k') + "/GoogleNews-vectors-negative300.vocab.txt", "./data/wnentries.txt");
   
   cout << "200 OK" << endl;
   
@@ -90,11 +97,43 @@ int main(int argc, char **argv) {
     gettimeofday(&t1, NULL);
 
     cerr << "Searching... " << endl;
-    cerr << "(query: " << prpIndexed.predicate + ":" + prpIndexed.slot + "@" + prpIndexed.context
-         << ", " << prpPredicted.predicate + ":" + prpPredicted.slot + "@" + prpPredicted.context << endl;
+    cerr << "query: " << prpIndexed.predicate + ":" + prpIndexed.slot + "@" + prpIndexed.context
+         << ", " << prpPredicted.predicate + ":" + prpPredicted.slot + "@" + prpPredicted.context << flush;
     vector<exactsearch_t::result_t> ret;
     es.search(&ret, prpIndexed.predicate + ":" + prpIndexed.slot, prpPredicted.predicate + ":" + prpPredicted.slot);
     numExactMatches = ret.size();
+
+    cerr << " => " << ret.size() << endl;
+    
+    if(fSimilaritySearchOn) {
+      google_word2vec_t::kbest_t w1syn, w2syn;
+      gw2v.clearSimilaritySearchFilter();
+      gw2v.addSimilaritySearchFilter("v");
+      gw2v.addSimilaritySearchFilter("s");
+    
+      gw2v.getSimilarEntiries(&w1syn, prpIndexed.predicate.substr(0, prpIndexed.predicate.length()-2), vocab, 10, 1);
+      gw2v.getSimilarEntiries(&w2syn, prpPredicted.predicate.substr(0, prpPredicted.predicate.length()-2), vocab, 10, 1);
+
+      for(uint i=0; i<w1syn.size(); i++) {
+        for(uint j=0; j<w2syn.size(); j++) {
+          // AVOID THE ORIGINAL PAIR.
+          if(vocab[w2syn[j].first] == prpPredicted.predicate.substr(0, prpPredicted.predicate.length()-2) &&
+             vocab[w1syn[i].first] == prpIndexed.predicate.substr(0, prpIndexed.predicate.length()-2)) continue;
+          if(vocab[w2syn[j].first] != prpPredicted.predicate.substr(0, prpPredicted.predicate.length()-2) &&
+             vocab[w1syn[i].first] != prpIndexed.predicate.substr(0, prpIndexed.predicate.length()-2)) continue;
+
+          string qs1 = vocab[w1syn[i].first] + "-" + _wnpostomine(gw2v.getPOS(vocab[w1syn[i].first])) +  ":"+ prpIndexed.slot,
+            qs2 = vocab[w2syn[j].first] + "-" + _wnpostomine(gw2v.getPOS(vocab[w2syn[j].first])) +  ":"+ prpPredicted.slot;
+        
+          cerr << "query: similarity search: " << qs1 << "," << qs2 << flush;
+        
+          es.search(&ret, qs1, qs2);
+
+          cerr << " => " << ret.size() << endl;
+        } }
+    }
+    
+    uint64_t numSoftMatches = ret.size() - numExactMatches;
     
     gettimeofday(&t2, NULL);
 
@@ -111,7 +150,9 @@ int main(int argc, char **argv) {
     // <-- FILTERING ENDS
       
     cerr << "Done!" << endl;
-    cerr << ret.size() << " entries (original: " << numExactMatches << ") have been found. (took " << float(timeElapsed)/1000.0 << " sec)." << endl;
+    cerr << ret.size() << " entries (original: "
+         << numExactMatches << " + " << numSoftMatches
+         << ") have been found. (took " << float(timeElapsed)/1000.0 << " sec)." << endl;
 
     cout << numExactMatches << endl;
     cout << (fVectorGeneration ? ret.size() : 2*ret.size()) << endl;
