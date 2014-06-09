@@ -98,16 +98,11 @@ if None != fs.getvalue("query"):
 				(x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred) + \
 				(0.5 * x.sIndexContext[x.iIndexed] * x.sPredictedContext)
 			
-		elif "pac" == fs.getvalue("sortkey"):
-			return \
-				(x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred) + \
-				(0.2 * x.sPredictedArg) + \
-				(0.5 * x.sIndexContext[x.iIndexed] * x.sPredictedContext)
-			
-		return x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred * \
-			x.sIndexSlot[x.iIndexed] * x.sPredictedSlot + \
-			(0.2 * x.sPredictedArg) + \
+		return \
+			(x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred) * \
+			(0.2 * x.sPredictedArg) * \
 			(0.5 * x.sIndexContext[x.iIndexed] * x.sPredictedContext)
+			
 
 	if 0 > int(fs.getvalue("k")):
 		examplesCorrect, examplesWrong = filter(lambda x: 1 == x[0], results.examples), filter(lambda x: 0 == x[0], results.examples)
@@ -236,6 +231,8 @@ if None != fs.getvalue("query"):
 				corcon1 = results.ante_con
 			elif results.ante_false_gov ==  irp1:
 				corcon1 = results.ante_false_con
+			else:
+				corcon1 = ""
 
 			if results.ana_gov == irp2:
 				corcon2 = results.ana_con
@@ -243,6 +240,8 @@ if None != fs.getvalue("query"):
 				corcon2 = results.ante_con
 			elif results.ante_false_gov ==  irp2:
 				corcon2 = results.ante_false_con
+			else:
+				corcon2 = ""
 
 			docfile, docid = src.lstrip("# ").split(":")
 			

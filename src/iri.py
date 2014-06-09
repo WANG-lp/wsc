@@ -36,7 +36,7 @@ def _npmi(xy, x, y):
                 return 0
 
 class iri_t:
-	def __init__(self, fnCorefEventsTsv, pathServer, dirKb, fnLSH, fnWeightMap = "data/weightmap.tsv", numPara = 12, fUseMemoryMap = False):
+	def __init__(self, fnCorefEventsTsv, pathServer, dirKb, fnWeightMap = "data/weightmap.tsv", numPara = 12, fUseMemoryMap = False):
 		# LOADING THE HASH TABLE.5
 		print >>sys.stderr, "Loading..."
 
@@ -45,21 +45,26 @@ class iri_t:
 		if fUseMemoryMap: opts += ["-q"]
 		
 		self.procSearchServer = subprocess.Popen(
-			"%s -i %s -k %s -d %s -m %d -w %s %s" % (
-				os.path.join(pathServer, "similaritySearch"), fnLSH, dirKb,
+			"%s -k %s -d %s -m %d -w %s %s" % (
+				os.path.join(pathServer, "similaritySearch"), dirKb,
 				fnCorefEventsTsv, numPara, fnWeightMap, " ".join(opts)),
 			shell = True,
 			stdin = subprocess.PIPE, stdout = subprocess.PIPE, )#stderr = subprocess.PIPE)
-
+		
 		# FOR PMI
 		self.cdbPreds = cdb.init(os.path.join(dirKb, "tuples.cdb"))
 		self.totalFreqPreds = int(open(os.path.join(dirKb, "tuples.totalfreq.txt")).read())
+
+		self.corefeventsFile = open(fnCorefEventsTsv, "r")
+		self.corefeventsMmap = mmap.mmap(self.corefeventsFile.fileno(), 0, prot=mmap.PROT_READ)
 
 		self.fnWeightMap = fnWeightMap
 		
 		assert("200 OK" == self.procSearchServer.stdout.readline().strip())
 
-	def predict(self, predicate, context, slot, focusedArgument, predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None, threshold = 0, limit = 10000, pos1 = '', pos2 = '', fVectorMode = False):
+	def predict(self, predicate, context, slot, focusedArgument,
+							predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None,
+							threshold = 0, limit = 10000, pos1 = '', pos2 = '', fVectorMode = False, fSimilaritySearch = False):
 		keyCache = predicate + context + str(threshold)
 
 		if "" != pos1: pos1 = pos1.lower()[0]
@@ -70,12 +75,7 @@ class iri_t:
 		print >>self.procSearchServer.stdin, "s", slot
 		#print >>self.procSearchServer.stdin, "a", focusedArgument
 		print >>self.procSearchServer.stdin, "a", predictedFocusedArgument
-
-		# TO TURN ON SIMILARITY SEARCH,
-		# print >>self.procSearchServer.stdin, "+", "y"
-
-		# TO TURN OFF SIMILARITY SEARCH,
-		# print >>self.procSearchServer.stdin, "+", "n"
+		print >>self.procSearchServer.stdin, "+", "y" if fSimilaritySearch else "n"
 
 		if None != predictedFocusedArgument:
 			print >>self.procSearchServer.stdin, "~p", predictedPredicate
@@ -118,7 +118,9 @@ class iri_t:
 			score *= spassoc
 			
 			try:
-				line = self.procSearchServer.stdout.readline().strip().split("\t")
+				line = map(lambda y: map(lambda x: tuple(x.rsplit(":", 1)), y.split(" ")), self.procSearchServer.stdout.readline().strip().split("\t"))
+				
+				#line = self.procSearchServer.stdout.readline().strip().split("\t")
 			except ValueError:
 				raise "Protocol Error"
 				continue
@@ -143,7 +145,6 @@ if "__main__" == __name__:
 		"/work/naoya-i/kb/corefevents.tsv",
 		"/home/naoya-i/work/wsc/bin",
 		"/work/naoya-i/kb",
-		sys.argv[1],
 		fUseMemoryMap=True
 	)
 
@@ -151,6 +152,7 @@ if "__main__" == __name__:
 		threshold = 0
 		limit     = 1000
 		vectorMode = False
+		similaritySearch = False
 		
 		while True:
 			x					 = raw_input("? ")
@@ -158,6 +160,10 @@ if "__main__" == __name__:
 
 			if x.startswith("v "):
 				vectorMode = "v y" == x.strip()
+				continue
+
+			if x.startswith("s "):
+				similaritySearch = "s y" == x.strip()
 				continue
 				
 			if x.startswith("t "):
@@ -176,8 +182,9 @@ if "__main__" == __name__:
 				continue
 
 			try:
-				ret = iri.predict(*re.split("[,\t]", x.strip()), threshold=threshold, limit=limit, fVectorMode=vectorMode)
-
+				ip1, ic1, is1, ia1, ip2, ic2, is2, ia2 = re.split("[,\t]", x.strip())
+				ret = iri.predict(*re.split("[,\t]", x.strip()), threshold=threshold, limit=limit, fVectorMode=vectorMode, fSimilaritySearch=similaritySearch)
+									
 				if vectorMode:
 					for vector in ret:
 						print vector
@@ -185,11 +192,11 @@ if "__main__" == __name__:
 				else:
 					iris = sorted(ret,
 												key=lambda x:
-												x[0].sIndexPred[x[0].iIndexed]*x[0].sPredictedPred+\
-												x[0].sIndexSlot[x[0].iIndexed]*x[0].sPredictedSlot+\
-												x[0].sIndexContext[x[0].iIndexed]*x[0].sPredictedContext+\
-												0.1*(x[0].sIndexArg[x[0].iIndexed]*x[0].sPredictedArg)
-												, reverse=True)
+												x[0].sIndexPred[x[0].iIndexed]*x[0].sPredictedPred*\
+												x[0].sIndexSlot[x[0].iIndexed]*x[0].sPredictedSlot*\
+												x[0].sIndexContext[x[0].iIndexed]*x[0].sPredictedContext*\
+												x[0].sPredictedArg,
+												reverse=True)
 
 			except KeyboardInterrupt:
 				print "Aborted."
@@ -199,7 +206,7 @@ if "__main__" == __name__:
 				continue
 			
 			try:
-				f = open("/home/naoya-i/work/wsc/local/webint/kbsearch-%s.html" % sys.argv[2], "w")
+				f = open("/home/naoya-i/work/wsc/local/webint/kbsearch-%s.html" % sys.argv[1], "w")
 
 				print >>f, """<html><head>
 <link href="./bootstrap-3.0.3/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -215,12 +222,21 @@ if "__main__" == __name__:
 """ % len(iris)
 				
 				for ir, raw in iris:
+					raw = iri.corefeventsMmap[ir.offset:ir.offset+ir.length].split("\t")
+					raw[-1] = raw[-1][2:]
+					
 					numResults += 1
-					print ir, raw
+					#print ir, raw
 					print >>f, "<tr><td>%s</td></tr>" % "</td><td>".join(
-						["%.4f<br />P: %.2f<br />C: %.2f<br />S: %.2f<br />A: %.2f" % (
-								ir.score, ir.sIndexPred[ir.iIndexed], ir.sIndexContext[ir.iIndexed],
-								ir.sIndexSlot[ir.iIndexed], ir.sIndexArg[ir.iIndexed])] + \
+						["%.4f<br />P: %.2f, %.2f<br />C: <a target=\"_blank\" href=\"cgi-bin/siminspect.py?c1=%s&c2=%s\">%.2f</a>, <a target=\"_blank\" href=\"cgi-bin/siminspect.py?c1=%s&c2=%s\">%.2f</a><br />S: %.2f, %.2f<br />A: %.2f" % (
+							ir.score,
+							ir.sIndexPred[ir.iIndexed], ir.sPredictedPred,
+							urllib2.quote(raw[4]), urllib2.quote(ic1 if 0 == ir.iIndexed else ic2),
+							ir.sIndexContext[ir.iIndexed],
+							urllib2.quote(raw[5]), urllib2.quote(ic2 if 0 == ir.iIndexed else ic1),
+							ir.sPredictedContext,
+							ir.sIndexSlot[ir.iIndexed], ir.sPredictedSlot,
+							ir.sPredictedArg)] + \
 							[raw[0] + ("<br />(indexed)" if 0 == ir.iIndexed else ""),
 							 raw[1] + ("<br />(indexed)" if 1 == ir.iIndexed else ""),
 							 "<br />".join(raw[2].split(",")),
