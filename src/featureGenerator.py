@@ -75,8 +75,51 @@ def _phrasalget(gv, sent, dirPhDic):
     # phrasedict = {'come': {'come_back': ['answer', 'denote', 'reappear', 're-emerge', 'refer', 'reply', 'respond'], 'come_by': ['acquire']}}
 
     if gv.lemma in phrasedict:
-        newgv = scn.getPhrasal(sent, gv, phrasedict[gv.lemma])
-        return newgv
+        maxlen = 0
+        for phkey in phrasedict[gv.lemma].keys():
+            if maxlen < len(phkey.split("_")):
+                maxlen = len(phkey.split("_"))
+        # maxlen = 3
+        sid = int(gv.token.attrib["id"])
+        eid = sid + 4
+        wordseqlist = []
+        for ids in range(sid, eid):
+            word = sent.xpath("./tokens/token[@id='%s']/lemma/text()" %ids)
+            if word != []:
+                wordseqlist.append(word[0])
+            # print >>sys.stderr, "(wordseq = %s, maxlen = %d)" % (wordseqlist, maxlen)
+        wssize = len(wordseqlist)
+        # print >>sys.stderr, "(wordseq = %s" % (wordseqlist)
+
+        paraphraselist = []
+        if wssize == 2:
+            wseq = "_".join(wordseqlist)
+            if wseq in phrasedict[gv.lemma]:
+                paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
+                print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
+
+        elif wssize == 3:
+            for wseql in [wordseqlist, wordseqlist[:-1], [wordseqlist[0]]+[wordseqlist[2]]]:
+                wseq = "_".join(wseql)
+                if wseq in phrasedict[gv.lemma]:
+                    paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
+                    print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
+                    break
+        elif wssize == 4:
+            for wseql in [wordseqlist, wordseqlist[:-1], wordseqlist[:2]+[wordseqlist[3]], [wordseqlist[0]]+wordseqlist[2:], wordseqlist[:2], [wordseqlist[0]]+[wordseqlist[2]], [wordseqlist[0]]+[wordseqlist[3]]]:
+                wseq = "_".join(wseql)
+                if wseq in phrasedict[gv.lemma]:
+                    paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
+                    print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
+                    break
+
+        if paraphraselist != []:
+            return scn.governor_t(gv.rel, gv.token, paraphraselist, gv.POS)
+        else:
+            return gv
+            
+        # newgv = scn.getPhrasal(sent, gv, phrasedict[gv.lemma])
+        # return newgv
     else:
         return gv
 
