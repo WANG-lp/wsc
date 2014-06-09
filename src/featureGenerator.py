@@ -96,21 +96,21 @@ def _phrasalget(gv, sent, dirPhDic):
             wseq = "_".join(wordseqlist)
             if wseq in phrasedict[gv.lemma]:
                 paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
-                print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
+                # print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
 
         elif wssize == 3:
             for wseql in [wordseqlist, wordseqlist[:-1], [wordseqlist[0]]+[wordseqlist[2]]]:
                 wseq = "_".join(wseql)
                 if wseq in phrasedict[gv.lemma]:
                     paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
-                    print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
+                    # print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
                     break
         elif wssize == 4:
             for wseql in [wordseqlist, wordseqlist[:-1], wordseqlist[:2]+[wordseqlist[3]], [wordseqlist[0]]+wordseqlist[2:], wordseqlist[:2], [wordseqlist[0]]+[wordseqlist[2]], [wordseqlist[0]]+[wordseqlist[3]]]:
                 wseq = "_".join(wseql)
                 if wseq in phrasedict[gv.lemma]:
                     paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
-                    print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
+                    # print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
                     break
 
         if paraphraselist != []:
