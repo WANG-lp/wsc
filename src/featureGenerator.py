@@ -75,8 +75,51 @@ def _phrasalget(gv, sent, dirPhDic):
     # phrasedict = {'come': {'come_back': ['answer', 'denote', 'reappear', 're-emerge', 'refer', 'reply', 'respond'], 'come_by': ['acquire']}}
 
     if gv.lemma in phrasedict:
-        newgv = scn.getPhrasal(sent, gv, phrasedict[gv.lemma])
-        return newgv
+        maxlen = 0
+        for phkey in phrasedict[gv.lemma].keys():
+            if maxlen < len(phkey.split("_")):
+                maxlen = len(phkey.split("_"))
+        # maxlen = 3
+        sid = int(gv.token.attrib["id"])
+        eid = sid + 4
+        wordseqlist = []
+        for ids in range(sid, eid):
+            word = sent.xpath("./tokens/token[@id='%s']/lemma/text()" %ids)
+            if word != []:
+                wordseqlist.append(word[0])
+            # print >>sys.stderr, "(wordseq = %s, maxlen = %d)" % (wordseqlist, maxlen)
+        wssize = len(wordseqlist)
+        # print >>sys.stderr, "(wordseq = %s" % (wordseqlist)
+
+        paraphraselist = []
+        if wssize == 2:
+            wseq = "_".join(wordseqlist)
+            if wseq in phrasedict[gv.lemma]:
+                paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
+                # print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
+
+        elif wssize == 3:
+            for wseql in [wordseqlist, wordseqlist[:-1], [wordseqlist[0]]+[wordseqlist[2]]]:
+                wseq = "_".join(wseql)
+                if wseq in phrasedict[gv.lemma]:
+                    paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
+                    # print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
+                    break
+        elif wssize == 4:
+            for wseql in [wordseqlist, wordseqlist[:-1], wordseqlist[:2]+[wordseqlist[3]], [wordseqlist[0]]+wordseqlist[2:], wordseqlist[:2], [wordseqlist[0]]+[wordseqlist[2]], [wordseqlist[0]]+[wordseqlist[3]]]:
+                wseq = "_".join(wseql)
+                if wseq in phrasedict[gv.lemma]:
+                    paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
+                    # print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
+                    break
+
+        if paraphraselist != []:
+            return scn.governor_t(gv.rel, gv.token, paraphraselist, gv.POS)
+        else:
+            return gv
+            
+        # newgv = scn.getPhrasal(sent, gv, phrasedict[gv.lemma])
+        # return newgv
     else:
         return gv
 
@@ -183,6 +226,27 @@ class ranker_t:
                                 elif isinstance(gvAna.lemma, list):
                                     # print gvAna.lemma
                                     # print "anaphora govonor is phrasal verb"
+
+                                    # for predicate in gvAna.lemma:
+                                    #     if "_" in predicate:
+                                    #         p1 = predicate.split("_")[0]
+                                    #         ff.iri(self.NN,
+                                    #                vCan,
+                                    #                p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                    #                gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                    #                self.statistics["iriInstances"],
+                                    #            )
+                                    #     else:
+                                    #         if "nsubj" == gvAna.rel: gvanarel = "nsubj"
+                                    #         else: gvanarel = "dobj"
+
+                                    #         ff.iri(self.NN,
+                                    #                vCan,
+                                    #                p1, gvanarel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
+                                    #                gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                    #                self.statistics["iriInstances"],
+                                    #         )
+                                        
                                     p1 = gvAna.lemma[0].split("_")[0]
                                     ff.iri(self.NN,
                                            vCan,
@@ -196,7 +260,6 @@ class ranker_t:
                                     else: gvanarel = "dobj"
                                     
                                     for p1 in gvAna.lemma[1:]:
-                                        print p1
                                         ff.iri(self.NN,
                                                vCan,
                                                p1, gvanarel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
@@ -209,6 +272,29 @@ class ranker_t:
                                 elif isinstance(gvCan.lemma, list):
                                     # print len(gvCan.lemma)
                                     # print "candidate govonors is phrasal verb"
+
+                                    # for predicate in gvCan.lemma:
+                                    #     if "_" in predicate:
+                                    #         p2 = predicate.split("_")[0]
+                                    #         ff.iri(self.NN,
+                                    #                vCan,
+                                    #                gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                    #                p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                    #                self.statistics["iriInstances"],
+                                    #            )
+                                    #     else:
+                                    #         if "nsubj" == gvCan.rel: gvcanrel = "nsubj"
+                                    #         else: gvcanrel = "dobj"
+
+                                    #         ff.iri(self.NN,
+                                    #                vCan,
+                                    #                gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                                    #                p2, gvcanrel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
+                                    #                self.statistics["iriInstances"],
+                                    #            )
+
+
+                                    
                                     p2 = gvCan.lemma[0].split("_")[0]
                                     ff.iri(self.NN,
                                            vCan,
