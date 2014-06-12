@@ -26,7 +26,7 @@
 using namespace std;
 using namespace tr1;
 
-typedef unordered_map<string, vector<string> > wordnet_synset_t;
+typedef unordered_map<string, unordered_set<string> > wordnet_synset_t;
 
 static int myrandom (int i) { return std::rand()%i; }
 
@@ -44,7 +44,7 @@ void _readWNsynonyms(wordnet_synset_t *pOut, const string &fn) {
     iss >> key;
     
     while(iss >> value) {
-      (*pOut)[key].push_back(value);
+      (*pOut)[key].insert(value);
     }
   }
 }
@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
                          opts.hasKey('q'));
   exactsearch_t  es(opts.of('k') + "/corefevents.cdblist");
   string         line;
-  bool           fSimilaritySearchOn = false, fVectorGeneration = false;
+  bool           fSimilaritySearchOn = false, fWNSimilaritySearchOn = false, fVectorGeneration = false;
   int            th                  = 0;
   size_t         maxRules            = 10000;
   
@@ -103,6 +103,7 @@ int main(int argc, char **argv) {
     }
     
     if('+' == line[0]) fSimilaritySearchOn = line.substr(2) == "y";
+    if('w' == line[0]) fWNSimilaritySearchOn = line.substr(2) == "y";
     if('t' == line[0]) th = atoi(line.substr(2).c_str());
     if('m' == line[0]) maxRules = atoi(line.substr(2).c_str());
     if('v' == line[0]) fVectorGeneration = line.substr(2) == "y";
@@ -122,31 +123,55 @@ int main(int argc, char **argv) {
     numExactMatches = ret.size();
 
     cerr << " => " << ret.size() << endl;
+
+    if(fWNSimilaritySearchOn) {
+      string
+        p1s = prpIndexed.predicate.substr(0, prpIndexed.predicate.length()-2),
+        p2s = prpPredicted.predicate.substr(0, prpPredicted.predicate.length()-2);
+      vector<string>
+        w1syn(wnsyn[p1s].begin(), wnsyn[p1s].end()),
+        w2syn(wnsyn[p2s].begin(), wnsyn[p2s].end());
+
+      w1syn.push_back(p1s);
+      w2syn.push_back(p2s);
+      
+      for(uint i=0; i<w1syn.size(); i++) {
+        for(uint j=0; j<w2syn.size(); j++) {
+          // AVOID THE ORIGINAL PAIR.
+          if(w1syn[i] == p1s && w2syn[j] == p2s) continue;
+          if(w1syn[i] != p1s && w2syn[j] != p2s) continue;
+
+          string qs1 = w1syn[i] + "-" + _wnpostomine(gw2v.getPOS(w1syn[i])) +  ":"+ prpIndexed.slot,
+            qs2 = w2syn[j] + "-" + _wnpostomine(gw2v.getPOS(w2syn[j])) +  ":"+ prpPredicted.slot;
+          cerr << "query: wn similarity search: " << qs1 << "," << qs2 << flush;
+          es.search(&ret, qs1, qs2);
+          cerr << " => " << ret.size() << endl;
+        } }
+    }
     
     if(fSimilaritySearchOn) {
+      string
+        p1s = prpIndexed.predicate.substr(0, prpIndexed.predicate.length()-2),
+        p2s = prpPredicted.predicate.substr(0, prpPredicted.predicate.length()-2);
+      
       google_word2vec_t::kbest_t w1syn, w2syn;
       gw2v.clearSimilaritySearchFilter();
       gw2v.addSimilaritySearchFilter("v");
       gw2v.addSimilaritySearchFilter("s");
     
-      gw2v.getSimilarEntiries(&w1syn, prpIndexed.predicate.substr(0, prpIndexed.predicate.length()-2), vocab, 10, 1);
-      gw2v.getSimilarEntiries(&w2syn, prpPredicted.predicate.substr(0, prpPredicted.predicate.length()-2), vocab, 10, 1);
+      gw2v.getSimilarEntiries(&w1syn, p1s, vocab, 10, 1);
+      gw2v.getSimilarEntiries(&w2syn, p2s, vocab, 10, 1);
 
       for(uint i=0; i<w1syn.size(); i++) {
         for(uint j=0; j<w2syn.size(); j++) {
           // AVOID THE ORIGINAL PAIR.
-          if(vocab[w2syn[j].first] == prpPredicted.predicate.substr(0, prpPredicted.predicate.length()-2) &&
-             vocab[w1syn[i].first] == prpIndexed.predicate.substr(0, prpIndexed.predicate.length()-2)) continue;
-          if(vocab[w2syn[j].first] != prpPredicted.predicate.substr(0, prpPredicted.predicate.length()-2) &&
-             vocab[w1syn[i].first] != prpIndexed.predicate.substr(0, prpIndexed.predicate.length()-2)) continue;
+          if(vocab[w1syn[i].first] == p1s && vocab[w2syn[j].first] == p2s) continue;
+          if(vocab[w1syn[i].first] != p1s && vocab[w2syn[j].first] != p2s) continue;
 
           string qs1 = vocab[w1syn[i].first] + "-" + _wnpostomine(gw2v.getPOS(vocab[w1syn[i].first])) +  ":"+ prpIndexed.slot,
             qs2 = vocab[w2syn[j].first] + "-" + _wnpostomine(gw2v.getPOS(vocab[w2syn[j].first])) +  ":"+ prpPredicted.slot;
-        
           cerr << "query: similarity search: " << qs1 << "," << qs2 << flush;
-        
           es.search(&ret, qs1, qs2);
-
           cerr << " => " << ret.size() << endl;
         } }
     }

@@ -62,6 +62,9 @@ class iri_t:
 		
 		assert("200 OK" == self.procSearchServer.stdout.readline().strip())
 
+	def setWNSimilaritySearch(self, flag):
+		print >>self.procSearchServer.stdin, "w", "y" if flag else "n"
+		
 	def predict(self, predicate, context, slot, focusedArgument,
 							predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None,
 							threshold = 0, limit = 10000, pos1 = '', pos2 = '', fVectorMode = False, fSimilaritySearch = False):
@@ -162,6 +165,10 @@ if "__main__" == __name__:
 				vectorMode = "v y" == x.strip()
 				continue
 
+			if x.startswith("w "):
+				iri.setWNSimilaritySearch("w y" == x.strip())
+				continue
+				
 			if x.startswith("s "):
 				similaritySearch = "s y" == x.strip()
 				continue
