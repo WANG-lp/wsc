@@ -26,11 +26,27 @@
 using namespace std;
 using namespace tr1;
 
+typedef unordered_map<string, vector<string> > wordnet_synset_t;
+
 static int myrandom (int i) { return std::rand()%i; }
 
 string _wnpostomine(const string &pos) {
   if("s" == pos) return "j";
   return pos;
+}
+
+void _readWNsynonyms(wordnet_synset_t *pOut, const string &fn) {
+  ifstream ifsWNS(fn.c_str());
+  string   line, key, value;
+  
+  while(getline(ifsWNS, line)) {
+    istringstream iss(line);
+    iss >> key;
+    
+    while(iss >> value) {
+      (*pOut)[key].push_back(value);
+    }
+  }
 }
 
 int main(int argc, char **argv) {
@@ -57,6 +73,7 @@ int main(int argc, char **argv) {
   corefevents_t::proposition_t prpIndexed, prpPredicted;
   unordered_map<string, float> weightMap;
   google_word2vec_t::vocab_t   vocab;
+  wordnet_synset_t             wnsyn;
 
   if(opts.hasKey('w')) {
     ifstream ifsWeightMap(opts.of('w').c_str());
@@ -68,6 +85,7 @@ int main(int argc, char **argv) {
   }
 
   gw2v.readVocab(&vocab, opts.of('k') + "/GoogleNews-vectors-negative300.vocab.txt", "./data/wnentries.txt");
+  _readWNsynonyms(&wnsyn, "./data/wnsynonyms.tsv");
   
   cout << "200 OK" << endl;
   
@@ -194,12 +212,12 @@ int main(int argc, char **argv) {
         cout.write((const char*)&retScore.sm, sizeof(float));
         cout.write((const char*)&retScore.sam, sizeof(float));
 
-        string vector;
-        libce.generateVector(&vector, ret[i].offset, prpIndexed, prpPredicted, gw2v);
-        cout << toString(retScore.vcon1) << "\t"
-             << toString(retScore.vcon2) << "\t"
-             << toString(retScore.vcon) << endl;
-        //cout << retScore.line << endl;
+        // string vector;
+        // libce.generateVector(&vector, ret[i].offset, prpIndexed, prpPredicted, gw2v);
+        // cout << toString(retScore.vcon1) << "\t"
+        //      << toString(retScore.vcon2) << "\t"
+        //      << toString(retScore.vcon) << endl;
+        cout << retScore.line << endl;
       }
     }
 

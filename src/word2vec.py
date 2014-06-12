@@ -93,7 +93,7 @@ if "__main__" == __name__:
 			if None == synonymFinder:
 				synonymFinder = synonym_finder_t()
 				
-			for word in synonymFinder.getSynonyms(x[2:], 20):
+			for word in synonymFinder.getSynonyms(x[2:], 60):
 				print word
 				
 		elif x.startswith("C "):
