@@ -64,10 +64,13 @@ class iri_t:
 
 	def setWNSimilaritySearch(self, flag):
 		print >>self.procSearchServer.stdin, "w", "y" if flag else "n"
+
+	def setW2VSimilaritySearch(self, flag):
+		print >>self.procSearchServer.stdin, "+", "y" if flag else "n"
 		
 	def predict(self, predicate, context, slot, focusedArgument,
 							predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None,
-							threshold = 0, limit = 10000, pos1 = '', pos2 = '', fVectorMode = False, fSimilaritySearch = False):
+							threshold = 0, limit = 10000, pos1 = '', pos2 = '', fVectorMode = False):
 		keyCache = predicate + context + str(threshold)
 
 		if "" != pos1: pos1 = pos1.lower()[0]
@@ -78,7 +81,6 @@ class iri_t:
 		print >>self.procSearchServer.stdin, "s", slot
 		#print >>self.procSearchServer.stdin, "a", focusedArgument
 		print >>self.procSearchServer.stdin, "a", predictedFocusedArgument
-		print >>self.procSearchServer.stdin, "+", "y" if fSimilaritySearch else "n"
 
 		if None != predictedFocusedArgument:
 			print >>self.procSearchServer.stdin, "~p", predictedPredicate
@@ -155,7 +157,6 @@ if "__main__" == __name__:
 		threshold = 0
 		limit     = 1000
 		vectorMode = False
-		similaritySearch = False
 		
 		while True:
 			x					 = raw_input("? ")
@@ -170,7 +171,7 @@ if "__main__" == __name__:
 				continue
 				
 			if x.startswith("s "):
-				similaritySearch = "s y" == x.strip()
+				iri.setW2VSimilaritySearch("s y" == x.strip())
 				continue
 				
 			if x.startswith("t "):
@@ -190,7 +191,7 @@ if "__main__" == __name__:
 
 			try:
 				ip1, ic1, is1, ia1, ip2, ic2, is2, ia2 = re.split("[,\t]", x.strip())
-				ret = iri.predict(*re.split("[,\t]", x.strip()), threshold=threshold, limit=limit, fVectorMode=vectorMode, fSimilaritySearch=similaritySearch)
+				ret = iri.predict(*re.split("[,\t]", x.strip()), threshold=threshold, limit=limit, fVectorMode=vectorMode)
 									
 				if vectorMode:
 					for vector in ret:

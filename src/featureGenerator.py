@@ -132,6 +132,9 @@ class ranker_t:
 		self.statistics = collections.defaultdict(list)
 		self.pa	= pa
 
+		if pa.simw2v: ff.libiri.setW2VSimilaritySearch(True)
+		if pa.simwn:  ff.libiri.setWNSimilaritySearch(True)
+			
 		# FOR REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
 		# FOR EACH CANDIDATE.
 		for can in candidates:

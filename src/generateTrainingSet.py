@@ -34,6 +34,8 @@ def main(options, args):
 	xmlText = etree.parse(options.input + ".xml")
         print >>sys.stderr, "Catenative = %s" % (options.cat)
         print >>sys.stderr, "Phrasal = %s" % (options.ph)
+        print >>sys.stderr, "W2V-based Similarity Search = %s" % (options.simw2v)
+        print >>sys.stderr, "WordNet-based Similarity Search = %s" % (options.simwn)
         
 	# EXTRACT COREFERENCE RELATIONS IDENTIFIED BY CORE NLP
 	coref				= xmlText.xpath("/root/document/coreference/coreference")
@@ -218,6 +220,8 @@ if "__main__" == __name__:
 	cmdparser.add_option("--quicktest", help	= ".", action="store_true")
 	cmdparser.add_option("--fullxml", help	= ".", action="store_true")
 	cmdparser.add_option("--nolog", help	= ".", action="store_true")
+	cmdparser.add_option("--simw2v", help	= "Turn on word2vec-based predicate similarity search.", action="store_true", default=False)
+	cmdparser.add_option("--simwn", help	= "Turn on WordNet-based predicate similarity search.", action="store_true", default=False)
 	cmdparser.add_option("--cat", help	= "Catenative ON", action="store_true", default=False)
         cmdparser.add_option("--ph", help	= "Phrasal ON", action="store_true", default=False)
 	main(*cmdparser.parse_args())
