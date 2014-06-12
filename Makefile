@@ -1,5 +1,5 @@
 all:
-	rsync -av --exclude "pathKB.txt" --exclude "bin" --exclude "local" . 13IAM511@io-t2.g.gsic.titech.ac.jp:~/wsc/
+	rsync -av --exclude "pathKB.txt" --exclude "bin" --exclude "local" --exclude ".git" . 13IAM511@io-t2.g.gsic.titech.ac.jp:~/wsc/
 	rsync -av ~/bin/xpath 13IAM511@io-t2.g.gsic.titech.ac.jp:~/bin/
 
 tools: hash hashTuples similaritySearch reducer 

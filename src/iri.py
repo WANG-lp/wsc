@@ -121,9 +121,9 @@ class iri_t:
 			score *= spassoc
 			
 			try:
-				line = map(lambda y: map(lambda x: tuple(x.rsplit(":", 1)), y.split(" ")), self.procSearchServer.stdout.readline().strip().split("\t"))
+				line   = map(lambda y: map(lambda x: tuple(x.rsplit(":", 1)), y.split(" ")), self.procSearchServer.stdout.readline().strip().split("\t"))
+				vector = map(lambda y: map(lambda x: tuple(x.rsplit(":", 1)), y.split(" ")), self.procSearchServer.stdout.readline().strip().split("\t"))
 				
-				#line = self.procSearchServer.stdout.readline().strip().split("\t")
 			except ValueError:
 				raise "Protocol Error"
 				continue
@@ -140,7 +140,7 @@ class iri_t:
 										 (spm1, spm2), (sam1, sam2), (scm1, scm2), (sm1, sm2),
 										 spm, sam, scm, sm,
 										 offset, length,
-										 ), line
+										 ), line, vector
 
 if "__main__" == __name__:
 	# UNIT TEST.

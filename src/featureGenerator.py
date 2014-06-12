@@ -598,7 +598,7 @@ class feature_function_t:
 		nnVectors = []
 		
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
-                for ret, raw in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
+                for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
 
 			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
 			spa = sp * ret.sPredictedArg
@@ -624,7 +624,7 @@ class feature_function_t:
 			# CONTEX TYPE-WISE EVAL.
 			def _calcConSim(_c, _funcWeight):
 				sc, scZ = 0.0, 0.0
-				
+
 				for _t, _v in _c:
 					sc  += _funcWeight(_t)*float(_v)
 					scZ += _funcWeight(_t)
@@ -635,11 +635,11 @@ class feature_function_t:
 				# funcWeight = lambda x: 100.0 if None != re.match("^%s$" % weightedType, x) else 1.0
 				# funcWeight = lambda x: 100.0 if weightedType in x else 1.0
 				funcWeight = lambda x: 0.1 if weightedType in x else 1.0
-				sc_i, sc_p = _calcConSim(raw[ret.iIndexed], funcWeight), _calcConSim(raw[2], funcWeight)
+				sc_i, sc_p = _calcConSim(vec[ret.iIndexed], funcWeight), _calcConSim(vec[2], funcWeight)
 
 				outNN["iriPredArgConW_%s" % weightedType] += [(NNvoted, spa * sc_i * sc_p)]
 				
-			nnVectors += [(spac, raw)]
+			nnVectors += [(spac, vec)]
 
 		# for score, goodVec in sorted(nnVectors, key=lambda x: x[0], reverse=True)[:5]:
 		# 	outExamples += [(NNvoted, goodVec)]

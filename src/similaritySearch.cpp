@@ -237,12 +237,13 @@ int main(int argc, char **argv) {
         cout.write((const char*)&retScore.sm, sizeof(float));
         cout.write((const char*)&retScore.sam, sizeof(float));
 
-        // string vector;
-        // libce.generateVector(&vector, ret[i].offset, prpIndexed, prpPredicted, gw2v);
-        // cout << toString(retScore.vcon1) << "\t"
-        //      << toString(retScore.vcon2) << "\t"
-        //      << toString(retScore.vcon) << endl;
         cout << retScore.line << endl;
+        
+        string vector;
+        libce.generateVector(&vector, ret[i].offset, prpIndexed, prpPredicted, gw2v);
+        cout << toString(retScore.vcon1) << "\t"
+             << toString(retScore.vcon2) << "\t"
+             << toString(retScore.vcon) << endl;
       }
     }
 
