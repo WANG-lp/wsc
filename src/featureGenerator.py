@@ -114,6 +114,7 @@ def _phrasalget(gv, sent, dirPhDic):
                     break
 
         if paraphraselist != []:
+            # print >>sys.stderr, "\n\n(paraphraselist = %s)\n\n" % (paraphraselist)
             return scn.governor_t(gv.rel, gv.token, paraphraselist, gv.POS)
         else:
             return gv
@@ -525,15 +526,15 @@ class feature_function_t:
 
                 if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
                 else: gvanalemmas = gvAna.lemma[0].split("_")[:1] + gvAna.lemma[1:]
-                if not isinstance(gvCan1.lemma, list): gvcan1lemmas = [gvCan.lemma]
-                else: gvcan1lemmas = gvCan1.lemma[0].split("_")[:1] + gvCan.lemma[1:]
-                if not isinstance(gvCan2.lemma, list): gvcan2lemmas = [gvCan.lemma]
-                else: gvcan2lemmas = gvCan2.lemma[0].split("_")[:1] + gvCan.lemma[1:]
+                if not isinstance(gvCan1.lemma, list): gvcan1lemmas = [gvCan1.lemma]
+                else: gvcan1lemmas = gvCan1.lemma[0].split("_")[:1] + gvCan1.lemma[1:]
+                if not isinstance(gvCan2.lemma, list): gvcan2lemmas = [gvCan2.lemma]
+                else: gvcan2lemmas = gvCan2.lemma[0].split("_")[:1] + gvCan2.lemma[1:]
 
                 for gvanalemma in gvanalemmas:
                 
                     for (gvcan1lemma, gvcan2lemma) in itertools.product(gvcan1lemmas, gvcan2lemmas):
-                
+                        
                         if None != gvAna:
                             polAna = self.sentpol.getPolarity(gvanalemma) if gvAna.rel == "nsubj" or scn.getDeepSubject(sent, gvAna.token) == ana.attrib["id"] else None
 
