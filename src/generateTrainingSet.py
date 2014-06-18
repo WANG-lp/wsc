@@ -224,4 +224,6 @@ if "__main__" == __name__:
 	cmdparser.add_option("--simwn", help	= "Turn on WordNet-based predicate similarity search.", action="store_true", default=False)
 	cmdparser.add_option("--cat", help	= "Catenative ON", action="store_true", default=False)
         cmdparser.add_option("--ph", help	= "Phrasal ON", action="store_true", default=False)
+        cmdparser.add_option("--newpol", help	= "Use new polarity dictionaly ON", action="store_true", default=False)
+
 	main(*cmdparser.parse_args())

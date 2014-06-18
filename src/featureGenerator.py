@@ -403,8 +403,12 @@ class feature_function_t:
 			
 		self.nc        = nccj08.nccj08_t(os.path.join(_getPathKB(), "schemas-size12"), os.path.join(_getPathKB(), "verb-pair-orders"))
 		self.sp        = selpref.selpref_t(pathKB=_getPathKB())
-		self.sentpol   = sentimentpolarity.sentimentpolarity_t(os.path.join(_getPathKB(), "subjclueslen1-HLTEMNLP05_SentiWN.txt"))
+                if pa.newpol:
+                    self.sentpol   = sentimentpolarity.sentimentpolarity_t(os.path.join(_getPathKB(), "subjclueslen1-HLTEMNLP05_SentiWNlen1.txt"))
+                else:
+                    self.sentpol   = sentimentpolarity.sentimentpolarity_t(os.path.join(_getPathKB(), "wilson05_subj/subjclueslen1-HLTEMNLP05.tff"))
 
+                    
 		# GOOGLE NGRAMS
 		self.gn        = googlengram.googlengram_t(os.path.join(_getPathKB(), "ngrams"))
 		# self.deptypes  = map(lambda x: "d:%s" % x.strip(), open(os.path.join(dirExtKb, "stanfordDepTypes.txt"))) +\
