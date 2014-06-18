@@ -37,6 +37,10 @@ public:
 
   struct proposition_t {
     string predicate, context, slot, focusedArgument;
+    string src, text;
+
+    string toString() const { return predicate + ":" + slot + "\t" + focusedArgument + "\t" + context; }
+    string predSlotToString() const { return predicate + ":" + slot; }
   };
 
   corefevents_t(const string &fnCorefEventsTsv, bool fMemoryMapped = false) : m_fd(-1) {
@@ -92,7 +96,7 @@ public:
     return wr.substr(wr.find("-")+1);
   }
 
-  void _getEventPair(proposition_t *pOut1, proposition_t *pOut2, uint64_t offset, string *pOutLine = NULL) {
+  void getEventPair(proposition_t *pOut1, proposition_t *pOut2, uint64_t offset, string *pOutLine = NULL) {
     char buffer[1024*16];
 
     for(uint64_t i=offset; '\n'!=m_pCorefEvents[i]; i++) {
@@ -102,7 +106,7 @@ public:
     if(NULL != pOutLine)
       *pOutLine = buffer;
 
-    string        sentdist;
+    string        sentdist, text;
     istringstream ssRule(buffer);
     
     getline(ssRule, pOut1->predicate, ':'); pOut1->predicate = _getWord(pOut1->predicate); getline(ssRule, pOut1->slot, '\t');
@@ -110,11 +114,15 @@ public:
     getline(ssRule, pOut1->focusedArgument, ','); getline(ssRule, pOut2->focusedArgument, '\t');
     getline(ssRule, sentdist, '\t');
     getline(ssRule, pOut1->context, '\t'); getline(ssRule, pOut2->context, '\t');
+    getline(ssRule, pOut1->text, '\t'); getline(ssRule, pOut2->text, '\t');
+    getline(ssRule, pOut1->src, '\t');
+
+    pOut2->src = pOut1->src;
   }
 
-  void generateVector(string *pOut, uint64_t offset, const proposition_t &ie1, const proposition_t &ie2, const google_word2vec_t &gw2v) {
+  void generateVector(string *pOut, uint64_t offset, const proposition_t &ie1, const proposition_t &ie2, google_word2vec_t &gw2v) {
     proposition_t e1, e2;
-    this->_getEventPair(&e1, &e2, offset, NULL);
+    this->getEventPair(&e1, &e2, offset, NULL);
 
     if(e1.predicate != ie1.predicate && e2.predicate != ie2.predicate) swap(e1, e2);
 
@@ -125,9 +133,9 @@ public:
     *pOut = toString(fv);
   }
   
-  bool calcScore(result_t *pOut, uint64_t offset, int length, const proposition_t &prpIndexed, const proposition_t &prpPredicted, char whichArg, const unordered_map<string, float> &weightMap, const google_word2vec_t &gw2v) {
+  bool calcScore(result_t *pOut, uint64_t offset, int length, const proposition_t &prpIndexed, const proposition_t &prpPredicted, char whichArg, const unordered_map<string, float> &weightMap, google_word2vec_t &gw2v) {
     proposition_t e1, e2;
-    this->_getEventPair(&e1, &e2, offset, &pOut->line);
+    this->getEventPair(&e1, &e2, offset, &pOut->line);
     
     pOut->length = pOut->line.length();
 
@@ -174,7 +182,7 @@ public:
     return true;
   }
 
-  void _fvArgSim(sparse_vector_t *pOut, const proposition_t &e1, const proposition_t &ie1, const proposition_t &e2, const proposition_t &ie2, const google_word2vec_t &gw2v) {
+  void _fvArgSim(sparse_vector_t *pOut, const proposition_t &e1, const proposition_t &ie1, const proposition_t &e2, const proposition_t &ie2, google_word2vec_t &gw2v) {
     float
       sim1 = calcWordSimilarity(_getWord(e1.focusedArgument), _getWord(ie1.focusedArgument), gw2v),
       sim2 = calcWordSimilarity(_getWord(e2.focusedArgument), _getWord(ie2.focusedArgument), gw2v);
@@ -188,7 +196,7 @@ public:
     (*pOut)["ARGMATCH_MAX_TARGET_POS_" + (sim1 == max(sim1, sim2) ? _getPOS(e1.focusedArgument) : _getPOS(e2.focusedArgument))]  = 1;
   }
 
-  void _fvConSim(sparse_vector_t *pOut, const proposition_t &e1, const proposition_t &ie1, const proposition_t &e2, const proposition_t &ie2, const google_word2vec_t &gw2v) {
+  void _fvConSim(sparse_vector_t *pOut, const proposition_t &e1, const proposition_t &ie1, const proposition_t &e2, const proposition_t &ie2, google_word2vec_t &gw2v) {
     float sum = 0.0;
     
     for(int which=0; which<2; which++) {
@@ -232,7 +240,7 @@ public:
     }
   }
   
-  static float calcDistance(const proposition_t &p1, const proposition_t &p2, const google_word2vec_t &gw2v) {
+  static float calcDistance(const proposition_t &p1, const proposition_t &p2, google_word2vec_t &gw2v) {
     unordered_map<string, float> weightMap;
     
     return 

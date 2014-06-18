@@ -63,7 +63,7 @@ if None != fs.getvalue("query"):
 
 			if "Correct" in ln: numCorrect += 1
 			elif "Wrong" in ln: numWrong += 1
-
+		
 		for i in xrange(3):
 			contexts[i] = " ".join(filter(lambda x: x.split(":")[1] != governors[i].split(":")[1], contexts[i].split(" ")))
 		

@@ -32,3 +32,5 @@ downsampler:
 word2vec_simsearch:
 	g++ -g -O2 -fopenmp -D GLIBCXX -o ./bin/word2vec_simsearch ./src/word2vec_simsearch.cpp $$HOME/src/tinycdb-0.78/libcdb.a
 
+generalize:
+	g++ -g -O2 -fopenmp -D GLIBCXX -o ./bin/generalize ./src/generalize.cpp $$HOME/src/tinycdb-0.78/libcdb.a

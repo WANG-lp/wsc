@@ -31,9 +31,14 @@ print """<html><head>
 <h1 style="padding-top: 50px"> </h1>
 """
 
+if None != fs.getvalue("target"):
+	f, did = fs.getvalue("target").split(":")
+else:
+	f, did = fs.getvalue("file"), fs.getvalue("docid")
+	
 xml		= etree.parse(
 	os.popen("/home/naoya-i/work/wsc/src/extractDoc.sh %s %s" % (
-			fs.getvalue("file"), fs.getvalue("docid"),
+		f, did
 		)))
 
 def _coloring(t):

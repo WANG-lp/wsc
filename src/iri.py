@@ -59,6 +59,7 @@ class iri_t:
 		self.corefeventsMmap = mmap.mmap(self.corefeventsFile.fileno(), 0, prot=mmap.PROT_READ)
 
 		self.fnWeightMap = fnWeightMap
+		self.fEnumMode    = False
 		
 		assert("200 OK" == self.procSearchServer.stdout.readline().strip())
 
@@ -67,6 +68,10 @@ class iri_t:
 
 	def setW2VSimilaritySearch(self, flag):
 		print >>self.procSearchServer.stdin, "+", "y" if flag else "n"
+
+	def setEnumMode(self, flag):
+		self.fEnumMode = flag
+		print >>self.procSearchServer.stdin, "e", "y" if flag else "n"
 		
 	def predict(self, predicate, context, slot, focusedArgument,
 							predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None,
@@ -109,6 +114,10 @@ class iri_t:
 		print >>sys.stderr, pr1, pr2, numExactMatchIRIs, int(_cdbdefget(self.cdbPreds, pr1, 1)), int(_cdbdefget(self.cdbPreds, pr2, 1))
 		
 		for i in xrange(numIRIs):
+			if self.fEnumMode:
+				yield self.procSearchServer.stdout.readline().strip().split("\t")
+				continue
+				
 			if fVectorMode:
 				yield map(lambda x: tuple(x.rsplit(":", 1)), self.procSearchServer.stdout.readline().strip().split(" "))
 				continue
@@ -123,7 +132,7 @@ class iri_t:
 			score *= spassoc
 			
 			try:
-				line   = map(lambda y: map(lambda x: tuple(x.rsplit(":", 1)), y.split(" ")), self.procSearchServer.stdout.readline().strip().split("\t"))
+				line   = self.procSearchServer.stdout.readline().strip().split("\t")
 				vector = map(lambda y: map(lambda x: tuple(x.rsplit(":", 1)), y.split(" ")), self.procSearchServer.stdout.readline().strip().split("\t"))
 				
 			except ValueError:

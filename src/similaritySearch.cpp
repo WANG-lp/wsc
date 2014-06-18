@@ -65,7 +65,9 @@ int main(int argc, char **argv) {
                          opts.hasKey('q'));
   exactsearch_t  es(opts.of('k') + "/corefevents.cdblist");
   string         line;
-  bool           fSimilaritySearchOn = false, fWNSimilaritySearchOn = false, fVectorGeneration = false;
+  bool
+    fSimilaritySearchOn = false, fWNSimilaritySearchOn = false, fVectorGeneration = false,
+    fEnumMode = false;
   int            th                  = 0;
   size_t         maxRules            = 10000;
   
@@ -107,6 +109,7 @@ int main(int argc, char **argv) {
     if('t' == line[0]) th = atoi(line.substr(2).c_str());
     if('m' == line[0]) maxRules = atoi(line.substr(2).c_str());
     if('v' == line[0]) fVectorGeneration = line.substr(2) == "y";
+    if('e' == line[0]) fEnumMode = line.substr(2) == "y";
     
     if("" != line) continue;
     
@@ -198,10 +201,19 @@ int main(int argc, char **argv) {
          << ") have been found. (took " << float(timeElapsed)/1000.0 << " sec)." << endl;
 
     cout << numExactMatches << endl;
-    cout << (fVectorGeneration ? ret.size() : 2*ret.size()) << endl;
+    cout << (fVectorGeneration || fEnumMode ? ret.size() : 2*ret.size()) << endl;
     
     // IDENTIFY THE COMMON IDS.
     for(size_t i=0; i<ret.size(); i++) {
+      if(fEnumMode) {
+        corefevents_t::proposition_t p1, p2;
+        string                       out;
+        
+        libce.getEventPair(&p1, &p2, ret[i].offset, &out);
+        cout << out << endl;
+        continue;
+      }
+      
       if(fVectorGeneration) {
         string vector;
         libce.generateVector(&vector, ret[i].offset, prpIndexed, prpPredicted, gw2v);

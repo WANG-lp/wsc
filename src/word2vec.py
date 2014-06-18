@@ -76,6 +76,8 @@ class similarity_t:
 			return [0.0]*similarity_t.DIMENSION
 	
 	def calc(self, w1, w2):
+		if w1 == w2: return 1.0
+		
 		v1, v2 = self.getWordVector(w1), self.getWordVector(w2)
 		return _getCosineSimilarity(v1, v2)
 

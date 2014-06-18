@@ -123,7 +123,17 @@ public:
 
   inline bool getOffset(uint64_t *pOutOffset, const string &word) {
     if(-1 != m_fdW2VIndex) {
-      if(0 < cdb_find(&m_cdbW2VIndex, word.c_str(), word.length())) {
+      int ret_cdb_find = -1;
+
+#pragma omp critical
+      {
+        cdb_find(&m_cdbW2VIndex, word.c_str(), word.length());
+      }
+
+      if(0 >= ret_cdb_find) return false;
+
+#pragma omp critical
+      {
         uint   pos = cdb_datapos(&m_cdbW2VIndex);
         size_t len = cdb_datalen(&m_cdbW2VIndex);
 
@@ -133,11 +143,10 @@ public:
         buffer[len] = 0;
         
         tsv = string(buffer);
-        
-        *pOutOffset = strtoul(tsv.substr(0, tsv.find("\t")).c_str(), NULL, 10);
-      } else
-        return false;
 
+        *pOutOffset = strtoul(tsv.substr(0, tsv.find("\t")).c_str(), NULL, 10);
+      }
+      
     } else {
       dict_t::const_iterator iterEntry = m_dict.find(word);
       if(m_dict.end() == iterEntry)
@@ -149,7 +158,7 @@ public:
     return true;
   }
   
-  inline bool getWordVector(float *pOut, const string &word) {
+  inline bool getWordVector(float *pOut, const string &word) {    
     uint64_t offset;
     if(!this->getOffset(&offset, word)) return false;
     
@@ -158,11 +167,11 @@ public:
     return true;
   }
 
-  inline bool getWordVector(const float **pOut, const string &word) const {
-    dict_t::const_iterator iterEntry = m_dict.find(word);
-    if(m_dict.end() == iterEntry) return false;
+  inline bool getWordVector(const float **pOut, const string &word) {
+    uint64_t offset;
+    if(!this->getOffset(&offset, word)) return false;
 
-    *pOut = (const float*)(m_pW2VDB+iterEntry->second.first+word.length()+1);
+    *pOut = (const float*)(m_pW2VDB+offset+word.length()+1);
 
     return true;
   }

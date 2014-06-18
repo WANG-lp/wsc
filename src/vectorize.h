@@ -50,7 +50,7 @@ static inline void breakDownContext(unordered_set<string> *pOutKeys, unordered_m
   }
 }
 
-static inline float calcWordSimilarity(const string &w1, const string &w2, const google_word2vec_t &gw2v) {
+static inline float calcWordSimilarity(const string &w1, const string &w2, google_word2vec_t &gw2v) {
   if(w1 == w2) return 1.0; // WELL, IT'S OBVIOUS.
   
   const float *pWordVec1, *pWordVec2;
@@ -71,7 +71,7 @@ static inline float calcWordSimilarity(const string &w1, const string &w2, const
   return normalizedSim; // normalizedSim < 0.55 ? 0.0 : normalizedSim;
 }
 
-static inline float calcContextualSimilarity(const string &c1, const string &c2, const unordered_map<string, float> &weightMap, const google_word2vec_t &gw2v, sparse_vector_t *pOut = NULL) {
+static inline float calcContextualSimilarity(const string &c1, const string &c2, const unordered_map<string, float> &weightMap, google_word2vec_t &gw2v, sparse_vector_t *pOut = NULL) {
   /*
     c1: context of inference rule in kb.
     c2: context of input query.
@@ -131,14 +131,14 @@ static inline void initVector(float *pOutInVector, int nDim) {
   for(int i=0; i<nDim; i++) pOutInVector[i] = 0.0;  
 }
 
-static inline void addWordVector(float *pOut, const string &p, const google_word2vec_t &gw2v) {
+static inline void addWordVector(float *pOut, const string &p, google_word2vec_t &gw2v) {
   const float *pWordVec;
   
   if(gw2v.getWordVector(&pWordVec, p))
     for(int i=0; i<google_word2vec_t::DIMENSION; i++) pOut[i] += pWordVec[i];
 }
 
-static inline void addContextVector(float *pOut, const string &c, const google_word2vec_t &gw2v) {
+static inline void addContextVector(float *pOut, const string &c, google_word2vec_t &gw2v) {
   istringstream ssContext(c);
   string        element;
 
