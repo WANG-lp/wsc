@@ -1,4 +1,6 @@
 
+import random
+
 import iri
 import selpref
 import googlengram
@@ -353,6 +355,8 @@ class ranker_t:
 
 	def sort(self):
 		for fk in self.NN.keys():
+			random.shuffle(self.NN[fk])
+			
 			self.NN[fk].sort(key=lambda y: y[1], reverse=True)
 		
 	def getKNNRank(self, x, t, K=20):
@@ -642,8 +646,12 @@ class feature_function_t:
 				# funcWeight = lambda x: 100.0 if None != re.match("^%s$" % weightedType, x) else 1.0
 				# funcWeight = lambda x: 100.0 if weightedType in x else 1.0
 				funcWeight = lambda x: 0.1 if weightedType in x else 1.0
-				sc_i, sc_p = _calcConSim(vec[ret.iIndexed], funcWeight), _calcConSim(vec[2], funcWeight)
 
+				try:
+					sc_i, sc_p = _calcConSim(vec[ret.iIndexed], funcWeight), _calcConSim(vec[2], funcWeight)
+				except IndexError:
+					continue
+					
 				outNN["iriPredArgConW_%s" % weightedType] += [(NNvoted, spa * sc_i * sc_p)]
 				
 			nnVectors += [(spac, vec)]

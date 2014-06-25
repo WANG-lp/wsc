@@ -52,7 +52,7 @@ static inline void breakDownContext(unordered_set<string> *pOutKeys, unordered_m
 
 static inline float calcWordSimilarity(const string &w1, const string &w2, google_word2vec_t &gw2v) {
   if(w1 == w2) return 1.0; // WELL, IT'S OBVIOUS.
-  
+
   const float *pWordVec1, *pWordVec2;
   float dot = 0, vLen1 = 0, vLen2 = 0;
   

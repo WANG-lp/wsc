@@ -127,9 +127,9 @@ public:
 
 #pragma omp critical
       {
-        cdb_find(&m_cdbW2VIndex, word.c_str(), word.length());
+        ret_cdb_find = cdb_find(&m_cdbW2VIndex, word.c_str(), word.length());
       }
-
+      
       if(0 >= ret_cdb_find) return false;
 
 #pragma omp critical
