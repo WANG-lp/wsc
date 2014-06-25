@@ -208,6 +208,7 @@ class ranker_t:
                                            vCan,
                                            p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
                                            p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
+                                           pa,
                                            self.statistics["iriInstances"],
 																					 self.NNexamples,
                                        )
@@ -223,6 +224,7 @@ class ranker_t:
                                                    vCan,
                                                    p1, gvanarel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
                                                    p2, gvcanrel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
+                                                   pa,
                                                    self.statistics["iriInstances"],
 																									 self.NNexamples,
                                             )
@@ -255,6 +257,7 @@ class ranker_t:
                                            vCan,
                                            p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
                                            gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                           pa,
                                            self.statistics["iriInstances"],
 																					 self.NNexamples,
                                         )
@@ -267,6 +270,7 @@ class ranker_t:
                                                vCan,
                                                p1, gvanarel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
                                                gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                               pa,
                                                self.statistics["iriInstances"],
 																							 self.NNexamples,
                                         )
@@ -303,6 +307,7 @@ class ranker_t:
                                            vCan,
                                            gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
                                            p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                                           pa,
                                            self.statistics["iriInstances"],
 																					 self.NNexamples,
                                        )
@@ -316,6 +321,7 @@ class ranker_t:
                                                vCan,
                                                gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
                                                p2, gvcanrel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
+                                               pa,
                                                self.statistics["iriInstances"],
 																							 self.NNexamples,
                                         )
@@ -325,6 +331,7 @@ class ranker_t:
                                            vCan,
                                            gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
                                            gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(),
+                                           pa,
                                            self.statistics["iriInstances"],
 																					 self.NNexamples,
                                     )
@@ -595,7 +602,7 @@ class feature_function_t:
 			
 			outExamples += [(NNvoted, vector)]
 				
-	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2, cached = None, outExamples = None):
+	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2, pa, cached = None, outExamples = None):
 		if None == self.libiri: return 0
 
 		# ELIMINATE THE ELEMENT WITH THE SAME ROLE AS ROLE.
@@ -607,7 +614,11 @@ class feature_function_t:
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
 
-			sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
+                        if pa.insent == True: # USE INSTANCES FROM INTER-SENTENTIAL COREFERENCE
+                            if "1" == raw[3]:
+                                continue
+                    
+                        sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
 			spa = sp * ret.sPredictedArg
 			spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
