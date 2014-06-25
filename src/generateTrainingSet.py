@@ -34,6 +34,7 @@ def main(options, args):
 	xmlText = etree.parse(options.input + ".xml")
         print >>sys.stderr, "Catenative = %s" % (options.cat)
         print >>sys.stderr, "Phrasal = %s" % (options.ph)
+        print >>sys.stderr, "New Polarity dict = %s" % (options.newpol)
         print >>sys.stderr, "W2V-based Similarity Search = %s" % (options.simw2v)
         print >>sys.stderr, "WordNet-based Similarity Search = %s" % (options.simwn)
         
