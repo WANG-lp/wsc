@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-seq 1 20 | parallel -k -j16 "/home/naoya-i/bin/xpath $argv[1] problem @id \
+seq 1 5 | parallel -k -j3 "/home/naoya-i/bin/xpath $argv[1] problem @id \
     \"statistics[@type='iriNumRules']/@correct:0\" \"statistics[@type='iriNumRules']/@wrong:0\" \
     \"feature[@type='cirPMIMatch']/@correct:None\" \"feature[@type='cirPMIMatch']/@wrong:None\" \
     \"feature[@type='NCNAIVE0NPMI']/@correct:None\" \"feature[@type='NCNAIVE0NPMI']/@wrong:None\" \
