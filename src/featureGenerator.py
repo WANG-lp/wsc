@@ -404,6 +404,7 @@ class feature_function_t:
 		self.sp        = selpref.selpref_t(pathKB=_getPathKB())
                 if pa.newpol:
                     self.sentpol   = sentimentpolarity.sentimentpolarity_t(os.path.join(_getPathKB(), "subjclueslen1-HLTEMNLP05_SentiWNlen1.txt"))
+
                 else:
                     self.sentpol   = sentimentpolarity.sentimentpolarity_t(os.path.join(_getPathKB(), "wilson05_subj/subjclueslen1-HLTEMNLP05.tff"))
 
@@ -540,13 +541,12 @@ class feature_function_t:
                         
                         if None != gvAna:
                             polAna = self.sentpol.getPolarity(gvanalemma) if gvAna.rel == "nsubj" or scn.getDeepSubject(sent, gvAna.token) == ana.attrib["id"] else None
-
                             # FLIPPING
                             if None != polAna and (scn.getNeg(sent, gvAna.token) or (None != conn and scn.getLemma(conn) in "but although though however".split())): polAna *= -1
 
                         if None != gvCan1:
                             polCan1 = self.sentpol.getPolarity(gvcan1lemma) if gvCan1.rel == "nsubj" or scn.getDeepSubject(sent, gvCan1.token) == candidates[0].attrib["id"] else None
-
+                            
                             # FLIPPING
                             if None != polCan1 and scn.getNeg(sent, gvCan1.token): polCan1 *= -1
 			
