@@ -616,6 +616,8 @@ class feature_function_t:
 			spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 
+			print >>sys.stderr, sp, spa
+			
                         # print >>sys.stderr, "raw = %s" % (raw)
 			
                         if None != cached: cached += [(NNvoted, ret)]
