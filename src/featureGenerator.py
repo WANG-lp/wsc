@@ -621,8 +621,10 @@ class feature_function_t:
                         if pa.insent == True: # USE INSTANCES FROM INTER-SENTENTIAL COREFERENCE
                             if "1" == raw[3]:
                                 continue
-                    
-                        sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
+                        if pa.simpred1 == True: # SET PRED SIMILARITY = 1 
+                            sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sRuleAssoc
+                        else:
+                            sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
 			spa = sp * ret.sPredictedArg
 			spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext

@@ -37,6 +37,7 @@ def main(options, args):
         print >>sys.stderr, "New Polarity dict = %s" % (options.newpol)
         print >>sys.stderr, "W2V-based Similarity Search = %s" % (options.simw2v)
         print >>sys.stderr, "WordNet-based Similarity Search = %s" % (options.simwn)
+        print >>sys.stderr, "Set predicate similarity:1 = %s" % (options.simpred1)
         print >>sys.stderr, "Using instances from inter-sentential coreference = %s" % (options.insent)
         
 	# EXTRACT COREFERENCE RELATIONS IDENTIFIED BY CORE NLP
@@ -224,6 +225,7 @@ if "__main__" == __name__:
 	cmdparser.add_option("--nolog", help	= ".", action="store_true")
 	cmdparser.add_option("--simw2v", help	= "Turn on word2vec-based predicate similarity search.", action="store_true", default=False)
 	cmdparser.add_option("--simwn", help	= "Turn on WordNet-based predicate similarity search.", action="store_true", default=False)
+        cmdparser.add_option("--simpred1", help	= "Set predicate similarity = 1", action="store_true", default=False)
 	cmdparser.add_option("--cat", help	= "Catenative ON", action="store_true", default=False)
         cmdparser.add_option("--ph", help	= "Phrasal ON", action="store_true", default=False)
         cmdparser.add_option("--newpol", help	= "Use new polarity dictionaly ON", action="store_true", default=False)
