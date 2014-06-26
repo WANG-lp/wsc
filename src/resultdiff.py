@@ -23,7 +23,7 @@ def mappingtarget(target):
 			"p+c": "kNN_score_iriAddPredCon",
 			"p+a+c": "kNN_score_iriAddPredArgCon",
 			"pol": "POL",        
-			"n": "iriPredNumRules"
+			"n": "iriNumRules"
 		}
     return mappingdict[target]
 
@@ -36,8 +36,7 @@ def _getClass(xk, yk, x, y, fInvertPolarity = False):
     x, y = float(x), float(y)
     xk, yk = float(xk), float(yk)
     
-    if fInvertPolarity: x, y = -x, -y
-    
+    if fInvertPolarity: x, y = -x, -y    
     return xk != 0, yk != 0, x > y
 
 def _getClassPol(c1, w1, c2, w2):
@@ -60,7 +59,6 @@ def _isSamePol(l, r):
         return False
     else:
         return None    
-
 
 def _getResultDict(cmd1, cmd2):
     stdout1, stdin1, stderr1 = popen2.popen3(cmd1)
@@ -149,7 +147,8 @@ else:
 
         if (lRules1, rRules1) != (True, True) or (lRules2, rRules2) != (True, True):
             continue
-
+            
+        print ln1[3], ln1[4], ln2[3], ln2[4]
         sdiff1, sdiff2 = float(ln1[3])-float(ln1[4]), float(ln2[3])-float(ln2[4])
 
         ln1 = [(x if "." not in x else "%.4f" % float(x)).rjust(6) for x in ln1]

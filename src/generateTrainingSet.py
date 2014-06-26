@@ -37,6 +37,7 @@ def main(options, args):
         print >>sys.stderr, "New Polarity dict = %s" % (options.newpol)
         print >>sys.stderr, "W2V-based Similarity Search = %s" % (options.simw2v)
         print >>sys.stderr, "WordNet-based Similarity Search = %s" % (options.simwn)
+        print >>sys.stderr, "Using instances from inter-sentential coreference = %s" % (options.insent)
         
 	# EXTRACT COREFERENCE RELATIONS IDENTIFIED BY CORE NLP
 	coref				= xmlText.xpath("/root/document/coreference/coreference")
@@ -226,5 +227,6 @@ if "__main__" == __name__:
 	cmdparser.add_option("--cat", help	= "Catenative ON", action="store_true", default=False)
         cmdparser.add_option("--ph", help	= "Phrasal ON", action="store_true", default=False)
         cmdparser.add_option("--newpol", help	= "Use new polarity dictionaly ON", action="store_true", default=False)
-
+        cmdparser.add_option("--insent", help	= "Using instances from inter-sentential coreference", action="store_true", default=False)
+        
 	main(*cmdparser.parse_args())
