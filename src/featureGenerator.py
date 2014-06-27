@@ -632,7 +632,11 @@ class feature_function_t:
                         # print >>sys.stderr, "raw = %s" % (raw)
 			
                         if None != cached: cached += [(NNvoted, ret)]
-			assert(abs(spac - ret.score) < 0.1)
+
+                        if pa.simpred1 == True:
+                            assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred - ret.score) < 0.1)
+                        else:
+                            assert(abs(spac - ret.score) < 0.1)
 
 			outNN["iriPred"] += [(NNvoted, sp)]
 			outNN["iriPredArg"] += [(NNvoted, spa)]
