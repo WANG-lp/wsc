@@ -614,17 +614,50 @@ class feature_function_t:
 		c2 = " ".join(filter(lambda x: x.split(":")[1] != r2, c2.strip().split(" "))) if "" != c2.strip() else c2
 
 		nnVectors = []
+                requiredlist = ["d:conj_", "g:conj_", "d:mark:"]
 		
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
+                        penaltyscore = 1.0
 
                         if pa.insent == True: # USE INSTANCES FROM INTER-SENTENTIAL COREFERENCE
                             if "1" == raw[3]:
                                 continue
+
+                        if pa.insent2 == True: # SET PENALTYSCORE=0.5  TO USE INSTANCES FROM NOT INTER-SENTENTIAL COREFERENCE
+                            if "1" == raw[3]:
+                                penaltyscore = penaltyscore * 0.5
+
+                        if pa.req == True: # CONTINUE INSTANCES IF NOT CONTAIN REQUIED CONTEXT
+                            reqc1 = []
+                            reqc2 = []
+                            for reqele in requiredlist:
+                                for matchreq in [x for x in c1.split(" ") if x.startswith(reqele)]:
+                                    reqc1.append(matchreq)
+                                for matchreq in [x for x in c2.split(" ") if x.startswith(reqele)]:
+                                    reqc2.append(matchreq)
+                            if raw[0].startswith(p1):
+                                assert(raw[1].startswith(p2))
+                                if reqc1 != []:
+                                    if set(reqc1) != set(reqc1) & set(raw[4].strip().split(" ")):
+                                        continue                                
+                                if reqc2 != []:
+                                    if set(reqc2) != set(reqc2) & set(raw[5].strip().split(" ")):
+                                        continue
+                            else:
+                                assert(raw[0].startswith(p2))
+                                assert(raw[1].startswith(p1))
+                                if reqc1 != []:
+                                    if set(reqc1) != set(reqc1) & set(raw[5].strip().split(" ")):
+                                        continue                                
+                                if reqc2 != []:
+                                    if set(reqc2) != set(reqc2) & set(raw[4].strip().split(" ")):
+                                        continue
+                            
                         if pa.simpred1 == True: # SET PRED SIMILARITY = 1 
-                            sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sRuleAssoc
+                            sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sRuleAssoc*penaltyscore
                         else:
-                            sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc
+                            sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc*penaltyscore
 			spa = sp * ret.sPredictedArg
 			spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
@@ -636,9 +669,9 @@ class feature_function_t:
                         if None != cached: cached += [(NNvoted, ret)]
 
                         if pa.simpred1 == True:
-                            assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred - ret.score) < 0.1)
+                            assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/penaltyscore - ret.score) < 0.1)
                         else:
-                            assert(abs(spac - ret.score) < 0.1)
+                            assert(abs(spac/penaltyscore - ret.score) < 0.1)
 
 			outNN["iriPred"] += [(NNvoted, sp)]
 			outNN["iriPredArg"] += [(NNvoted, spa)]

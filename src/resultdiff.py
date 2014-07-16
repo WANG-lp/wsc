@@ -99,9 +99,32 @@ if t1 == 'POL' and t2 == 'POL':
     for problemno in sorted(set(tmp1.keys()) & set(tmp2.keys()), key=lambda x: int(x)):
         ln1 = tmp1[problemno].strip().split("\t")
         ln2 = tmp2[problemno].strip().split("\t")
-        print ln1, ln2
+
         lcrc1, lwrw1, lcrc2, lwrw2 = _getClassPol(ln1[1], ln1[2], ln2[1], ln2[2])
 
+        if lwrw1 == None:
+            result = "None! (--)"
+
+        # if (lcrc1, lwrw1) == (True, False):
+        #     result = "Correct! (^^)"
+        # else:
+        #     result = "Wrong! (><)"
+
+        elif lwrw2 == True:
+            result = "Correct! (^^)"
+        else:
+            result = "Wrong! (><)"
+            
+        # if lcrc2 == None or lwrw2 == None:
+        #     continue
+        # if lcrc2 == True or lwrw2 == False:
+        #     result = "good (^^)"
+        # else:
+        #     result = "bad! (><)"
+
+            
+        print ln1, ln2, result
+        
         changedictc["%s -> %s" % (lcrc1, lcrc2)] += 1
         changedictw["%s -> %s" % (lwrw1, lwrw2)] += 1
 
