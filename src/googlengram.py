@@ -4,6 +4,8 @@ import cdb
 import os
 
 class googlengram_t:
+	TOTAL = 1024908267229
+	
 	def __init__(self, path = "/work/naoya-i/kb/ngrams"):
 		self.path   = path
 
@@ -41,10 +43,13 @@ class googlengram_t:
 
 		except TypeError:
 			return 0
+
+	def getProb(self, ngram):
+		return 1.0 * self.search(ngram) / googlengram_t.TOTAL
 		
 if "__main__" == __name__:
 	ng = googlengram_t()
 
 	print ng.getFile(sys.argv[1:])
-	print ng.search(sys.argv[1:])
+	print ng.getProb(sys.argv[1:])
 	

@@ -238,7 +238,7 @@ if "__main__" == __name__:
 <table class="table table-striped">
 """ % len(iris)
 				
-				for ir, raw in iris:
+				for ir, raw, vec in iris:
 					raw = iri.corefeventsMmap[ir.offset:ir.offset+ir.length].split("\t")
 					raw[-1] = raw[-1][2:]
 					
