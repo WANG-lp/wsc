@@ -18,24 +18,31 @@ settings=('google|selpref|LEX|HPOL' 'google|selpref|LEX|HPOL|Rank_NCCJ08' \
 )
 
 settings=( \
-    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ'
-    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredArg[^W]'
-    #'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|[^S]KNN[1-5]_iriPredArgConW_UNIFORM'
-    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|KNN[1-5]_iriPredArgConW_UNIFORM'
-    # '[^S]KNN0_iriArg[^C]'
-    # 'SKNN1_iriArg[^C]'
-    # 'NCNAIVE0NPMI'
-    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|[^S]KNN[1-5]_iriArg'
-    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1_iriPred'
-    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredArgConW_UNIFORM'
-    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|[^S]KNN[1-5]_iriPredArgCon[^W]'
-    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredArgCon[^W]' \
-    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|CONMATCH_|ARGMATCH_' \
-    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|KNN[1-5]_iriPredArgCon' \
-    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|KNN[1-5]_iriAddPredArgCon' \
-    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ' \
-    'google|selpref|LEX|HPOL|Rank_NCCJ08' \
-    'google|selpref|LEX|HPOL' \
+    'HPOL' \
+    # 'LEX' \
+    # 'LEX|HPOL' \
+    #
+    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ'
+    # # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredArg[^W]'
+    # #'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|[^S]KNN[1-5]_iriPredArgConW_UNIFORM'
+    # # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|KNN[1-5]_iriPredArgConW_UNIFORM'
+    # # '[^S]KNN0_iriArg[^C]'
+    # # 'SKNN1_iriArg[^C]'
+    # # 'NCNAIVE0NPMI'
+    # # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|[^S]KNN[1-5]_iriArg'
+    # # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1_iriPred'
+    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN1_iriPred'
+    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN1_iriPredArgConW_UNIFORM'
+    # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredArgConW_UNIFORM'
+    # # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|[^S]KNN[1-5]_iriPredArgCon[^W]'
+    # # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredArgCon[^W]' \
+    # # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|CONMATCH_|ARGMATCH_' \
+    # # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|KNN[1-5]_iriPredArgCon' \
+    # # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|KNN[1-5]_iriAddPredArgCon' \
+    # # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ' \
+    # 'google|selpref|LEX|HPOL|Rank_NCCJ08' \
+    'google|selpref|HPOL' \
+    # 'google|selpref|LEX|HPOL' \
 ) #CONMATCH_|ARGMATCH_')
 #settings=('google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|CONMATCH_|ARGMATCH_')
 
@@ -59,7 +66,7 @@ cat testedFeatures.rawlist.tmp | parallel -j $argv[1] \
     'f={}; fs=${f//|/-};'\
 'cat local/train.sv | python src/filterFeature.py inc $f | python src/indexify.py - local/train.$fs.isv.vocab > local/train.$fs.isv;'\
 'cat local/test.sv | python src/filterFeature.py inc $f | python src/indexify.py local/train.$fs.isv.vocab - > local/test.$fs.isv;'\
-'/home/naoya-i/src/svm_rank/svm_rank_learn -c 15 -# 100 local/train.$fs.isv local/train.$fs.model.svmrank;'\
+'/home/naoya-i/src/svm_rank/svm_rank_learn -c '$argv[2]' -# 100 local/train.$fs.isv local/train.$fs.model.svmrank;'\
 '/home/naoya-i/src/svm_rank/svm_rank_classify local/test.$fs.isv local/train.$fs.model.svmrank local/test.$fs.svmrank.predictions;'\
 'python ./src/checkWrongOrNodec4SvmRank.py $fs local/test.$fs.isv local/test.$fs.svmrank.predictions > local/result.$fs.txt'
 
