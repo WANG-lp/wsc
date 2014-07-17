@@ -628,7 +628,11 @@ class feature_function_t:
                             if "1" == raw[3]:
                                 penaltyscore = penaltyscore * 0.5
 
+                        # print >>sys.stderr, "raw = %s" % (raw)
+                        # print >>sys.stderr, "c1 = %s, c2 = %s" % (c1, c2)
+
                         if pa.req == True: # CONTINUE INSTANCES IF NOT CONTAIN REQUIED CONTEXT
+
                             reqc1 = []
                             reqc2 = []
                             for reqele in requiredlist:
