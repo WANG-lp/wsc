@@ -55,6 +55,7 @@ int main(int argc, char **argv) {
                   " -d <COREF EVENTS TSV>"
                   " -m <PARALLELS>"
                   " [-w <WEIGHT MAP>]"
+                  " [-c <PATH TO CDBLIST>]"
                   " [-q] "
                   ,
                   "k:m:d:qw:", "kmd", argc, argv);
@@ -63,7 +64,7 @@ int main(int argc, char **argv) {
   google_word2vec_t gw2v(opts.of('k') + "/GoogleNews-vectors-negative300.bin",
                          opts.of('k') + "/GoogleNews-vectors-negative300.index.cdb",
                          opts.hasKey('q'));
-  exactsearch_t  es(opts.of('k') + "/corefevents.cdblist");
+  exactsearch_t  es(opts.hasKey('c') ? opts.of('c') : (opts.of('k') + "/corefevents.cdblist"));
   string         line;
   bool
     fSimilaritySearchOn = false, fWNSimilaritySearchOn = false, fVectorGeneration = false,
