@@ -400,7 +400,7 @@ class feature_function_t:
 
 		self.libiri = None
 		self.libiri    = iri.iri_t(
-			os.path.join(dirExtKb, "corefevents.tsv"),
+			os.path.join(dirExtKb, "corefevents.0909small.tsv"),
 			os.path.join(os.path.dirname(sys.argv[0]), "../bin"),
 			dirExtKb,
 			os.path.join(dirExtKb, "corefevents.com.lsh"),

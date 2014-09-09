@@ -43,6 +43,8 @@ class iri_t:
 		opts = []
 
 		if fUseMemoryMap: opts += ["-q"]
+                opts += ["-c /work/naoya-i/kb/corefevents.0909small.cdblist/"]
+                print >>sys.stderr, "OPTS = %s" % (" ".join(opts))
 		
 		self.procSearchServer = subprocess.Popen(
 			"%s -k %s -d %s -m %d -w %s %s" % (
