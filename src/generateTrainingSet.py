@@ -41,6 +41,7 @@ def main(options, args):
         print >>sys.stderr, "Using instances from inter-sentential coreference = %s" % (options.insent)
         print >>sys.stderr, "Assign penalty not to use inter-sentential coreference = %s" % (options.insent2)
         print >>sys.stderr, "Use instances with required context = %s" % (options.req)
+        print >>sys.stderr, "Not calculate features using KNN= %s" % (options.noknn)
 
         
 	# EXTRACT COREFERENCE RELATIONS IDENTIFIED BY CORE NLP
@@ -59,7 +60,8 @@ def main(options, args):
             parseerrlist = open(os.path.join(options.extkb, "parseerrno.txt")).read().strip().split(' ')
         elif options.input.endswith("train.tuples"):
             parseerrlist = open(os.path.join(options.extkb, "parseerrno.train.txt")).read().strip().split(' ')
-        
+
+        # parseerrlist = []
         # parseerrlist = open("./data/parseerrno.txt").read().strip().split(' ')
 
 	if options.fullxml:
@@ -160,6 +162,8 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options):
 
 	# k-NEAREST NEIGHBOR SCORES
 	for fk, fvs in ranker.NN.iteritems():
+                if options.noknn == True:
+                    continue
 		for K in xrange(1, 10):
 			print "<feature type=\"kNN_%s,K=%d\" correct=\"%s\" wrong=\"%s\" />" % (
 				fk, K,
@@ -179,10 +183,14 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options):
 
 	# OTHER STATISTICS
 	for fk, fvs in ranker.statistics.iteritems():
+
 		NumRulesCorrect = 0
 		NumRulesWrong = 0
 
 		if "cirInstances" == fk or "iriInstances" == fk:
+                        if options.noknn == True:
+                                continue
+
 			for voted, inst in fvs:
 				if int(antecedent.attrib["id"]) == int(voted):
 					NumRulesCorrect += 1 
@@ -235,5 +243,6 @@ if "__main__" == __name__:
         cmdparser.add_option("--insent", help	= "Using instances from inter-sentential coreference", action="store_true", default=False)
         cmdparser.add_option("--insent2", help	= "assign penalty not to use inter-sentential coreference", action="store_true", default=False)
         cmdparser.add_option("--req", help	= "Use instances with required context", action="store_true", default=False)
+        cmdparser.add_option("--noknn", help	= "Not calculate features using KNN", action="store_true", default=False)
         
 	main(*cmdparser.parse_args())
