@@ -5,6 +5,19 @@
 import sys, re
 import collections
 
+rangeEval = None
+
+if 5 == len(sys.argv):
+	rangeEval = []
+	
+	for ln in open(sys.argv[4]):
+		matches = re.findall("pid=(.*?) ", ln)
+		
+		if len(matches) > 0:
+			rangeEval += [int(matches[0])]
+
+	print >>sys.stderr, "Range evaluation enabled: ", rangeEval
+	
 fsPrediction = open(sys.argv[3])
 votes = collections.defaultdict(list)
 
@@ -13,7 +26,10 @@ for lnTestData in open(sys.argv[2]):
 	lnTestData    = lnTestData.split(" ", 2)
 	can, qid      = lnTestData[:2]
 	qid           = qid[len("qid:"):]
-	
+
+	if None != rangeEval and int(qid) not in rangeEval:
+		continue
+		
 	votes[qid] += [(can, float(lnPrediction))]
 
 fsOut = open("tmp", "w")

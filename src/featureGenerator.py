@@ -169,15 +169,11 @@ class ranker_t:
                                     self.statistics["NCCJ08"] += [(vCan, "%s ~ %s" % (ff.nc.createQuery(gvanalemma, gvAna.rel), ff.nc.createQuery(gvcanlemma, gvCan.rel)))]
                                 
                                     # NARRATIVE CHAIN FEATURE
-                                    for i in xrange(0, 8):
-                                        self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan,
-                                            ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
-
-                                        self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan,
-                                            ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
-																		
-                                        self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan,
-                                            ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
+                                    if len(ff.ncnaive) > 0:
+                                        for i in xrange(0, 8):
+                                            self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                                            self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
+                                            self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
 																
                                 # Q1, 2: CV
                                 if "O" == scn.getNEtype(can):
@@ -397,19 +393,19 @@ class feature_function_t:
 		self.pa							 = pa
 
 		self.libiri = None
-		self.libiri    = iri.iri_t(
-			os.path.join(dirExtKb, "corefevents.tsv"),
-			os.path.join(os.path.dirname(sys.argv[0]), "../bin"),
-			dirExtKb,
-			os.path.join(dirExtKb, "corefevents.com.lsh"),
-			fUseMemoryMap=pa.quicktest
-			)
+		# self.libiri    = iri.iri_t(
+		# 	os.path.join(dirExtKb, "corefevents.tsv"),
+		# 	os.path.join(os.path.dirname(sys.argv[0]), "../bin"),
+		# 	dirExtKb,
+		# 	os.path.join(dirExtKb, "corefevents.com.lsh"),
+		# 	fUseMemoryMap=pa.quicktest
+		# 	)
 
 		self.ncnaive = {}
 		
-		for i in xrange(0, 8):
-			p                = 1.0/(2**i)
-			self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive.ds.%s.cdb" % p), os.path.join(_getPathKB(), "tuples.cdb"))
+		# for i in xrange(0, 8):
+		# 	p                = 1.0/(2**i)
+		# 	self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive.ds.%s.cdb" % p), os.path.join(_getPathKB(), "tuples.cdb"))
 			
 		self.nc        = nccj08.nccj08_t(os.path.join(_getPathKB(), "schemas-size12"), os.path.join(_getPathKB(), "verb-pair-orders"))
 		self.sp        = selpref.selpref_t(pathKB=_getPathKB())
@@ -538,6 +534,8 @@ class feature_function_t:
 		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
 		polAna, polCan1, polCan2 = 0, 0, 0
 		position		 = "left" if "R1" == ranker.getRank(can.attrib["id"], "position") else "right"
+
+		if None == gvAna or None == gvCan1 or None == gvCan2: return
 
                 if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
                 else: gvanalemmas = gvAna.lemma[0].split("_")[:1] + gvAna.lemma[1:]

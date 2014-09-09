@@ -72,9 +72,9 @@ def main(options, args):
                 
 		print >>sys.stderr, "Processing No. %d..." % (i)
 
-                if str(i) in parseerrlist:
-                    print >>sys.stderr, "No. %d has Parse Errors" % (i)
-                    continue
+                # if str(i) in parseerrlist:
+                #     print >>sys.stderr, "No. %d has Parse Errors" % (i)
+                #     continue
 
 		# PARSE THE INPUT TUPLE.
 		ti = eval(ln)
