@@ -143,7 +143,9 @@ class ranker_t:
 			wPrn, wCan	 = scn.getLemma(ana), scn.getLemma(can)
 			vCan				 = can.attrib["id"]
 			gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
-			
+			pathline = scn.getPath(sent, ana, can, pa)
+                        # print >>sys.stderr, "(pathline = %s)\n" % (pathline)                      
+                        
 			self.rankingsRv["position"] += [(vCan, -int(can.attrib["id"]))]
 
 			if None != gvAna and None != gvCan:
@@ -535,6 +537,7 @@ class feature_function_t:
 		polAna, polCan1, polCan2 = 0, 0, 0
 		position		 = "left" if "R1" == ranker.getRank(can.attrib["id"], "position") else "right"
 
+                # print >>sys.stderr, "### gvCan1 = %s, gvCan2 = %s, gvAna = %s" % (gvCan1, gvCan2, gvAna)
 		if None == gvAna or None == gvCan1 or None == gvCan2: return
 
                 if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
@@ -606,17 +609,45 @@ class feature_function_t:
 				
 	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2, pa, cached = None, outExamples = None):
 		if None == self.libiri: return 0
+                if pa.noknn == True: return 0
 
 		# ELIMINATE THE ELEMENT WITH THE SAME ROLE AS ROLE.
+
+                # print "c1 = %s, c2 = %s" %(c1, c2)
+
+                # # print "r1 = %s, r2 = %s" %(r1, r2)
+                # # c1 = c1.strip().split(" ")
+                # # c2 = c2.strip().split(" ")
+                # # print "c1 = %s, c2 = %s" %(c1, c2)
+
+                # for tt in c2.strip().split(" "):
+                #     if tt != "":
+                #         print tt.split(":")[1]
+
+                # c1 = c1.strip().split(" ") if "" != c1.strip() else c1
+                # c2 = c2.strip().split(" ") if "" != c2.strip() else c2
+                # if c1.strip() != "": while "" in c1: c1.remove("")
+                # if c2.strip() != "": while "" in c2: c2.remove("")
+                # c1 = " ".join(filter(lambda x: x.split(":")[1] != r1, c1))
+                # c2 = " ".join(filter(lambda x: x.split(":")[1] != r2, c2))
+                
+                # # print "c2split = %s" %(c2.split(":"))
+
+                # # c2 = " "
+                
 		c1 = " ".join(filter(lambda x: x.split(":")[1] != r1, c1.strip().split(" "))) if "" != c1.strip() else c1
 		c2 = " ".join(filter(lambda x: x.split(":")[1] != r2, c2.strip().split(" "))) if "" != c2.strip() else c2
 
+                # print "c1 = %s, c2 = %s" %(c1, c2)
+                
 		nnVectors = []
                 requiredlist = ["d:conj_", "g:conj_", "d:mark:"]
 		
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
                         penaltyscore = 1.0
+
+                        # print >>sys.stderr, "(raw = %s \n\n)" % (raw)
 
                         if pa.insent == True: # USE INSTANCES FROM INTER-SENTENTIAL COREFERENCE
                             if "1" == raw[3]:
@@ -626,7 +657,11 @@ class feature_function_t:
                             if "1" == raw[3]:
                                 penaltyscore = penaltyscore * 0.5
 
+                        # print >>sys.stderr, "raw = %s" % (raw)
+                        # print >>sys.stderr, "c1 = %s, c2 = %s" % (c1, c2)
+
                         if pa.req == True: # CONTINUE INSTANCES IF NOT CONTAIN REQUIED CONTEXT
+
                             reqc1 = []
                             reqc2 = []
                             for reqele in requiredlist:
@@ -660,7 +695,7 @@ class feature_function_t:
 			spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 
-			print >>sys.stderr, sp, spa
+			# print >>sys.stderr, sp, spa
 			
                         # print >>sys.stderr, "raw = %s" % (raw)
 			

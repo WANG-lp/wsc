@@ -11,16 +11,92 @@ def _isPredicativeGovernorRel(x): return x in "nsubjpass nsubj dobj iobj".split(
 governor_t = collections.namedtuple("governor_t", "rel token lemma POS")
 
 def getFirstOrderContext(sent, tk):
-	return " ".join(
+        # print getGovernors(sent, tk)
+        # print getDependents(sent, tk)
+        # print "predicate Lemma = %s\n" % getLemma(tk)
+
+        FOCline = " ".join(
 		["d:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getDependents(sent, tk)] +
 		["g:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getGovernors(sent, tk)] )
+        while "  " in FOCline:
+            FOCline = FOCline.replace("  ", " ")
+        return FOCline
+        
+	# return " ".join(
+	# 	["d:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getDependents(sent, tk)] +
+	# 	["g:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getGovernors(sent, tk)] )
 
 def getFirstOrderContext4phrasal(sent, tk):
 	return " ".join(
 		["d:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getDependents4phrasal(sent, tk)] +
 		["g:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getGovernors(sent, tk)] )
 
-        
+def searchpath(adjacent, goal, path, endflag, paths):
+    n = int(path[len(path) - 1])
+    if n == goal:
+        paths.append(list(path))
+    else:
+        for x in adjacent[n]:
+            if x not in path:
+                path.append(x)
+                searchpath(adjacent, goal, path, endflag, paths)
+                path.pop()
+    if path == endflag:
+        return paths
+
+def get_dep_adjacent(xmlSent):
+    adjlist = []
+    deplist = []
+    dependencies = xmlSent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep")
+    size = len(xmlSent.xpath("./tokens/token/word/text()"))
+    for si in range(size):
+        adjlist.append([])
+        deplist.append([])
+    for xmlDep in dependencies:
+        if xmlDep.attrib["type"] != "root":
+            iGov, iDep		= int(xmlDep.find("governor").attrib["idx"]), int(xmlDep.find("dependent").attrib["idx"])
+            tkGov, tkDep	= getTokenById(xmlSent, iGov), getTokenById(xmlSent, iDep)
+            poGov,  poDep = getPOS(tkGov), getPOS(tkDep)
+            # neDep         = _getNER(tkDep)
+            lm1, rel, lm2 = getLemma(tkGov), xmlDep.attrib["type"], getLemma(tkDep)
+            # print iGov, iDep, tkGov, tkDep, rel
+            adjlist[iGov-1].append(str(iDep-1))
+            deplist[iGov-1].append("d:%s:%s-%s" %(rel, lm2, poDep[0].lower()))
+            adjlist[iDep-1].append(str(iGov-1))
+            deplist[iDep-1].append("g:%s:%s-%s" %(rel, lm1, poGov[0].lower()))
+    return deplist, adjlist
+
+def ids2deps(adjacent, adjacentdep, pathids):
+    pathdeps = []
+    for path2 in pathids:
+        prev = None
+        pathdep = []
+        for present in path2:
+            if prev != None:
+                targetindex = adjacent[prev].index(present)
+                pathdep.append(adjacentdep[prev][targetindex])
+            prev = int(present)
+        pathdeps.append(pathdep)
+    return pathdeps
+
+def getPath(xmlSent, p1, p2, pa):
+    ret = []
+    deplist, adjlist = get_dep_adjacent(xmlSent)
+    paths = []
+    p1sentid, p2sentid = 1, 1
+    p1nodeid, p2nodeid = p1.attrib["id"], p2.attrib["id"]
+    
+    if abs(p1sentid - p2sentid) == 0:
+        paths = []
+        # adjacent = p1.adjl
+        # adjacentdep = p1.depl
+        pathids = searchpath(adjlist, int(p2nodeid), [int(p1nodeid)], [int(p1nodeid)], paths)
+        x = ids2deps(adjlist, deplist, pathids)
+        ret = "|".join([" ".join(y) for y in x])
+    else:
+        ret = ""    
+    return ret
+    
 def getToken(sent, x, conn = None):
 	r = sent.xpath("./tokens/token/word[text()='%s']/.." % x.split(" ")[-1].strip().replace("'", ""))
 
@@ -161,6 +237,16 @@ def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
                                 if pa.ph:
                                     tmp1 = fgn._phrasalget(tmp1, sent, pa.extkb)
                                 return tmp1
+
+                        # For Copula Sentence
+                        if "NN" in ps or "PRP" in ps:
+                                dependents = []
+                                dependencies = [(y.attrib["type"], getTokenById(sent, y.find("dependent").attrib["idx"])) for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/governor[@idx='%s']/.." % cg[-1][-1])]
+                                for dep in dependencies:
+                                    dependents += ["d:%s:" %(dep[0])]
+                                if "d:cop:" in dependents:
+                                    tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
+                                    return tmp1
                                 
 	for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/dependent[@idx='%s']/.." % x.attrib["id"]):
 		tk = getTokenById(sent, y.find("governor").attrib["idx"])
@@ -176,6 +262,17 @@ def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
                                 if pa.ph:
                                     tmp1 = fgn._phrasalget(tmp1, sent, pa.extkb) 
                                 return tmp1
+
+                        # For Copula Sentence
+                        if "NN" in ps or "PRP" in ps:
+                                dependents = []
+                                dependencies = [(y.attrib["type"], getTokenById(sent, y.find("dependent").attrib["idx"])) for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/governor[@idx='%s']/.." % cg[-1][-1])]
+                                for dep in dependencies:
+                                    dependents += ["d:%s:" %(dep[0])]
+                                if "d:cop:" in dependents:
+                                    tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
+                                    return tmp1
+
 
 def checkObjectCatenative(sent, idx):
     depend2step_items = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/governor[@idx='%s']" % idx)
@@ -288,7 +385,7 @@ def getContentPredicativeGovernor(sent, p):
 		if 0 == len(lm): lm = ["?"]
 		if 0 == int(idx): continue
 		
-		ret += [(tp, lm[0], sent.xpath("./tokens/token[@id='%s']" % idx)[0])]
+		ret += [(tp, lm[0], sent.xpath("./tokens/token[@id='%s']" % idx)[0], idx)]
 
 		if "NN" in ps[0]:
 			if "prep_of" == tp:
@@ -307,7 +404,7 @@ def getContentPredicativeGovernor(sent, p):
 			if 0 < len(governing_adj):
 				governing_tp  = governing_adj[0].xpath("..")[0].attrib["type"]
 				governing_adj = governing_adj[0].xpath("../governor")[0].attrib["idx"]
-				ret += [(governing_tp, sent.xpath("./tokens/token[@id='%s']/lemma/text()" % governing_adj)[0], sent.xpath("./tokens/token[@id='%s']" % governing_adj)[0])]
+				ret += [(governing_tp, sent.xpath("./tokens/token[@id='%s']/lemma/text()" % governing_adj)[0], sent.xpath("./tokens/token[@id='%s']" % governing_adj)[0], governing_adj)]
 				
 		if 0 < len(lm) and (lm[0] in "ask continue forget refuse tend try want be able unable willing much seem need fail manage hope attempt".split()):
 			
@@ -319,13 +416,13 @@ def getContentPredicativeGovernor(sent, p):
 					nsubj_ga      = sent.find("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='nsubj']/governor[@idx='%s']/../dependent" % governing_adj)
 					
 					if None != nsubj_ga and idx == nsubj_ga.attrib["idx"]:
-						ret += [(tp, sent.xpath("./tokens/token[@id='%s']/lemma/text()" % governing_adj)[0], sent.xpath("./tokens/token[@id='%s']" % governing_adj)[0])]
+						ret += [(tp, sent.xpath("./tokens/token[@id='%s']/lemma/text()" % governing_adj)[0], sent.xpath("./tokens/token[@id='%s']" % governing_adj)[0], governing_adj)]
 
 						governing_adj = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='dep']/governor[@idx='%s']" % governing_adj)
 
 						if 0 < len(governing_adj):
 							governing_adj = governing_adj[0].xpath("../dependent")[0].attrib["idx"]
-							ret += [(tp, sent.xpath("./tokens/token[@id='%s']/lemma/text()" % governing_adj)[0], sent.xpath("./tokens/token[@id='%s']" % governing_adj)[0])]
+							ret += [(tp, sent.xpath("./tokens/token[@id='%s']/lemma/text()" % governing_adj)[0], sent.xpath("./tokens/token[@id='%s']" % governing_adj)[0], governing_adj)]
 				
 		if "num" == tp or "amod" == tp:
 			tk = sent.xpath("./tokens/token[@id='%s']" % idx)
