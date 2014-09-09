@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
                   " [-c <PATH TO CDBLIST>]"
                   " [-q] "
                   ,
-                  "k:m:d:qw:", "kmd", argc, argv);
+                  "c:k:m:d:qw:", "kmd", argc, argv);
   if(!opts.isGood()) return 0;
   
   google_word2vec_t gw2v(opts.of('k') + "/GoogleNews-vectors-negative300.bin",

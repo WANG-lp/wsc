@@ -18,7 +18,7 @@ settings=('google|selpref|LEX|HPOL' 'google|selpref|LEX|HPOL|Rank_NCCJ08' \
 )
 
 settings=( \
-    'HPOL' \
+    # 'HPOL' \
     # 'LEX' \
     # 'LEX|HPOL' \
     #
@@ -40,8 +40,9 @@ settings=( \
     # # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|KNN[1-5]_iriPredArgCon' \
     # # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|KNN[1-5]_iriAddPredArgCon' \
     # # 'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ' \
-    # 'google|selpref|LEX|HPOL|Rank_NCCJ08' \
-    'google|selpref|HPOL' \
+    'google|selpref|LEX|HPOL|Rank_NCCJ08' \
+    'google|selpref|LEX|HPOL' \
+    # 'google|selpref|HPOL' \
     # 'google|selpref|LEX|HPOL' \
 ) #CONMATCH_|ARGMATCH_')
 #settings=('google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|CONMATCH_|ARGMATCH_')
