@@ -106,7 +106,7 @@ public:
     if(NULL != pOutLine)
       *pOutLine = buffer;
 
-    string        sentdist, text;
+    string        sentdist, text, pathinfo;
     istringstream ssRule(buffer);
     
     getline(ssRule, pOut1->predicate, ':'); pOut1->predicate = _getWord(pOut1->predicate); getline(ssRule, pOut1->slot, '\t');
@@ -114,10 +114,8 @@ public:
     getline(ssRule, pOut1->focusedArgument, ','); getline(ssRule, pOut2->focusedArgument, '\t');
     getline(ssRule, sentdist, '\t');
     getline(ssRule, pOut1->context, '\t'); getline(ssRule, pOut2->context, '\t');
-    getline(ssRule, pOut1->text, '\t'); getline(ssRule, pOut2->text, '\t');
-    getline(ssRule, pOut1->src, '\t');
-
-    pOut2->src = pOut1->src;
+    getline(ssRule, pathinfo, '\t');
+    getline(ssRule, pOut1->src, '\t'); getline(ssRule, pOut2->src, '\n');
   }
 
   void generateVector(string *pOut, uint64_t offset, const proposition_t &ie1, const proposition_t &ie2, google_word2vec_t &gw2v) {
