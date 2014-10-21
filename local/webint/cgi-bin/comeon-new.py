@@ -42,7 +42,7 @@ if None != fs.getvalue("query"):
 
 	# PRINT THE RESULT.
 	def _getCached(problemNo):
-		f														= open("/work/naoya-i/kb/corefevents.tsv")
+		f														= open("/work/naoya-i/kb/corefevents.0909.tsv")
 		m														= mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
 		examples										= []
 		numCorrect, numWrong				= 0, 0
@@ -66,7 +66,7 @@ if None != fs.getvalue("query"):
 		
 		for i in xrange(3):
 			contexts[i] = " ".join(filter(lambda x: x.split(":")[1] != governors[i].split(":")[1], contexts[i].split(" ")))
-		
+		print >>sys.stderr, examples
 		return result_t(*(
 				[lemmas[0], governors[0], contexts[0], lemmas[1], governors[1], contexts[1], lemmas[2], governors[2], contexts[2], numCorrect, numWrong, examples, text]
 				))
@@ -97,7 +97,7 @@ if None != fs.getvalue("query"):
 			return \
 				(x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred) + \
 				(0.5 * x.sIndexContext[x.iIndexed] * x.sPredictedContext)
-			
+                
 		return \
 			(x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred) * \
 			(0.2 * x.sPredictedArg) * \
@@ -219,12 +219,12 @@ if None != fs.getvalue("query"):
 						xrange(len(header.split()))
 						))
 				continue
-
-			irp1, irp2, ia12, sentdist, irc1, irc2, ig1, ig2, src = ir.split("\t")
-			a1,   a2																		= ia12.split(",")
-			a12																					= "%s,%s" % (a1, a2)
-			sentdist																		= str(sentdist)
-
+                        print >>sys.stderr, ir
+			irp1, irp2, ia12, sentdist, irc1, irc2, irpath, ig1, ig2 = ir.split("\t")
+			a1, a2 = ia12.split(",")
+			a12 = "%s,%s" % (a1, a2)
+			sentdist = str(sentdist)
+                        
 			if results.ana_gov == irp1:
 				corcon1 = results.ana_con
 			elif results.ante_gov == irp1:
@@ -243,7 +243,7 @@ if None != fs.getvalue("query"):
 			else:
 				corcon2 = ""
 
-			docfile, docid = src.lstrip("# ").split(":")
+			docfile, docid, sentid1, pid1 = ig1.lstrip("# ").split(":")
 			
 			print "<tr height=\"150px\"><td><a name=\"next%s\"></a>%s</td></tr>" % (nextAnchor, "</td><td>".join([
 				"%d" % (1+r),
@@ -267,7 +267,7 @@ if None != fs.getvalue("query"):
 			]))
 
 			print "<tr height=\"150px\"><td><a name=\"next%s\"></a>%s</td></tr>" % (nextAnchor, "</td><td>".join([
-				"%.2f<br />(p: %.2f)" % (_sortedScore(inst), inst.sRuleAssoc),
+				"%.6f<br />(p: %.2f)" % (_sortedScore(inst), inst.sRuleAssoc),
 				("%.4f <br />p: %.2f<br />a: %.2f<br /><a target=\"_blank\" href=\"siminspect.py?c1=%s&c2=%s\">c: %.2f</a><br />s: %.2f") % (
 					(float(inst.sIndexPred[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedPred))*
 					(float(inst.sIndexArg[int(inst.iIndexed)]) if 1 == inst.iIndexed else float(inst.sPredictedArg))*

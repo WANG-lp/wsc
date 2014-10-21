@@ -34,6 +34,7 @@ def main(options, args):
 	xmlText = etree.parse(options.input + ".xml")
         print >>sys.stderr, "Catenative = %s" % (options.cat)
         print >>sys.stderr, "Phrasal = %s" % (options.ph)
+        print >>sys.stderr, "Require phrase = %s" % (options.reqph)
         print >>sys.stderr, "New Polarity dict = %s" % (options.newpol)
         print >>sys.stderr, "W2V-based Similarity Search = %s" % (options.simw2v)
         print >>sys.stderr, "WordNet-based Similarity Search = %s" % (options.simwn)
@@ -42,6 +43,11 @@ def main(options, args):
         print >>sys.stderr, "Assign penalty not to use inter-sentential coreference = %s" % (options.insent2)
         print >>sys.stderr, "Use instances with required context = %s" % (options.req)
         print >>sys.stderr, "Not calculate features using KNN= %s" % (options.noknn)
+        print >>sys.stderr, "Using small KB = %s" % (options.kbsmall)
+        print >>sys.stderr, "Using old KB = %s" % (options.oldkb)
+        print >>sys.stderr, "Using path similarity 1/0.5 = %s" % (options.pathsim1)
+        print >>sys.stderr, "Using path similarity 1/0 = %s" % (options.pathsim2)
+        print >>sys.stderr, "Using path group similarity = %s" % (options.pathgroup)
 
         
 	# EXTRACT COREFERENCE RELATIONS IDENTIFIED BY CORE NLP
@@ -74,9 +80,9 @@ def main(options, args):
                 
 		print >>sys.stderr, "Processing No. %d..." % (i)
 
-                # if str(i) in parseerrlist:
-                #     print >>sys.stderr, "No. %d has Parse Errors" % (i)
-                #     continue
+                if str(i) in parseerrlist:
+                    print >>sys.stderr, "No. %d has Parse Errors" % (i)
+                    continue
 
 		# PARSE THE INPUT TUPLE.
 		ti = eval(ln)
@@ -239,10 +245,16 @@ if "__main__" == __name__:
         cmdparser.add_option("--simpred1", help	= "Set predicate similarity = 1", action="store_true", default=False)
 	cmdparser.add_option("--cat", help	= "Catenative ON", action="store_true", default=False)
         cmdparser.add_option("--ph", help	= "Phrasal ON", action="store_true", default=False)
+        cmdparser.add_option("--reqph", help	= "Use instances with required phrasal", action="store_true", default=False)
         cmdparser.add_option("--newpol", help	= "Use new polarity dictionaly ON", action="store_true", default=False)
         cmdparser.add_option("--insent", help	= "Using instances from inter-sentential coreference", action="store_true", default=False)
         cmdparser.add_option("--insent2", help	= "assign penalty not to use inter-sentential coreference", action="store_true", default=False)
         cmdparser.add_option("--req", help	= "Use instances with required context", action="store_true", default=False)
         cmdparser.add_option("--noknn", help	= "Not calculate features using KNN", action="store_true", default=False)
+        cmdparser.add_option("--kbsmall", help	= "Using small kb", action="store_true", default=False)
+        cmdparser.add_option("--oldkb", help	= "Using old kb", action="store_true", default=False)
+        cmdparser.add_option("--pathsim1", help	= "Path similarity (conective match: 1 or 0.5 )", action="store_true", default=False)
+        cmdparser.add_option("--pathsim2", help	= "Path similarity (conective match: 1 or 0 )", action="store_true", default=False)
+        cmdparser.add_option("--pathgroup", help	= "Using path similarity (conective group)", action="store_true", default=False)
         
 	main(*cmdparser.parse_args())

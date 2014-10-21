@@ -26,9 +26,9 @@ def getFirstOrderContext(sent, tk):
 	# 	["d:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getDependents(sent, tk)] +
 	# 	["g:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getGovernors(sent, tk)] )
 
-def getFirstOrderContext4phrasal(sent, tk):
+def getFirstOrderContext4phrasal(sent, tk, ph, phtype):
 	return " ".join(
-		["d:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getDependents4phrasal(sent, tk)] +
+		["d:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getDependents4phrasal(sent, tk, ph, phtype)] +
 		["g:%s:%s-%s" % (d[0], getLemma(d[1]), getPOS(d[1])[0].lower()) if None != d[1] else "" for d in getGovernors(sent, tk)] )
 
 def searchpath(adjacent, goal, path, endflag, paths):
@@ -183,15 +183,30 @@ def getDependents(sent, x):
 		for y in 
 		sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/governor[@idx='%s']/.." % x.attrib["id"])]
 
-def getDependents4phrasal(sent, x):
+def getDependents4phrasal(sent, x, ph, phtype):
     ret = []
-    phrasedeplist = ["advmod", "prt", "prep", "amod", "dobj"]
-    for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/governor[@idx='%s']/.." % x.attrib["id"]):
-        # print "Phrasal verb context"
-        # print y.attrib["type"]        
-        if not y.attrib["type"].strip() in phrasedeplist:
-            # print y.attrib["type"]
-            ret.append((y.attrib["type"], getTokenById(sent, y.find("dependent").attrib["idx"])))
+    # phrasedeplist = ["advmod", "prt", "prep", "amod", "dobj"]
+    dependents = getDependents(sent, x)
+    print >>sys.stderr, "Dep4ph = %s\n" %(dependents)
+    
+    if phtype == 0:
+        phrasedeplist = ["prt"]
+
+        for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/governor[@idx='%s']/.." % x.attrib["id"]):
+            # print "Phrasal verb context"
+            # print y.attrib["type"]        
+            if not y.attrib["type"].strip() in phrasedeplist:
+                # print y.attrib["type"]
+                ret.append((y.attrib["type"], getTokenById(sent, y.find("dependent").attrib["idx"])))
+    elif phtype == 1 or phtype == 2:
+        phrasetokenlist = ph.split("_")
+        for dep in dependents:
+            if not dep[1].xpath("./lemma/text()")[0] in phrasetokenlist[1:]:
+                ret.append(dep)
+            
+            # print >>sys.stderr, "Dep4phlemma = %s, phlist = %s\n" %(dep[1].xpath("./lemma/text()"), phrasetokenlist[1:])
+
+    print >>sys.stderr, "NewDep4ph = %s\n" %(ret)             
     return ret
 	
         

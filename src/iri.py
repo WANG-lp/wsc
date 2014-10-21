@@ -36,14 +36,21 @@ def _npmi(xy, x, y):
                 return 0
 
 class iri_t:
-	def __init__(self, fnCorefEventsTsv, pathServer, dirKb, fnWeightMap = "data/weightmap.tsv", numPara = 12, fUseMemoryMap = False):
+	def __init__(self, fnCorefEventsTsv, pathServer, dirKb, pa, fnWeightMap = "data/weightmap.tsv", numPara = 12, fUseMemoryMap = False):
 		# LOADING THE HASH TABLE.5
 		print >>sys.stderr, "Loading..."
 
 		opts = []
 
 		if fUseMemoryMap: opts += ["-q"]
-                opts += ["-c /work/naoya-i/kb/corefevents.0909small.cdblist/"]
+                if pa.kbsmall:
+                    opts += ["-c /work/naoya-i/kb/corefevents.0909small.cdblist/"]
+                else:
+                    if pa.oldkb == True:
+                        opts += ["-c /work/naoya-i/kb/corefevents.cdblist/"]
+                    else:
+                        opts += ["-c /work/naoya-i/kb/corefevents.0909.cdblist/"]
+                        
                 print >>sys.stderr, "OPTS = %s" % (" ".join(opts))
 		
 		self.procSearchServer = subprocess.Popen(
@@ -54,8 +61,13 @@ class iri_t:
 			stdin = subprocess.PIPE, stdout = subprocess.PIPE, )#stderr = subprocess.PIPE)
 		
 		# FOR PMI
-		self.cdbPreds = cdb.init(os.path.join(dirKb, "tuples.cdb"))
-		self.totalFreqPreds = int(open(os.path.join(dirKb, "tuples.totalfreq.txt")).read())
+                if pa.oldkb == True:
+                    self.cdbPreds = cdb.init(os.path.join(dirKb, "tuples.cdb"))
+                    self.totalFreqPreds = int(open(os.path.join(dirKb, "tuples.totalfreq.txt")).read())
+                else:
+                    self.cdbPreds = cdb.init(os.path.join(dirKb, "tuples.0909.cdb"))
+                    self.totalFreqPreds = int(open(os.path.join(dirKb, "tuples.0909.totalfreq.txt")).read())
+
 
 		self.corefeventsFile = open(fnCorefEventsTsv, "r")
 		self.corefeventsMmap = mmap.mmap(self.corefeventsFile.fileno(), 0, prot=mmap.PROT_READ)

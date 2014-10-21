@@ -69,12 +69,128 @@ def _catenativeget(gv, sent):
     else:
         return gv
 
+def _mapconjgroup(word):
+    if word in ['because', 'since', 'as', 'so']:
+        return 'because'
+    elif word in ['but', 'however', 'althogh']:
+        return 'but'
+    # elif word in ['even though', 'although']:
+    #     return 'even though'
+    else:
+        return word
+
+def _getpathsim(kbpaths, paths, simscore, pa):
+    requiredlist = ["d:conj_", "g:conj_", "d:mark:", "g:mark:"]
+    if kbpaths == [''] or paths == ['']:
+        return simscore
+    else:
+        for pathpair in itertools.product(kbpaths, paths):
+            path1 = pathpair[0].split(" ")
+            path2 = pathpair[1].split(" ")
+            if pa.pathgroup == True:
+                tmppath1 = []
+                tmppath2 = []
+                for depword in path1:
+                    conjword = depword.replace("g:conj_", "").replace("d:conj_", "").replace("d:mark:", "").replace("g:mark:", "").split(":")[0].split("-i")[0]
+                    if conjword  != "d" and conjword != "g":
+                        # print >>sys.stderr, "conjword = %s, depword = %s" % (conjword, depword)
+                        tmppath1.append(_mapconjgroup(conjword))
+                for depword in path2:
+                    conjword = depword.replace("g:conj_", "").replace("d:conj_", "").replace("d:mark:", "").replace("g:mark:", "").split(":")[0].split("-i")[0]
+                    if conjword  != "d" and conjword != "g":
+                        # print >>sys.stderr, "conjword = %s, depword = %s" % (conjword, depword)
+                        tmppath2.append(_mapconjgroup(conjword))
+                for intsec in set(tmppath1) & set(tmppath2):
+                    if "because" in intsec or "but" in intsec:
+                        simscore = 1.0
+            else:
+                for intsec in set(path1) & set(path2):
+                    # print "intsec = %s" %(intsec)
+                    for required in requiredlist:
+                        if intsec.startswith(required):
+                            simscore = 1.0
+        return simscore
+
+def _rmphrasalctx(ctxline, ph):
+    ret = []
+    phtype = ph[0]
+    print >>sys.stderr, "ctxline = %s" %(ctxline)
+    if ctxline == "":
+        return ctxline
+    if phtype == 0:
+        for ctx in ctxline.strip().split(' '):
+            print >>sys.stderr, "ctx = %s" %(ctx)
+            if ctx.split(':')[1] == 'prt':
+                continue
+            ret.append(ctx)
+    else:
+        targetctx = ph[2].split("_")[1:]
+        for ctx in ctxline.strip().split(' '):
+            ctxdep = ctx.split(':')[1]
+            if ctxdep.startswith("prep"):
+                if ctxdep.split('_')[1:] == targetctx:
+                    continue
+            if ctx.split(':')[2].split('-')[0] in targetctx:
+                continue
+            ret.append(ctx)
+    return " ".join(ret)
+
+def _setphrel(rel, ph):
+    phtype = ph[0]
+    if phtype == 2:
+        if rel.startswith("prep_"):
+            if rel.split("_")[1] in ph[2].split("_")[1:]:
+                return "dobj"
+    
+def _calphpenalty(ph, ctxline, rel, penaltyscore, pa):
+    if ph[0] == 0:
+        return penaltyscore * 1.0
+    if ph[0] == 2:
+        return penaltyscore * 0.5
+    if ph[0] == 1:
+        if rel.startswith("prep_"):
+            tarctxl = [rel.split("_")[1]]
+        else:
+            tarctxl = []
+            
+        if ctxline == "" and rel.startswith("prep_") == False:
+            return penaltyscore * 0.2
+
+        reqctxl = ph[2].split("_")[1:]
+        if not ctxline == "":
+            for ctx in ctxline.split(' '):
+                ctxdep = ctx.split(':')[1]
+                if ctxdep.startswith("prep_"):
+                    tarctxl.append(ctxdep.split('_')[1])
+                else:
+                    tarctxl.append(ctx.split(':')[2].split('-')[0])
+        # print >>sys.stderr, "reqctxl, tarctxl = %s, %s" %(reqctxl, tarctxl)
+        for reqctx in reqctxl:
+            if reqctx not in tarctxl:
+                return penaltyscore * 0.2
+        return penaltyscore * 1.0
+        
 def _phrasalget(gv, sent, dirPhDic):
     phrasedict = marshal.load( open(os.path.join(dirPhDic, "phrasedict.msl")) )
     # dirPhDic = "/home/jun-s/work/wsc/data"
     # phrasedict = marshal.load( open("/home/jun-s/work/wsc/data/phrasedict.msl") )
     # phrasedict = {'come': {'come_back': ['answer', 'denote', 'reappear', 're-emerge', 'refer', 'reply', 'respond'], 'come_by': ['acquire']}}
 
+    ###
+    dependent_items = sent.xpath("./dependencies[@type='basic-dependencies']/dep[not(@type='conj_and')]/governor[@idx='%s']" % gv.token.attrib["id"])
+    ret = []
+    phrasedeplist = ["prt"]
+    for depitem in dependent_items:
+        idx = depitem.xpath("../dependent")[0].attrib["idx"]
+        tp  = depitem.xpath("..")[0].attrib["type"]
+        lm = sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)
+        
+        if 0 == len(lm): lm = ["?"]
+        if tp in phrasedeplist:
+            prttpl = (0, "_".join([gv.lemma, lm[0]]))    # datatype = PRT
+            ret.append(prttpl)
+    ###
+    
     if gv.lemma in phrasedict:
         maxlen = 0
         for phkey in phrasedict[gv.lemma].keys():
@@ -88,35 +204,57 @@ def _phrasalget(gv, sent, dirPhDic):
             word = sent.xpath("./tokens/token[@id='%s']/lemma/text()" %ids)
             if word != []:
                 wordseqlist.append(word[0])
-            # print >>sys.stderr, "(wordseq = %s, maxlen = %d)" % (wordseqlist, maxlen)
         wssize = len(wordseqlist)
-        # print >>sys.stderr, "(wordseq = %s" % (wordseqlist)
 
-        paraphraselist = []
+        paratpllst = []
         if wssize == 2:
             wseq = "_".join(wordseqlist)
             if wseq in phrasedict[gv.lemma]:
-                paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
-                # print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
+                ###
+                wseqtpl = (1,) + (wseql[0],) + (wseq,) # datatype = phrasal verb
+                # paratpllst = []
+                for para in phrasedict[gv.lemma][wseq]:
+                    paratpl = (2, para, wseq)
+                    paratpllst += [paratpl] # datatype = paraphrase
+                ###
+                # paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
 
         elif wssize == 3:
             for wseql in [wordseqlist, wordseqlist[:-1], [wordseqlist[0]]+[wordseqlist[2]]]:
                 wseq = "_".join(wseql)
                 if wseq in phrasedict[gv.lemma]:
-                    paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
-                    # print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
+                    ###
+                    wseqtpl = (1,) + (wseql[0],) + (wseq,) # datatype = phrasal verb
+                    # paratpllst = []
+                    for para in phrasedict[gv.lemma][wseq]:
+                        paratpl = (2, para, wseq)
+                        paratpllst += [paratpl] # datatype = paraphrase
+                    ###
+                    # paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
                     break
         elif wssize == 4:
             for wseql in [wordseqlist, wordseqlist[:-1], wordseqlist[:2]+[wordseqlist[3]], [wordseqlist[0]]+wordseqlist[2:], wordseqlist[:2], [wordseqlist[0]]+[wordseqlist[2]], [wordseqlist[0]]+[wordseqlist[3]]]:
                 wseq = "_".join(wseql)
                 if wseq in phrasedict[gv.lemma]:
-                    paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
-                    # print >>sys.stderr, "(wordseq = %s, paraphraselist = %s)" % (wseq, paraphraselist)
+                    ###
+                    wseqtpl = (1,) + (wseql[0],) + (wseq,) # datatype = phrasal verb
+                    # paratpllst = []
+                    for para in phrasedict[gv.lemma][wseq]:
+                        paratpl = (2, para, wseq)
+                        paratpllst += [paratpl] # datatype = paraphrase
+                    ###
+                    # paraphraselist = [wseq] + phrasedict[gv.lemma][wseq]
                     break
+        ###
+        if paratpllst != []:
+            ret = ret + [wseqtpl] + paratpllst
+            # print >>sys.stderr, "ret = %s" % (ret)
+            return scn.governor_t(gv.rel, gv.token, ret, gv.POS)
+        ###
 
-        if paraphraselist != []:
-            # print >>sys.stderr, "\n\n(paraphraselist = %s)\n\n" % (paraphraselist)
-            return scn.governor_t(gv.rel, gv.token, paraphraselist, gv.POS)
+        # if paraphraselist != []:
+        #     # print >>sys.stderr, "\n\n(paraphraselist = %s)\n\n" % (paraphraselist)
+        #     return scn.governor_t(gv.rel, gv.token, paraphraselist, gv.POS)
         else:
             return gv
             
@@ -127,267 +265,271 @@ def _phrasalget(gv, sent, dirPhDic):
 
         
 class ranker_t:
-	def __init__(self, ff, ana, candidates, sent, pa):
-		self.NNexamples = []
-		self.NN = collections.defaultdict(list)
-		self.rankingsRv = collections.defaultdict(list)
-		self.statistics = collections.defaultdict(list)
-		self.pa	= pa
+    def __init__(self, ff, ana, candidates, sent, pa):
+        self.NNexamples = []
+        self.NN = collections.defaultdict(list)
+        self.rankingsRv = collections.defaultdict(list)
+        self.statistics = collections.defaultdict(list)
+        self.pa	= pa
 
-		if pa.simw2v: ff.libiri.setW2VSimilaritySearch(True)
-		if pa.simwn:  ff.libiri.setWNSimilaritySearch(True)
+        if pa.simw2v: ff.libiri.setW2VSimilaritySearch(True)
+        if pa.simwn:  ff.libiri.setWNSimilaritySearch(True)
 			
-		# FOR REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
-		# FOR EACH CANDIDATE.
-		for can in candidates:
-			wPrn, wCan	 = scn.getLemma(ana), scn.getLemma(can)
-			vCan				 = can.attrib["id"]
-			gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
-			pathline = scn.getPath(sent, ana, can, pa)
-                        # print >>sys.stderr, "(pathline = %s)\n" % (pathline)                      
+        # FOR REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
+        # FOR EACH CANDIDATE.
+        for can in candidates:
+            wPrn, wCan	 = scn.getLemma(ana), scn.getLemma(can)
+            vCan				 = can.attrib["id"]
+            gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
+            pathline = scn.getPath(sent, ana, can, pa)
                         
-			self.rankingsRv["position"] += [(vCan, -int(can.attrib["id"]))]
+            self.rankingsRv["position"] += [(vCan, -int(can.attrib["id"]))]
 
-			if None != gvAna and None != gvCan:
+            if None != gvAna and None != gvCan:
+                
+                # if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
+                # else: gvanalemmas = gvAna.lemma[0].split("_")[:1] + gvAna.lemma[1:]
+                # if not isinstance(gvCan.lemma, list): gvcanlemmas = [gvCan.lemma]
+                # else: gvcanlemmas = gvCan.lemma[0].split("_")[:1] + gvCan.lemma[1:]
 
-																		
-                                if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
-                                else: gvanalemmas = gvAna.lemma[0].split("_")[:1] + gvAna.lemma[1:]
-                                if not isinstance(gvCan.lemma, list): gvcanlemmas = [gvCan.lemma]
-                                else: gvcanlemmas = gvCan.lemma[0].split("_")[:1] + gvCan.lemma[1:]
 
-                                for (gvanalemma, gvcanlemma) in itertools.product(gvanalemmas, gvcanlemmas):
 
-                                    # SELECTIONAL PREFERENCE
-                                    if "O" == scn.getNEtype(can):
-                                        ret = ff.sp.calc("%s-%s" % (gvanalemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
-                                        self.rankingsRv["selpref"] += [(vCan, ret[0])]
-                                        self.rankingsRv["selprefCnt"] += [(vCan, ret[1])]
+                if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
+                else:
+                    print >>sys.stderr, gvAna.lemma
+                    gvanalemmas = [x[1] for x in gvAna.lemma]
+                if not isinstance(gvCan.lemma, list): gvcanlemmas = [gvCan.lemma]
+                else: gvcanlemmas = [x[1] for x in gvCan.lemma]
+                
+                for (gvanalemma, gvcanlemma) in itertools.product(gvanalemmas, gvcanlemmas):
+
+                    # SELECTIONAL PREFERENCE
+                    if "O" == scn.getNEtype(can):
+                        ret = ff.sp.calc("%s-%s" % (gvanalemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
+                        self.rankingsRv["selpref"] += [(vCan, ret[0])]
+                        self.rankingsRv["selprefCnt"] += [(vCan, ret[1])]
                                         
-                                    # NARRATIVE CHAIN FEATURE (C&J08'S OUTPUT)
-                                    self.rankingsRv["NCCJ08"] += [(vCan, 1 if 1 <= len(ff.nc.getChains(
-                                        ff.nc.createQuery(gvanalemma, gvAna.rel),
-                                        ff.nc.createQuery(gvcanlemma, gvCan.rel))) else 0)]
-                                    self.statistics["NCCJ08"] += [(vCan, "%s ~ %s" % (ff.nc.createQuery(gvanalemma, gvAna.rel), ff.nc.createQuery(gvcanlemma, gvCan.rel)))]
+                    # NARRATIVE CHAIN FEATURE (C&J08'S OUTPUT)
+                    self.rankingsRv["NCCJ08"] += [(vCan, 1 if 1 <= len(ff.nc.getChains(
+                        ff.nc.createQuery(gvanalemma, gvAna.rel),
+                        ff.nc.createQuery(gvcanlemma, gvCan.rel))) else 0)]
+                    self.statistics["NCCJ08"] += [(vCan, "%s ~ %s" % (ff.nc.createQuery(gvanalemma, gvAna.rel), ff.nc.createQuery(gvcanlemma, gvCan.rel)))]
                                 
-                                    # NARRATIVE CHAIN FEATURE
-                                    if len(ff.ncnaive) > 0:
-                                        for i in xrange(0, 8):
-                                            self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
-                                            self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
-                                            self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
-																
-                                # Q1, 2: CV
-                                if "O" == scn.getNEtype(can):
-                                    tkNextAna = scn.getNextPredicateToken(sent, ana)
-                                    qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
-                                    ret = ff.gn.search(qCV)
-                                    self.statistics["CV"] += [(vCan, " ".join(qCV))]
-                                    self.rankingsRv["googleCV"] += [(vCan, ret)]
-																
-                                    # Q3, Q4: CVW
-                                    tkNeighbor = scn.getNextToken(sent, tkNextAna)
-                                    if None != tkNeighbor:
-                                        qCV = [scn.getSurf(can), scn.getSurf(tkNextAna), scn.getSurf(tkNeighbor)]
-                                        ret = ff.gn.search(qCV)
-                                        self.statistics["CVW"] += [(vCan, " ".join(qCV))]
-                                        self.rankingsRv["googleCVW"] += [(vCan, ret)]
+                    # NARRATIVE CHAIN FEATURE
+                    if len(ff.ncnaive) > 0:
+                        for i in xrange(0, 1):
+                            self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                            self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
+                            self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
 
-                                    if "JJ" in gvAna.POS:
-                                        # Q5, Q6: JC
-                                        qCV = [scn.getSurf(gvAna.token), scn.getSurf(can)]
-                                        ret = ff.gn.search(qCV)
-                                        self.statistics["JC"] += [(vCan, " ".join(qCV))]
-                                        self.rankingsRv["googleJC"] += [(vCan, ret)]
+                            
+                # Q1, 2: CV
+                if "O" == scn.getNEtype(can):
+                    tkNextAna = scn.getNextPredicateToken(sent, ana)
+                    qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
+                    ret = ff.gn.search(qCV)
+                    self.statistics["CV"] += [(vCan, " ".join(qCV))]
+                    self.rankingsRv["googleCV"] += [(vCan, ret)]
+																
+                    # Q3, Q4: CVW
+                    tkNeighbor = scn.getNextToken(sent, tkNextAna)
+                    if None != tkNeighbor:
+                        qCV = [scn.getSurf(can), scn.getSurf(tkNextAna), scn.getSurf(tkNeighbor)]
+                        ret = ff.gn.search(qCV)
+                        self.statistics["CVW"] += [(vCan, " ".join(qCV))]
+                        self.rankingsRv["googleCVW"] += [(vCan, ret)]
+
+                    if "JJ" in gvAna.POS:
+                        # Q5, Q6: JC
+                        qCV = [scn.getSurf(gvAna.token), scn.getSurf(can)]
+                        ret = ff.gn.search(qCV)
+                        self.statistics["JC"] += [(vCan, " ".join(qCV))]
+                        self.rankingsRv["googleJC"] += [(vCan, ret)]
                                 
-                                if isinstance(gvAna.lemma, list) and isinstance(gvCan.lemma, list):
-                                    # print "anaphra govornor and candidate govornor are phrasal verb"
-                                    p1 = gvAna.lemma[0].split("_")[0]
-                                    p2 = gvCan.lemma[0].split("_")[0]
-                                    ff.iri(self.NN,
-                                           vCan,
-                                           p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
-                                           p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
-                                           pa,
-                                           self.statistics["iriInstances"],
-																					 self.NNexamples,
-                                       )
+                if isinstance(gvAna.lemma, list) and isinstance(gvCan.lemma, list):
+                    # print "anaphra govornor and candidate govornor are phrasal verb"
+                    for anaph in gvAna.lemma:
+                        for canph in gvCan.lemma:
+                            p1 = anaph[1]
+                            p2 = canph[1]
+                            ff.iri(self.NN,
+                                   vCan,
+                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
+                                   pathline,
+                                   pa,
+                                   self.statistics["iriInstances"],
+                                   self.NNexamples,
+                            )
+                            if p1 == p2:                            
+                                ff.iri(self.NN,
+                                       vCan,
+                                       p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
+                                       p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                                       pathline,
+                                       pa,
+                                       self.statistics["iriInstances"],
+                                       self.NNexamples,
+                                   )
 
-                                    if "nsubj" == gvAna.rel: gvanarel = "nsubj"
-                                    else: gvanarel = "dobj"
-                                    if "nsubj" == gvCan.rel: gvcanrel = "nsubj"
-                                    else: gvcanrel = "dobj"
+                    
+                    # p1 = gvAna.lemma[0].split("_")[0]
+                    # p2 = gvCan.lemma[0].split("_")[0]
+                    # ff.iri(self.NN,
+                    #        vCan,
+                    #        p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
+                    #        p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
+                    #        pathline,
+                    #        pa,
+                    #        self.statistics["iriInstances"],
+                    #        self.NNexamples,
+                    #    )
+                    
+                    # if "nsubj" == gvAna.rel: gvanarel = "nsubj"
+                    # else: gvanarel = "dobj"
+                    # if "nsubj" == gvCan.rel: gvcanrel = "nsubj"
+                    # else: gvcanrel = "dobj"
                                     
-                                    for p1 in gvAna.lemma[1:]:
-                                        for p2 in gvCan.lemma[1:]:
-                                            ff.iri(self.NN,
-                                                   vCan,
-                                                   p1, gvanarel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
-                                                   p2, gvcanrel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
-                                                   pa,
-                                                   self.statistics["iriInstances"],
-																									 self.NNexamples,
-                                            )
-                                elif isinstance(gvAna.lemma, list):
-                                    # print gvAna.lemma
-                                    # print "anaphora govonor is phrasal verb"
+                    # for p1 in gvAna.lemma[1:]:
+                    #     for p2 in gvCan.lemma[1:]:
+                    #         ff.iri(self.NN,
+                    #                vCan,
+                    #                p1, gvanarel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
+                    #                p2, gvcanrel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
+                    #                pathline,
+                    #                pa,
+                    #                self.statistics["iriInstances"],
+                    #                self.NNexamples,
+                    #            )
+                    
+                elif isinstance(gvAna.lemma, list):
+                    canph = None
+                    for anaph in gvAna.lemma:
+                        p1 = anaph[1]                            
+                        ff.iri(self.NN,
+                            vCan,
+                            p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                            gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
+                            pathline,
+                            pa,
+                            self.statistics["iriInstances"],
+                            self.NNexamples,
+                        )
+                        
+                        if p1 == gvCan.lemma:
+                            ff.iri(self.NN,
+                                   vCan,
+                                   gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
+                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                                   pathline,
+                                   pa,
+                                   self.statistics["iriInstances"],
+                                   self.NNexamples,
+                               )
+                            
 
-                                    # for predicate in gvAna.lemma:
-                                    #     if "_" in predicate:
-                                    #         p1 = predicate.split("_")[0]
-                                    #         ff.iri(self.NN,
-                                    #                vCan,
-                                    #                p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
-                                    #                gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
-                                    #                self.statistics["iriInstances"],
-                                    #            )
-                                    #     else:
-                                    #         if "nsubj" == gvAna.rel: gvanarel = "nsubj"
-                                    #         else: gvanarel = "dobj"
 
-                                    #         ff.iri(self.NN,
-                                    #                vCan,
-                                    #                p1, gvanarel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
-                                    #                gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
-                                    #                self.statistics["iriInstances"],
-                                    #         )
+                elif isinstance(gvCan.lemma, list):
+                    anaph = None
+                    for canph in gvCan.lemma:
+                        p2 = canph[1]
+                        ff.iri(self.NN,
+                           vCan,
+                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                           p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
+                           pathline,
+                           pa,
+                           self.statistics["iriInstances"],
+                           self.NNexamples,
+                        )
+
+                        if p2 == gvAna.lemma:
+                            ff.iri(self.NN,
+                                   vCan,
+                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
+                                   gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                                   pathline,
+                                   pa,
+                                   self.statistics["iriInstances"],
+                                   self.NNexamples,
+                               )                            
                                         
-                                    p1 = gvAna.lemma[0].split("_")[0]
-                                    ff.iri(self.NN,
-                                           vCan,
-                                           p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
-                                           gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
-                                           pa,
-                                           self.statistics["iriInstances"],
-																					 self.NNexamples,
-                                        )
+                else:
+                    anaph = None
+                    canph = None
+                    ff.iri(self.NN,
+                           vCan,
+                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                           gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph, 
+                           pathline,
+                           pa,
+                           self.statistics["iriInstances"],
+                           self.NNexamples,
+                       )
+                    if gvAna.lemma == gvCan.lemma:
+                        ff.iri(self.NN,
+                               vCan,
+                               gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph,
+                               gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                               pathline,
+                               pa,
+                               self.statistics["iriInstances"],
+                               self.NNexamples,
+                           )
+                        
+                    # ff.iriEnumerate(self.NNexamples,
+                    #        vCan,
+                    #        gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
+                    #        gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
+                    # )
+                        
 
-                                    if "nsubj" == gvAna.rel: gvanarel = "nsubj"
-                                    else: gvanarel = "dobj"
-                                    
-                                    for p1 in gvAna.lemma[1:]:
-                                        ff.iri(self.NN,
-                                               vCan,
-                                               p1, gvanarel, gvAna.POS, scn.getFirstOrderContext4phrasal(sent, gvAna.token), wPrn,
-                                               gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
-                                               pa,
-                                               self.statistics["iriInstances"],
-																							 self.NNexamples,
-                                        )
+        for rank in self.rankingsRv.values():
+            rank.sort(key=lambda x: x[1], reverse=True)
 
-
-                                elif isinstance(gvCan.lemma, list):
-                                    # print len(gvCan.lemma)
-                                    # print "candidate govonors is phrasal verb"
-
-                                    # for predicate in gvCan.lemma:
-                                    #     if "_" in predicate:
-                                    #         p2 = predicate.split("_")[0]
-                                    #         ff.iri(self.NN,
-                                    #                vCan,
-                                    #                gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
-                                    #                p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
-                                    #                self.statistics["iriInstances"],
-                                    #            )
-                                    #     else:
-                                    #         if "nsubj" == gvCan.rel: gvcanrel = "nsubj"
-                                    #         else: gvcanrel = "dobj"
-
-                                    #         ff.iri(self.NN,
-                                    #                vCan,
-                                    #                gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
-                                    #                p2, gvcanrel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
-                                    #                self.statistics["iriInstances"],
-                                    #            )
-
-
-                                    
-                                    p2 = gvCan.lemma[0].split("_")[0]
-                                    ff.iri(self.NN,
-                                           vCan,
-                                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
-                                           p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
-                                           pa,
-                                           self.statistics["iriInstances"],
-																					 self.NNexamples,
-                                       )
-
-                                    if "nsubj" == gvCan.rel: gvcanrel = "nsubj"
-                                    else: gvcanrel = "dobj"
-                                    
-                                    for p2 in gvCan.lemma[1:]:
-                                        # print p2
-                                        ff.iri(self.NN,
-                                               vCan,
-                                               gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
-                                               p2, gvcanrel, gvCan.POS, scn.getFirstOrderContext4phrasal(sent, gvCan.token), wCan,
-                                               pa,
-                                               self.statistics["iriInstances"],
-																							 self.NNexamples,
-                                        )
-                                        
-                                else:                                
-                                    ff.iri(self.NN,
-                                           vCan,
-                                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
-                                           gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(),
-                                           pa,
-                                           self.statistics["iriInstances"],
-																					 self.NNexamples,
-                                    )
-                                    # ff.iriEnumerate(self.NNexamples,
-                                    #        vCan,
-                                    #        gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
-                                    #        gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
-                                    # )
-
-
-		for rank in self.rankingsRv.values():
-			rank.sort(key=lambda x: x[1], reverse=True)
-
-	def getRankValue(self, x, t, de = 0.0, src = None):
-		for xc in src[t] if None != src else self.rankingsRv[t]:
-			if x == xc[0]: return xc[1]
+    def getRankValue(self, x, t, de = 0.0, src = None):
+        for xc in src[t] if None != src else self.rankingsRv[t]:
+            if x == xc[0]: return xc[1]
 			
-		return de
+        return de
 		
-	def getRank(self, x, t):
-		if 1 >= len(self.rankingsRv[t]) or self.rankingsRv[t][0][1] == self.rankingsRv[t][1][1]:
-			return None
+    def getRank(self, x, t):
+        if 1 >= len(self.rankingsRv[t]) or self.rankingsRv[t][0][1] == self.rankingsRv[t][1][1]:
+            return None
 
-		for i, xc in enumerate(self.rankingsRv[t]):
-			if x == xc[0]: return "R1" if 0 == i else "R2"
+        for i, xc in enumerate(self.rankingsRv[t]):
+            if x == xc[0]: return "R1" if 0 == i else "R2"
 
-	def sort(self):
-		for fk in self.NN.keys():
-			random.shuffle(self.NN[fk])
+    def sort(self):
+        for fk in self.NN.keys():
+            random.shuffle(self.NN[fk])
 			
-			self.NN[fk].sort(key=lambda y: y[1], reverse=True)
+            self.NN[fk].sort(key=lambda y: y[1], reverse=True)
 		
-	def getKNNRank(self, x, t, K=20):
-		votes = collections.defaultdict(int)
+    def getKNNRank(self, x, t, K=20):
+        votes = collections.defaultdict(int)
 
-		for votedCan, votedScore in self.NN[t][:K]:
-			votes[votedCan] += votedScore
+        for votedCan, votedScore in self.NN[t][:K]:
+            votes[votedCan] += votedScore
 
-		if len(votes) >= 2 and votes.values()[0] == votes.values()[1]:
-			return 0 if self.NN[t][:K][-1][0] != x else 1
+        if len(votes) >= 2 and votes.values()[0] == votes.values()[1]:
+            return 0 if self.NN[t][:K][-1][0] != x else 1
 
-		for i, xc in enumerate(sorted(votes.iteritems(), key=lambda y: y[1], reverse=True)):
-			if x == xc[0]: return i
+        for i, xc in enumerate(sorted(votes.iteritems(), key=lambda y: y[1], reverse=True)):
+            if x == xc[0]: return i
 
-		return len(votes)
+        return len(votes)
 	
-	def getKNNRankValue(self, x, t, K=20, score=False, de=0):
-		votes = collections.defaultdict(int)
+    def getKNNRankValue(self, x, t, K=20, score=False, de=0):
+        votes = collections.defaultdict(int)
 
-		for votedCan, votedScore in self.NN[t][:K]:
-			votes[votedCan] += 1 if not score else votedScore
+        for votedCan, votedScore in self.NN[t][:K]:
+            votes[votedCan] += 1 if not score else votedScore
 
-		for i, xc in enumerate(votes.iteritems()):
-			if x == xc[0]: return xc[1]
+        for i, xc in enumerate(votes.iteritems()):
+            if x == xc[0]: return xc[1]
 
-		return de
+        return de
 
 # LOAD THE KEY-VALUE STORE.
 class feature_function_t:
@@ -396,22 +538,38 @@ class feature_function_t:
 
 		self.libiri = None
 
-
+                if pa.kbsmall:
+                    coreftsv = "corefevents.0909small.tsv"
+                else:
+                    if pa.oldkb == True:
+                        coreftsv = "corefevents.tsv"
+                    else:
+                        coreftsv = "corefevents.0909.tsv"
 		self.libiri    = iri.iri_t(
-                        os.path.join(dirExtKb, "corefevents.0909small.tsv"),
+                        os.path.join(dirExtKb, coreftsv),
+                        # os.path.join(dirExtKb, "corefevents.tsv"),
 			os.path.join(os.path.dirname(sys.argv[0]), "../bin"),
 			dirExtKb,
+                        pa,
 			os.path.join(dirExtKb, "corefevents.com.lsh"),
 			fUseMemoryMap=pa.quicktest
 			)
 
 
 		self.ncnaive = {}
-		
-		# for i in xrange(0, 8):
-		# 	p                = 1.0/(2**i)
-		# 	self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive.ds.%s.cdb" % p), os.path.join(_getPathKB(), "tuples.cdb"))
-			
+
+                # if pa.oldkb == True:
+                #     for i in xrange(0, 8):
+                #         p                = 1.0/(2**i)
+                #         self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive.ds.%s.cdb" % p), os.path.join(_getPathKB(), "tuples.cdb"))
+                # else:
+                for i in xrange(0, 1):
+                    p                = 1.0/(2**i)
+                    if pa.oldkb == True:
+                        self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive.ds.%s.cdb" % p), os.path.join(_getPathKB(), "tuples.cdb"))
+                    else:
+                        self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive0909.0.cdb"), os.path.join(_getPathKB(), "tuples.0909.cdb"))                        
+                            
 		self.nc        = nccj08.nccj08_t(os.path.join(_getPathKB(), "schemas-size12"), os.path.join(_getPathKB(), "verb-pair-orders"))
 		self.sp        = selpref.selpref_t(pathKB=_getPathKB())
                 if pa.newpol:
@@ -505,13 +663,13 @@ class feature_function_t:
 		# ANTECEDENT-DEPENDENT.
 		if None != gvAna:
 			if isinstance(gvAna.lemma, list):
-				yield "%s_LEX_ADHC1VA_%s,%s" % (position, scn.getLemma(can), gvAna.lemma[0]), 1
+				yield "%s_LEX_ADHC1VA_%s,%s" % (position, scn.getLemma(can), gvAna.lemma[0][1]), 1
 			else:
 				yield "%s_LEX_ADHC1VA_%s,%s" % (position, scn.getLemma(can), gvAna.lemma), 1
 
 		if None != gvCan:
 			if isinstance(gvCan.lemma, list):
-				yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma[0]), 1
+				yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma[0][1]), 1
 			else:
 				yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma), 1
 				
@@ -543,13 +701,21 @@ class feature_function_t:
                 # print >>sys.stderr, "### gvCan1 = %s, gvCan2 = %s, gvAna = %s" % (gvCan1, gvCan2, gvAna)
 		if None == gvAna or None == gvCan1 or None == gvCan2: return
 
-                if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
-                else: gvanalemmas = gvAna.lemma[0].split("_")[:1] + gvAna.lemma[1:]
-                if not isinstance(gvCan1.lemma, list): gvcan1lemmas = [gvCan1.lemma]
-                else: gvcan1lemmas = gvCan1.lemma[0].split("_")[:1] + gvCan1.lemma[1:]
-                if not isinstance(gvCan2.lemma, list): gvcan2lemmas = [gvCan2.lemma]
-                else: gvcan2lemmas = gvCan2.lemma[0].split("_")[:1] + gvCan2.lemma[1:]
+                # if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
+                # else: gvanalemmas = gvAna.lemma[0].split("_")[:1] + gvAna.lemma[1:]
+                # if not isinstance(gvCan1.lemma, list): gvcan1lemmas = [gvCan1.lemma]
+                # else: gvcan1lemmas = gvCan1.lemma[0].split("_")[:1] + gvCan1.lemma[1:]
+                # if not isinstance(gvCan2.lemma, list): gvcan2lemmas = [gvCan2.lemma]
+                # else: gvcan2lemmas = gvCan2.lemma[0].split("_")[:1] + gvCan2.lemma[1:]
 
+                if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
+                else: gvanalemmas = [x[1] for x in gvAna.lemma]
+                if not isinstance(gvCan1.lemma, list): gvcan1lemmas = [gvCan1.lemma]
+                else: gvcan1lemmas = [x[1] for x in gvCan1.lemma]
+                if not isinstance(gvCan2.lemma, list): gvcan2lemmas = [gvCan2.lemma]
+                else: gvcan2lemmas = [x[1] for x in gvCan2.lemma]
+
+                
                 for gvanalemma in gvanalemmas:
                 
                     for (gvcan1lemma, gvcan2lemma) in itertools.product(gvcan1lemmas, gvcan2lemmas):
@@ -610,33 +776,26 @@ class feature_function_t:
 			
 			outExamples += [(NNvoted, vector)]
 				
-	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2, pa, cached = None, outExamples = None):
+	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, ph1, p2, r2, ps2, c2, a2, ph2, pathline, pa, cached = None, outExamples = None):
 		if None == self.libiri: return 0
                 if pa.noknn == True: return 0
 
+                if pa.ph and ph1:
+                    if ph1[0] == 0:
+                        c1 = _rmphrasalctx(c1, ph1)
+                    if ph1[0] == 2:
+                        c1 = _rmphrasalctx(c1, ph1)
+                        r1 = _setphrel(r1, ph1)
+                        
+                if pa.ph and ph2:
+                    if ph2[0] == 0:
+                        c2 = _rmphrasalctx(c2, ph2)
+                    if ph2[0] == 2:
+                        c2 = _rmphrasalctx(c2, ph2)
+                        r2 = _setphrel(r2, ph2)
+
+
 		# ELIMINATE THE ELEMENT WITH THE SAME ROLE AS ROLE.
-
-                # print "c1 = %s, c2 = %s" %(c1, c2)
-
-                # # print "r1 = %s, r2 = %s" %(r1, r2)
-                # # c1 = c1.strip().split(" ")
-                # # c2 = c2.strip().split(" ")
-                # # print "c1 = %s, c2 = %s" %(c1, c2)
-
-                # for tt in c2.strip().split(" "):
-                #     if tt != "":
-                #         print tt.split(":")[1]
-
-                # c1 = c1.strip().split(" ") if "" != c1.strip() else c1
-                # c2 = c2.strip().split(" ") if "" != c2.strip() else c2
-                # if c1.strip() != "": while "" in c1: c1.remove("")
-                # if c2.strip() != "": while "" in c2: c2.remove("")
-                # c1 = " ".join(filter(lambda x: x.split(":")[1] != r1, c1))
-                # c2 = " ".join(filter(lambda x: x.split(":")[1] != r2, c2))
-                
-                # # print "c2split = %s" %(c2.split(":"))
-
-                # # c2 = " "
                 
 		c1 = " ".join(filter(lambda x: x.split(":")[1] != r1, c1.strip().split(" "))) if "" != c1.strip() else c1
 		c2 = " ".join(filter(lambda x: x.split(":")[1] != r2, c2.strip().split(" "))) if "" != c2.strip() else c2
@@ -645,13 +804,55 @@ class feature_function_t:
                 
 		nnVectors = []
                 requiredlist = ["d:conj_", "g:conj_", "d:mark:"]
+                paths = pathline.split("|")
+                # if pa.pathsim1 == True:
+                #     conjpath = False
+                #     for pppp in paths:
+                #         for ppp in pppp.split(" "):
+                #             for required in requiredlist:
+                #                 if ppp.startswith(required): conjpath = True
+                #     print "conjpath = %s" %(conjpath)
+                #     print paths
 		
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
                         penaltyscore = 1.0
+                        if pa.ph:
+                            ctxlinel = raw[4].strip()
+                            ctxliner = raw[5].strip()
+                            predl = raw[0].split("-")[0]
+                            predr = raw[1].split("-")[0]
+                            rell = raw[0].split(":")[1]
+                            relr = raw[1].split(":")[1]
 
-                        # print >>sys.stderr, "(raw = %s \n\n)" % (raw)
+                            if predl == p1:
+                                assert(predr == p2)
+                                ctxline1 = ctxlinel
+                                ctxline2 = ctxliner
+                                rel1 = rell
+                                rel2 = relr
+                            else:
+                                assert(predr == p1)
+                                assert(predl == p2)
+                                ctxline1 = ctxliner
+                                ctxline2 = ctxlinel
+                                rel1 = relr
+                                rel2 = rell
+                                
+                            if ph1:
+                                penaltyscore = _calphpenalty(ph1, ctxline1, rel1, penaltyscore, pa)
+                                if pa.reqph == True:
+                                    if penaltyscore == 0.2:
+                                        continue
+                            if ph2:
+                                penaltyscore = _calphpenalty(ph2, ctxline2, rel2, penaltyscore, pa)
+                                if pa.reqph == True:
+                                    if penaltyscore == 0.2:
+                                        continue
+                            # print >>sys.stderr, "raw = %s" %(raw)
 
+                        kbpaths = raw[6].split("|")
+                        
                         if pa.insent == True: # USE INSTANCES FROM INTER-SENTENTIAL COREFERENCE
                             if "1" == raw[3]:
                                 continue
@@ -689,12 +890,24 @@ class feature_function_t:
                                 if reqc2 != []:
                                     if set(reqc2) != set(reqc2) & set(raw[4].strip().split(" ")):
                                         continue
-                            
+
+
+                        if pa.pathsim1 == True or pa.pathsim2 == True:
+                            if pa.pathsim1: pathsimilarity = 0.5
+                            elif pa.pathsim2: pathsimilarity = 0
+                            pathsimilarity = _getpathsim(kbpaths, paths, pathsimilarity, pa)
+                            if pathsimilarity == 0: continue
+                            # print "path similarity = %s" % (pathsimilarity)
+                                
                         if pa.simpred1 == True: # SET PRED SIMILARITY = 1 
                             sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sRuleAssoc*penaltyscore
                         else:
                             sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc*penaltyscore
-			spa = sp * ret.sPredictedArg
+
+                        if pa.pathsim1 == True:
+                            sp = sp * pathsimilarity
+
+                        spa = sp * ret.sPredictedArg
 			spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 
@@ -704,8 +917,12 @@ class feature_function_t:
 			
                         if None != cached: cached += [(NNvoted, ret)]
 
-                        if pa.simpred1 == True:
-                            assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/penaltyscore - ret.score) < 0.1)
+                        if pa.simpred1 == True and pa.pathsim1 == True:
+                            assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore * pathsimilarity) - ret.score) < 0.1)
+                        elif pa.simpred1 == True:
+                            assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore) - ret.score) < 0.1)
+                        elif pa.pathsim1 == True:
+                            assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore * pathsimilarity) - ret.score) < 0.1)
                         else:
                             assert(abs(spac/penaltyscore - ret.score) < 0.1)
 
