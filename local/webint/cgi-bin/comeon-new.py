@@ -66,7 +66,6 @@ if None != fs.getvalue("query"):
 		
 		for i in xrange(3):
 			contexts[i] = " ".join(filter(lambda x: x.split(":")[1] != governors[i].split(":")[1], contexts[i].split(" ")))
-		print >>sys.stderr, examples
 		return result_t(*(
 				[lemmas[0], governors[0], contexts[0], lemmas[1], governors[1], contexts[1], lemmas[2], governors[2], contexts[2], numCorrect, numWrong, examples, text]
 				))
@@ -219,7 +218,6 @@ if None != fs.getvalue("query"):
 						xrange(len(header.split()))
 						))
 				continue
-                        print >>sys.stderr, ir
 			irp1, irp2, ia12, sentdist, irc1, irc2, irpath, ig1, ig2 = ir.split("\t")
 			a1, a2 = ia12.split(",")
 			a12 = "%s,%s" % (a1, a2)

@@ -114,12 +114,12 @@ def _getpathsim(kbpaths, paths, simscore, pa):
 def _rmphrasalctx(ctxline, ph):
     ret = []
     phtype = ph[0]
-    print >>sys.stderr, "ctxline = %s" %(ctxline)
+    # print >>sys.stderr, "ctxline = %s" %(ctxline)
     if ctxline == "":
         return ctxline
     if phtype == 0:
         for ctx in ctxline.strip().split(' '):
-            print >>sys.stderr, "ctx = %s" %(ctx)
+            # print >>sys.stderr, "ctx = %s" %(ctx)
             if ctx.split(':')[1] == 'prt':
                 continue
             ret.append(ctx)
@@ -295,9 +295,7 @@ class ranker_t:
 
 
                 if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
-                else:
-                    print >>sys.stderr, gvAna.lemma
-                    gvanalemmas = [x[1] for x in gvAna.lemma]
+                else: gvanalemmas = [x[1] for x in gvAna.lemma]
                 if not isinstance(gvCan.lemma, list): gvcanlemmas = [gvCan.lemma]
                 else: gvcanlemmas = [x[1] for x in gvCan.lemma]
                 
@@ -817,7 +815,7 @@ class feature_function_t:
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
                         penaltyscore = 1.0
-                        if pa.ph:
+                        if ph1 == True or ph2 == True:
                             ctxlinel = raw[4].strip()
                             ctxliner = raw[5].strip()
                             predl = raw[0].split("-")[0]
@@ -825,15 +823,14 @@ class feature_function_t:
                             rell = raw[0].split(":")[1]
                             relr = raw[1].split(":")[1]
 
-                            if predl == p1:
-                                assert(predr == p2)
+                            if predl == p1 or predr == p2:
+                                # assert(predr == p2)
                                 ctxline1 = ctxlinel
                                 ctxline2 = ctxliner
                                 rel1 = rell
                                 rel2 = relr
-                            else:
-                                assert(predr == p1)
-                                assert(predl == p2)
+                            elif predr == p1 or predl == p2:
+                                # assert(predl == p2)
                                 ctxline1 = ctxliner
                                 ctxline2 = ctxlinel
                                 rel1 = relr
