@@ -44,12 +44,12 @@ class iri_t:
 
 		if fUseMemoryMap: opts += ["-q"]
                 if pa.kbsmall:
-                    opts += ["-c /work/naoya-i/kb/corefevents.0909small.cdblist/"]
+                    opts += ["-c /work/jun-s/kb/corefevents.0909small.cdblist/"]
                 else:
                     if pa.oldkb == True:
-                        opts += ["-c /work/naoya-i/kb/corefevents.cdblist/"]
+                        opts += ["-c /work/jun-s/kb/corefevents.cdblist/"]
                     else:
-                        opts += ["-c /work/naoya-i/kb/corefevents.0909.cdblist/"]
+                        opts += ["-c /work/jun-s/kb/corefevents.0909.cdblist/"]
                         
                 print >>sys.stderr, "OPTS = %s" % (" ".join(opts))
 		
@@ -170,9 +170,9 @@ class iri_t:
 if "__main__" == __name__:
 	# UNIT TEST.
 	iri = iri_t(
-		"/work/naoya-i/kb/corefevents.tsv",
-		"/home/naoya-i/work/wsc/bin",
-		"/work/naoya-i/kb",
+		"/work/jun-s/kb/corefevents.tsv",
+		"/home/napya-i/work/wsc/bin",
+		"/work/jun-s/kb",
 		fUseMemoryMap=True
 	)
 
