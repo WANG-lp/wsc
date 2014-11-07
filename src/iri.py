@@ -79,17 +79,46 @@ class iri_t:
 
 	def setWNSimilaritySearch(self, flag):
 		print >>self.procSearchServer.stdin, "w", "y" if flag else "n"
-
+        
 	def setW2VSimilaritySearch(self, flag):
 		print >>self.procSearchServer.stdin, "+", "y" if flag else "n"
 
 	def setEnumMode(self, flag):
 		self.fEnumMode = flag
 		print >>self.procSearchServer.stdin, "e", "y" if flag else "n"
+                
+        # def getNumRules(self, predicate, context, slot, focusedArgument,
+	# 						predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None,
+	# 						threshold = 0, limit = 10000, pos1 = '', pos2 = '', fVectorMode = False):
+        #         keyCache = predicate + context + str(threshold)
+
+        #         if "" != pos1: pos1 = pos1.lower()[0]
+	# 	if "" != pos2: pos2 = pos2.lower()[0]
 		
-	def predict(self, predicate, context, slot, focusedArgument,
-							predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None,
-							threshold = 0, limit = 10000, pos1 = '', pos2 = '', fVectorMode = False):
+	# 	print >>self.procSearchServer.stdin, "p", predicate
+	# 	print >>self.procSearchServer.stdin, "c", context
+	# 	print >>self.procSearchServer.stdin, "s", slot
+	# 	#print >>self.procSearchServer.stdin, "a", focusedArgument
+	# 	print >>self.procSearchServer.stdin, "a", predictedFocusedArgument
+
+	# 	if None != predictedFocusedArgument:
+	# 		print >>self.procSearchServer.stdin, "~p", predictedPredicate
+	# 		print >>self.procSearchServer.stdin, "~c", predictedContext
+	# 		print >>self.procSearchServer.stdin, "~s", predictedSlot
+	# 		print >>self.procSearchServer.stdin, "~a", predictedFocusedArgument
+
+	# 	print >>self.procSearchServer.stdin, "t", threshold
+	# 	print >>self.procSearchServer.stdin, "m", limit
+	# 	print >>self.procSearchServer.stdin, "v", "y" if fVectorMode else "n"
+	# 	print >>self.procSearchServer.stdin, ""
+                
+        #         numExactMatchIRIs = int(self.procSearchServer.stdout.readline())
+	# 	numIRIs = int(self.procSearchServer.stdout.readline())
+        #         return numIRIs
+            
+	def predict(self, predicate, context, slot, focusedArgument, simretry,
+                    predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None,  
+                    threshold = 0, limit = 10000, pos1 = '', pos2 = '', fVectorMode = False):
 		keyCache = predicate + context + str(threshold)
 
 		if "" != pos1: pos1 = pos1.lower()[0]
@@ -115,9 +144,18 @@ class iri_t:
 		# READ THE NUMBER OF IRIs.
 		numExactMatchIRIs = int(self.procSearchServer.stdout.readline())
 		numIRIs = int(self.procSearchServer.stdout.readline())
-			
+                
 		ret     = []
 
+                if numIRIs == 0 and simretry == True:
+                    print >>sys.stderr, "CHANGE SIMWN ON"    
+                    self.setWNSimilaritySearch(True)
+                    simretry = False
+                    # print >>sys.stderr, predicate, context, slot, focusedArgument, simretry, ff, predictedPredicate, predictedContext, predictedSlot, predictedFocusedArgument, threshold, limit, pos1, pos2, fVectorMode
+                    for retx, rawx, vecx in self.predict(predicate, context, slot, focusedArgument, simretry, predictedPredicate, predictedContext, predictedSlot, predictedFocusedArgument, threshold, limit, pos1, pos2, fVectorMode):
+                        yield retx, rawx, vecx
+                    return
+                
 		# CALCULATE PMI
 		pr1, pr2 = "%s:%s" % (predicate, slot), "%s:%s" % (predictedPredicate, predictedSlot)
 		if pr1 > pr2: pr1, pr2 = pr2, pr1
@@ -126,7 +164,17 @@ class iri_t:
 					1.0*int(_cdbdefget(self.cdbPreds, pr1, 1)) / self.totalFreqPreds,
 					1.0*int(_cdbdefget(self.cdbPreds, pr2, 1)) / self.totalFreqPreds)
 		print >>sys.stderr, pr1, pr2, numExactMatchIRIs, int(_cdbdefget(self.cdbPreds, pr1, 1)), int(_cdbdefget(self.cdbPreds, pr2, 1))
-		
+
+                # if numIRIs == 0 and simretry == True:
+                #     print >>sys.stderr, "CHANGE SIMWN ON"    
+                #     self.setWNSimilaritySearch(True)
+                #     simretry = False
+                #     # print >>sys.stderr, predicate, context, slot, focusedArgument, simretry, ff, predictedPredicate, predictedContext, predictedSlot, predictedFocusedArgument, threshold, limit, pos1, pos2, fVectorMode
+                #     for retx, rawx, vecx in self.predict(predicate, context, slot, focusedArgument, simretry, predictedPredicate, predictedContext, predictedSlot, predictedFocusedArgument, threshold, limit, pos1, pos2, fVectorMode):
+                #         yield retx, rawx, vecx
+                #     return
+                    
+                
 		for i in xrange(numIRIs):
 			if self.fEnumMode:
 				yield self.procSearchServer.stdout.readline().strip().split("\t")
@@ -143,8 +191,6 @@ class iri_t:
 			 		spm, scm, sm, sam \
 			 		= struct.unpack("=HHQHf" + "f"*(4*3), self.procSearchServer.stdout.read(2+2+8+2+4+4*4*3))
 
-			score *= spassoc
-			
 			try:
 				line   = self.procSearchServer.stdout.readline().strip().split("\t")
 				vector = map(lambda y: map(lambda x: tuple(x.rsplit(":", 1)), y.split(" ")), self.procSearchServer.stdout.readline().strip().split("\t"))
@@ -153,6 +199,17 @@ class iri_t:
 				raise "Protocol Error"
 				continue
 
+                        if numExactMatchIRIs == 0:
+                            npr1 = line[0]
+                            npr2 = line[1]
+                            if npr1 > npr2: npr1, npr2 = npr2, npr1
+                            spassoc = _npmi(1.0*numIRIs / self.totalFreqPreds,
+                                        1.0*int(_cdbdefget(self.cdbPreds, npr1, 1)) / self.totalFreqPreds,
+                                        1.0*int(_cdbdefget(self.cdbPreds, npr2, 1)) / self.totalFreqPreds)
+                        
+			score *= spassoc
+			
+                                
                         # result_t = collections.namedtuple(
                         #     "result_t",
                         #     "score iPredicted iIndexed sRuleAssoc" +\
@@ -160,6 +217,7 @@ class iri_t:
                         #     " sPredictedPred sPredictedArg sPredictedContext sPredictedSlot" +\
                         #     " offset length"
                         # )
+                        # print >>sys.stderr, iPredicted, iIndexed, line, numExactMatchIRIs, numIRIs, spassoc, score
         
 			yield result_t(score, iPredicted, iIndexed, spassoc,
 										 (spm1, spm2), (sam1, sam2), (scm1, scm2), (sm1, sm2),

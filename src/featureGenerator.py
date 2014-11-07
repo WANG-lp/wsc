@@ -272,12 +272,14 @@ class ranker_t:
         self.statistics = collections.defaultdict(list)
         self.pa	= pa
 
-        if pa.simw2v: ff.libiri.setW2VSimilaritySearch(True)
-        if pa.simwn:  ff.libiri.setWNSimilaritySearch(True)
+        # if pa.simw2v: ff.libiri.setW2VSimilaritySearch(True)
+        # if pa.simwn:  ff.libiri.setWNSimilaritySearch(True)
+        # if pa.simwn:  ff.libiri.setWNSimilaritySearch(False)
 			
-        # FOR REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
+        # For REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
         # FOR EACH CANDIDATE.
         for can in candidates:
+                
             wPrn, wCan	 = scn.getLemma(ana), scn.getLemma(can)
             vCan				 = can.attrib["id"]
             gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
@@ -286,13 +288,11 @@ class ranker_t:
             self.rankingsRv["position"] += [(vCan, -int(can.attrib["id"]))]
 
             if None != gvAna and None != gvCan:
-                
+
                 # if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
                 # else: gvanalemmas = gvAna.lemma[0].split("_")[:1] + gvAna.lemma[1:]
                 # if not isinstance(gvCan.lemma, list): gvcanlemmas = [gvCan.lemma]
                 # else: gvcanlemmas = gvCan.lemma[0].split("_")[:1] + gvCan.lemma[1:]
-
-
 
                 if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
                 else: gvanalemmas = [x[1] for x in gvAna.lemma]
@@ -319,7 +319,6 @@ class ranker_t:
                             self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
                             self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
                             self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
-
                             
                 # Q1, 2: CV
                 if "O" == scn.getNEtype(can):
@@ -345,7 +344,7 @@ class ranker_t:
                         self.rankingsRv["googleJC"] += [(vCan, ret)]
                                 
                 if isinstance(gvAna.lemma, list) and isinstance(gvCan.lemma, list):
-                    # print "anaphra govornor and candidate govornor are phrasal verb"
+                    print >>sys.stderr, "anaphra govornor and candidate govornor are phrasal verb"
                     for anaph in gvAna.lemma:
                         for canph in gvCan.lemma:
                             p1 = anaph[1]
@@ -356,6 +355,7 @@ class ranker_t:
                                    p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
                                    pathline,
                                    pa,
+                                   ff,
                                    self.statistics["iriInstances"],
                                    self.NNexamples,
                             )
@@ -366,6 +366,7 @@ class ranker_t:
                                        p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
                                        pathline,
                                        pa,
+                                       ff,
                                        self.statistics["iriInstances"],
                                        self.NNexamples,
                                    )
@@ -401,6 +402,7 @@ class ranker_t:
                     #            )
                     
                 elif isinstance(gvAna.lemma, list):
+                    print >>sys.stderr, "anaphra govornor is phrasal verb"
                     canph = None
                     for anaph in gvAna.lemma:
                         p1 = anaph[1]                            
@@ -410,6 +412,7 @@ class ranker_t:
                             gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
                             pathline,
                             pa,
+                            ff,
                             self.statistics["iriInstances"],
                             self.NNexamples,
                         )
@@ -421,6 +424,7 @@ class ranker_t:
                                    p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
                                    pathline,
                                    pa,
+                                   ff,
                                    self.statistics["iriInstances"],
                                    self.NNexamples,
                                )
@@ -428,6 +432,7 @@ class ranker_t:
 
 
                 elif isinstance(gvCan.lemma, list):
+                    print >>sys.stderr, "candidate govornor is phrasal verb"
                     anaph = None
                     for canph in gvCan.lemma:
                         p2 = canph[1]
@@ -437,6 +442,7 @@ class ranker_t:
                            p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
                            pathline,
                            pa,
+                           ff,
                            self.statistics["iriInstances"],
                            self.NNexamples,
                         )
@@ -448,6 +454,7 @@ class ranker_t:
                                    gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
                                    pathline,
                                    pa,
+                                   ff,
                                    self.statistics["iriInstances"],
                                    self.NNexamples,
                                )                            
@@ -461,6 +468,7 @@ class ranker_t:
                            gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph, 
                            pathline,
                            pa,
+                           ff,
                            self.statistics["iriInstances"],
                            self.NNexamples,
                        )
@@ -471,6 +479,7 @@ class ranker_t:
                                gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
                                pathline,
                                pa,
+                               ff,
                                self.statistics["iriInstances"],
                                self.NNexamples,
                            )
@@ -767,14 +776,14 @@ class feature_function_t:
 
 	def iriEnumerate(self, outExamples, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2):
 		if None == self.libiri: return 0
-		
+
 		for vector in self.libiri.predict(
 				"%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2,
 				threshold = 1, pos1=ps1, pos2=ps2, limit=1000, fVectorMode=True):
 			
 			outExamples += [(NNvoted, vector)]
 				
-	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, ph1, p2, r2, ps2, c2, a2, ph2, pathline, pa, cached = None, outExamples = None):
+	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, ph1, p2, r2, ps2, c2, a2, ph2, pathline, pa, ff, cached = None, outExamples = None):
 		if None == self.libiri: return 0
                 if pa.noknn == True: return 0
 
@@ -811,9 +820,24 @@ class feature_function_t:
                 #                 if ppp.startswith(required): conjpath = True
                 #     print "conjpath = %s" %(conjpath)
                 #     print paths
-		
+
+                simretry = False
+                if pa.simwn == True:
+                    print >>sys.stderr, "SET SIMWN OFF"
+                    self.libiri.setWNSimilaritySearch(False)
+                    simretry = True
+
+                # nnn = self.libiri.getNumRules("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000)
+                # print >>sys.stderr, "NumRules = %d" % (nnn)
+                
+                # if pa.simwn and nnn == 0:
+                #     print >>sys.stderr, "\nCHANGE SIMWN ON\n"
+                #     ff.libiri.setWNSimilaritySearch(True)
+                
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
-                for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
+                for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, simretry, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
+                        # print >>sys.stderr, "ret = %s" %(ret)
+                            
                         penaltyscore = 1.0
                         if ph1 == True or ph2 == True:
                             ctxlinel = raw[4].strip()
@@ -960,5 +984,5 @@ class feature_function_t:
 
 		# for score, goodVec in sorted(nnVectors, key=lambda x: x[0], reverse=True)[:5]:
 		# 	outExamples += [(NNvoted, goodVec)]
-		
+
 		return 0

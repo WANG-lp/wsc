@@ -42,7 +42,7 @@ if None != fs.getvalue("query"):
 
 	# PRINT THE RESULT.
 	def _getCached(problemNo):
-		f														= open("/work/naoya-i/kb/corefevents.0909.tsv")
+		f														= open("/work/jun-s/kb/corefevents.0909.tsv")
 		m														= mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
 		examples										= []
 		numCorrect, numWrong				= 0, 0
