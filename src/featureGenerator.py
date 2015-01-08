@@ -20,6 +20,8 @@ import cdb
 import marshal
 
 #
+s_final = collections.namedtuple('s_final', 'sp spa spc spac')
+
 def _isPredicate(x):  return x in "VB|VBD|VBG|VBN|VBP|VBZ|JJ|JJR|JJS".split("|")
 def _isNounPhrase(x): return x in "NN|NNP|NNS|NNPS".split("|")
 def _getPathKB(): return open("./pathKB.txt").read().strip()
@@ -516,6 +518,17 @@ class ranker_t:
     def getKNNRank(self, x, t, K=20):
         votes = collections.defaultdict(int)
 
+        if 100 < len(self.NN[t]):
+            tmpNNt = self.NN[t][:100]
+        else:
+            tmpNNt = self.NN[t]
+        if K < len(self.NN[t]):
+            # K = len(self.NN[t])-1
+            if len(set([v[0] for v in tmpNNt if v[1] == tmpNNt[K-1][1]])) >= 2 and tmpNNt[K-1][1] == tmpNNt[K][1]:
+                return 0
+        # if len(set([v[0] for v in tmpNNt if v[1] == tmpNNt[K-1][1]])) >= 2 and tmpNNt[K-1][1] == tmpNNt[K][1]:
+            # return 0
+
         for votedCan, votedScore in self.NN[t][:K]:
             votes[votedCan] += votedScore
 
@@ -530,9 +543,22 @@ class ranker_t:
     def getKNNRankValue(self, x, t, K=20, score=False, de=0):
         votes = collections.defaultdict(int)
 
+        # print >>sys.stderr, "$$$$$ = %s" % self.NN[t]
+        # print >>sys.stderr, "$$$$$ = %s" % len(set([v for v in self.NN[t] if v[1] == self.NN[t][K][1]]))
+        if 100 < len(self.NN[t]):
+            tmpNNt = self.NN[t][:100]
+        else:
+            tmpNNt = self.NN[t]
+        if K < len(self.NN[t]):
+            # K2 = len(self.NN[t])-1
+            if len(set([v[0] for v in tmpNNt if v[1] == tmpNNt[K-1][1]])) >= 2 and tmpNNt[K-1][1] == tmpNNt[K][1]:
+            # print >>sys.stderr, "!!!!! = %s" % len(set([v for v in self.NN[t] if v[1] == self.NN[t][K][1]]))
+            # print >>sys.stderr, "##### = %s, K = %s" % ([v for v in self.NN[t] if v[1] == self.NN[t][K][1]], K)
+                return 0
+        
         for votedCan, votedScore in self.NN[t][:K]:
             votes[votedCan] += 1 if not score else votedScore
-
+            
         for i, xc in enumerate(votes.iteritems()):
             if x == xc[0]: return xc[1]
 
@@ -547,11 +573,24 @@ class feature_function_t:
 
                 if pa.kbsmall:
                     coreftsv = "corefevents.0909small.tsv"
+                elif pa.kb100:
+                    coreftsv = "corefevents.100.%s.tsv" % pa.kb100
+                    ncnaivecdb = "corefevents.100.%s.cdblist.ncnaive.0.cdb" % pa.kb100
+                    tuplescdb = "corefevents.100.%s.cdblist.tuples.cdb" % pa.kb100
+                elif pa.kb10:
+                    coreftsv = "corefevents.10.%s.tsv" % pa.kb10
+                    ncnaivecdb = "corefevents.10.%s.cdblist.ncnaive.0.cdb" % pa.kb10
+                    tuplescdb = "corefevents.10.%s.cdblist.tuples.cdb" % pa.kb10
+                    print >>sys.stderr, "coreftsv = %s" % coreftsv
+                    print >>sys.stderr, "ncnaivecdb = %s" % ncnaivecdb
+                    print >>sys.stderr, "tuplescdb = %s" % tuplescdb
+                                       
+                elif pa.oldkb:
+                    coreftsv = "corefevents.tsv"
                 else:
-                    if pa.oldkb == True:
-                        coreftsv = "corefevents.tsv"
-                    else:
-                        coreftsv = "corefevents.0909.tsv"
+                    coreftsv = "corefevents.0909.tsv"
+                    ncnaivecdb = "ncnaive0909.0.cdb"
+                    tuplescdb = "tuples.0909.cdb"
 		self.libiri    = iri.iri_t(
                         os.path.join(dirExtKb, coreftsv),
                         # os.path.join(dirExtKb, "corefevents.tsv"),
@@ -572,10 +611,10 @@ class feature_function_t:
                 # else:
                 for i in xrange(0, 1):
                     p                = 1.0/(2**i)
-                    if pa.oldkb == True:
+                    if pa.oldkb:
                         self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive.ds.%s.cdb" % p), os.path.join(_getPathKB(), "tuples.cdb"))
                     else:
-                        self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive0909.0.cdb"), os.path.join(_getPathKB(), "tuples.0909.cdb"))                        
+                        self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), ncnaivecdb), os.path.join(_getPathKB(), tuplescdb))                        
                             
 		self.nc        = nccj08.nccj08_t(os.path.join(_getPathKB(), "schemas-size12"), os.path.join(_getPathKB(), "verb-pair-orders"))
 		self.sp        = selpref.selpref_t(pathKB=_getPathKB())
@@ -613,14 +652,16 @@ class feature_function_t:
 
 		# kNN FEATURES.
 		ranker.sort()
-		
+                ScoreKnn = True
+                
 		for K in xrange(10):
+                        K = K+1
 			for fk, fnn in ranker.NN.iteritems():
 				r = ranker.getKNNRank(can.attrib["id"], fk, K)
 
 				#if 0 == r:
 				yield "KNN%d_%s_%s" % (K, fk, r), 1
-				yield "SKNN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue(can.attrib["id"], fk, K)
+				yield "SKNN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue(can.attrib["id"], fk, K, ScoreKnn)
 					
 		# RANKING FEATURES.
 		for fk, fr in ranker.rankingsRv.iteritems():
@@ -786,18 +827,21 @@ class feature_function_t:
 	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, ph1, p2, r2, ps2, c2, a2, ph2, pathline, pa, ff, cached = None, outExamples = None):
 		if None == self.libiri: return 0
                 if pa.noknn == True: return 0
+                phnopara = False
 
                 if pa.ph and ph1:
                     if ph1[0] == 0:
                         c1 = _rmphrasalctx(c1, ph1)
-                    if ph1[0] == 2:
+                    elif ph1[0] == 2:
+                        if phnopara == True: return 0
                         c1 = _rmphrasalctx(c1, ph1)
                         r1 = _setphrel(r1, ph1)
                         
                 if pa.ph and ph2:
                     if ph2[0] == 0:
                         c2 = _rmphrasalctx(c2, ph2)
-                    if ph2[0] == 2:
+                    elif ph2[0] == 2:
+                        if phnopara == True: return 0
                         c2 = _rmphrasalctx(c2, ph2)
                         r2 = _setphrel(r2, ph2)
 
@@ -823,7 +867,7 @@ class feature_function_t:
 
                 simretry = False
                 if pa.simwn == True:
-                    print >>sys.stderr, "SET SIMWN OFF"
+                    # print >>sys.stderr, "SET SIMWN OFF"
                     self.libiri.setWNSimilaritySearch(False)
                     simretry = True
 
@@ -863,12 +907,12 @@ class feature_function_t:
                             if ph1:
                                 penaltyscore = _calphpenalty(ph1, ctxline1, rel1, penaltyscore, pa)
                                 if pa.reqph == True:
-                                    if penaltyscore == 0.2:
+                                    if penaltyscore == 0.2 or penaltyscore == 0.5:
                                         continue
                             if ph2:
                                 penaltyscore = _calphpenalty(ph2, ctxline2, rel2, penaltyscore, pa)
                                 if pa.reqph == True:
-                                    if penaltyscore == 0.2:
+                                    if penaltyscore == 0.2 or penaltyscore == 0.5:
                                         continue
                             # print >>sys.stderr, "raw = %s" %(raw)
 
@@ -932,11 +976,10 @@ class feature_function_t:
 			spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 
-			# print >>sys.stderr, sp, spa
-			
-                        # print >>sys.stderr, "raw = %s" % (raw)
-			
-                        if None != cached: cached += [(NNvoted, ret)]
+                        sfinal = s_final(sp, spa, spc, spac)
+                        nret = ret._replace(s_final = sfinal)
+                        if None != cached: cached += [(NNvoted, nret)]
+                        # if None != cached: cached += [(NNvoted, ret)]
 
                         if pa.simpred1 == True and pa.pathsim1 == True:
                             assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore * pathsimilarity) - ret.score) < 0.1)

@@ -26,6 +26,8 @@ class ncnaive_t:
 		self.cdb = cdb.init(db1)
 		self.cdbPreds = cdb.init(db2)
 		self.totalFreqPreds = int(open(db2.replace(".cdb", ".totalfreq.txt")).read())
+                # self.totalFreqPreds = int(open(db2.replace(".tuples.cdb", ".totalfreq.txt")).read())
+
 
 	def getFreq(self, pr1, pr2):
 		f = self.cdb.get("%s ~ %s" % ((pr1, pr2) if pr1 < pr2 else (pr2, pr1)))

@@ -18,7 +18,7 @@ import urllib2
 
 import xml.etree.cElementTree as ET
 
-sys.path.append("/home/naoya-i/work/wsc/src")
+sys.path.append("/home/jun-s/work/wsc/src")
 
 import iri
 
@@ -37,6 +37,7 @@ print """<html><head>
 """
 
 result_t = collections.namedtuple("result_t", "ana_lemma, ana_gov, ana_con, ante_lemma, ante_gov, ante_con, ante_false_lemma, ante_false_gov, ante_false_con, numRulesC, numRulesW, examples, text")
+s_final = collections.namedtuple('s_final', 'sp spa spc spac')
 
 if None != fs.getvalue("query"):
 
@@ -96,7 +97,19 @@ if None != fs.getvalue("query"):
 			return \
 				(x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred) + \
 				(0.5 * x.sIndexContext[x.iIndexed] * x.sPredictedContext)
-                
+                elif "fsp" == fs.getvalue("sortkey"):
+			return \
+				(x.s_final.sp)
+                elif "fspa" == fs.getvalue("sortkey"):
+			return \
+				(x.s_final.spa)
+                elif "fspc" == fs.getvalue("sortkey"):
+			return \
+				(x.s_final.spc)
+                elif "fspac" == fs.getvalue("sortkey"):
+			return \
+				(x.s_final.spac)
+
 		return \
 			(x.sRuleAssoc * x.sIndexPred[x.iIndexed] * x.sPredictedPred) * \
 			(0.2 * x.sPredictedArg) * \
@@ -327,6 +340,10 @@ print """</div>
 <input type="submit" name="sortkey" value="c" class="btn btn-success"/>
 <input type="submit" name="sortkey" value="pa" class="btn btn-success"/>
 <input type="submit" name="sortkey" value="pc" class="btn btn-success"/>
+<input type="submit" name="sortkey" value="fsp" class="btn btn-success"/>
+<input type="submit" name="sortkey" value="fspa" class="btn btn-success"/>
+<input type="submit" name="sortkey" value="fspc" class="btn btn-success"/>
+<input type="submit" name="sortkey" value="fspac" class="btn btn-success"/>
 
 </form>
         </div><!--/.navbar-collapse -->
@@ -337,7 +354,7 @@ print """</div>
 <script src="../bootstrap-3.0.3/dist/js/bootstrap.min.js"></script>
 </body></html>
 """ % (
-	fs.getvalue("sortkey", "pac"),
+	fs.getvalue("sortkey", "fspac"),
 	fs.getvalue("query") if None != fs.getvalue("query") else "",
 	fs.getvalue("k") if None != fs.getvalue("query") else "200"
 	)

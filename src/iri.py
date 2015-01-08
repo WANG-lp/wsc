@@ -22,7 +22,8 @@ result_t = collections.namedtuple(
 	"score iPredicted iIndexed sRuleAssoc" +\
 		" sIndexPred sIndexArg sIndexContext sIndexSlot" +\
 		" sPredictedPred sPredictedArg sPredictedContext sPredictedSlot" +\
-		" offset length"
+		" offset length" +\
+                " s_final"
 	)
 
 def _cdbdefget(f, key, de):
@@ -45,11 +46,28 @@ class iri_t:
 		if fUseMemoryMap: opts += ["-q"]
                 if pa.kbsmall:
                     opts += ["-c /work/jun-s/kb/corefevents.0909small.cdblist/"]
+                elif pa.kb100:
+                    tuplescdb = "corefevents.100.%s.cdblist.tuples.cdb" % pa.kb100
+                    totalfreq = "corefevents.100.%s.cdblist.totalfreq.txt" % pa.kb100
+                    opts += ["-c /work/jun-s/kb/corefevents.100.%s.cdblist/" % pa.kb100]
+                elif pa.kb10:
+                    tuplescdb = "corefevents.10.%s.cdblist.tuples.cdb" % pa.kb10
+                    # print >>sys.stderr, "+++ tuplescdb = %s  +++" % tuplescdb
+                    totalfreq = "corefevents.10.%s.cdblist.totalfreq.txt" % pa.kb10
+                    opts += ["-c /work/jun-s/kb/corefevents.10.%s.cdblist/" % pa.kb10]
+                elif pa.oldkb:
+                    tuplescdb = "tuples.cdb"
+                    totalfreq = "tuples.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.cdblist/"]
                 else:
-                    if pa.oldkb == True:
-                        opts += ["-c /work/jun-s/kb/corefevents.cdblist/"]
-                    else:
-                        opts += ["-c /work/jun-s/kb/corefevents.0909.cdblist/"]
+                    tuplescdb = "tuples.0909.cdb"
+                    totalfreq = "tuples.0909.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0909.cdblist/"]
+                # else:
+                #     if pa.oldkb == True:
+                #         opts += ["-c /work/jun-s/kb/corefevents.cdblist/"]
+                #     else:
+                #         opts += ["-c /work/jun-s/kb/corefevents.0909.cdblist/"]
                         
                 print >>sys.stderr, "OPTS = %s" % (" ".join(opts))
 		
@@ -61,12 +79,17 @@ class iri_t:
 			stdin = subprocess.PIPE, stdout = subprocess.PIPE, )#stderr = subprocess.PIPE)
 		
 		# FOR PMI
-                if pa.oldkb == True:
-                    self.cdbPreds = cdb.init(os.path.join(dirKb, "tuples.cdb"))
-                    self.totalFreqPreds = int(open(os.path.join(dirKb, "tuples.totalfreq.txt")).read())
-                else:
-                    self.cdbPreds = cdb.init(os.path.join(dirKb, "tuples.0909.cdb"))
-                    self.totalFreqPreds = int(open(os.path.join(dirKb, "tuples.0909.totalfreq.txt")).read())
+                print >>sys.stderr, "+++ tuplescdb = %s  +++" % tuplescdb
+                
+                self.cdbPreds = cdb.init(os.path.join(dirKb, tuplescdb))
+                self.totalFreqPreds = int(open(os.path.join(dirKb, totalfreq)).read())
+                
+                # if pa.oldkb == True:
+                #     self.cdbPreds = cdb.init(os.path.join(dirKb, "tuples.cdb"))
+                #     self.totalFreqPreds = int(open(os.path.join(dirKb, "tuples.totalfreq.txt")).read())
+                # else:
+                #     self.cdbPreds = cdb.init(os.path.join(dirKb, "tuples.0909.cdb"))
+                #     self.totalFreqPreds = int(open(os.path.join(dirKb, "tuples.0909.totalfreq.txt")).read())
 
 
 		self.corefeventsFile = open(fnCorefEventsTsv, "r")
@@ -165,16 +188,6 @@ class iri_t:
 					1.0*int(_cdbdefget(self.cdbPreds, pr2, 1)) / self.totalFreqPreds)
 		print >>sys.stderr, pr1, pr2, numExactMatchIRIs, int(_cdbdefget(self.cdbPreds, pr1, 1)), int(_cdbdefget(self.cdbPreds, pr2, 1))
 
-                # if numIRIs == 0 and simretry == True:
-                #     print >>sys.stderr, "CHANGE SIMWN ON"    
-                #     self.setWNSimilaritySearch(True)
-                #     simretry = False
-                #     # print >>sys.stderr, predicate, context, slot, focusedArgument, simretry, ff, predictedPredicate, predictedContext, predictedSlot, predictedFocusedArgument, threshold, limit, pos1, pos2, fVectorMode
-                #     for retx, rawx, vecx in self.predict(predicate, context, slot, focusedArgument, simretry, predictedPredicate, predictedContext, predictedSlot, predictedFocusedArgument, threshold, limit, pos1, pos2, fVectorMode):
-                #         yield retx, rawx, vecx
-                #     return
-                    
-                
 		for i in xrange(numIRIs):
 			if self.fEnumMode:
 				yield self.procSearchServer.stdout.readline().strip().split("\t")
@@ -208,7 +221,7 @@ class iri_t:
                                         1.0*int(_cdbdefget(self.cdbPreds, npr2, 1)) / self.totalFreqPreds)
                         
 			score *= spassoc
-			
+			f_score = score
                                 
                         # result_t = collections.namedtuple(
                         #     "result_t",
@@ -222,7 +235,7 @@ class iri_t:
 			yield result_t(score, iPredicted, iIndexed, spassoc,
 										 (spm1, spm2), (sam1, sam2), (scm1, scm2), (sm1, sm2),
 										 spm, sam, scm, sm,
-										 offset, length,
+										 offset, length , 1.0
 										 ), line, vector
 
 if "__main__" == __name__:

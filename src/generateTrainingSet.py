@@ -252,6 +252,8 @@ if "__main__" == __name__:
         cmdparser.add_option("--req", help	= "Use instances with required context", action="store_true", default=False)
         cmdparser.add_option("--noknn", help	= "Not calculate features using KNN", action="store_true", default=False)
         cmdparser.add_option("--kbsmall", help	= "Using small kb", action="store_true", default=False)
+        cmdparser.add_option("--kb100", help	= "Using 1/100 kb", default=False)
+        cmdparser.add_option("--kb10", help	= "Using 1/10 kb",  default=False)
         cmdparser.add_option("--oldkb", help	= "Using old kb", action="store_true", default=False)
         cmdparser.add_option("--pathsim1", help	= "Path similarity (conective match: 1 or 0.5 )", action="store_true", default=False)
         cmdparser.add_option("--pathsim2", help	= "Path similarity (conective match: 1 or 0 )", action="store_true", default=False)
