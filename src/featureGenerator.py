@@ -64,6 +64,7 @@ def _catenativeget(gv, sent):
                       'come', 'wait', 'regret', 'refuse', 'undertake', 'attempt',
                       'remember', 'disdain', 'try', 'request', 'keep', 'admit', 'swear',
                       'stand', 'allow', 'permit', 'strive', 'neglect', 'struggle', 'manage']
+    negcatenativelist = "forbit miss quit dislike stop deny forget resist escape fail hesitate avoid detest refuse neglect".split()
     
     
     if gv.lemma in catenativelist:
@@ -299,9 +300,30 @@ def _phrasalget(gv, sent, dirPhDic):
     else:
         return gv
 
-def calcnewConsim(csim, freq):
+def calcnewConsim(csim, freq, center):
     # return math.log(1 + csim ** (freq / 1000.0))
-    return math.log(1 + csim ** (freq / 100000.0))
+    tfreq = min(freq, 900000)
+    # return math.log(1 + csim ** (tfreq / 900000.0))
+    steep  = 20
+
+    a = (tfreq / 900000.0) ** 0.7
+    b = 1.0/(1 + math.exp(-steep*(-center+csim)))
+    c = csim ** 0.2
+    return (a*b*csim) + (1-a)*c*csim
+
+def calcnewConsimthre(csim, freq, thresh):
+    steep  = 20
+    center = 0.7
+
+    # a = (tfreq / 900000.0) ** 0.7
+    b = 1.0/(1 + math.exp(-steep*(-center+csim)))
+    c = csim ** 0.2
+
+    if freq > thresh:
+        return b*csim
+    else:
+        return c*csim    
+    
 
     
 class ranker_t:
@@ -985,16 +1007,17 @@ class feature_function_t:
                     paths = pathline.split("|")                
                     negcontext = tuple("d:neg:not-r d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r".split())
                     negcontext2 = tuple("d:advmod:however-r d:advmod:nevertheless-r d:advmod:nonetheless-r d:mark:unless-i d:mark:although-i d:mark:though-i".split())
+                    negcatenative = tuple("g:xcomp:forbid g:xcomp:miss g:xcomp:quit g:xcomp:dislike g:xcomp:stop g:xcomp:deny g:xcomp:forget g:xcomp:resist g:xcomp:escape g:xcomp:fail g:xcomp:hesitate g:xcomp:avoid g:xcomp:detest g:xcomp:refuse g:xcomp:neglect".split())
                     negconjcol1 = tuple(["conj_but"])
 
                     for c1e in c1.split(" "):
-                        if c1e in negcontext:
+                        if c1e in negcontext + negcatenative:
                             pbit[0] += 1
                         if c1e in negcontext2:
                             pbit[2] += 1
                             # match += [c1e]
                     for c2e in c2.split(" "):
-                        if c2e in negcontext:
+                        if c2e in negcontext + negcatenative:
                             pbit[1] += 1
                         if c2e in negcontext2:
                             pbit[2] += 1
@@ -1030,7 +1053,8 @@ class feature_function_t:
                 
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, simretry, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
-                        # print >>sys.stderr, "ret = %s" %(ret)
+                    
+                        # print >>sys.stderr, "vec = %s" %(vec)
                         # print >>sys.stderr, "raw = %s" %(raw)
                         # if pa.gensent == True:
                         #     instid = raw[-1].lstrip("# ").strip()
@@ -1050,19 +1074,38 @@ class feature_function_t:
                         # print >>sys.stderr, "ph2 = %s" %(repr(ph2))
                         
                         if pa.bitsim == True:
-                            ic1, ic2, ipath = raw[4], raw[5], raw[6]                        
-
+                            icl, icr, ipath = raw[4], raw[5], raw[6]                        
                             ibit = [0,0,0]
                             match = []
+
+
+                            predl = raw[0].split("-")[0]
+                            predr = raw[1].split("-")[0]
+
+                            # print >>sys.stderr, "predl, predr = %s, %s" %(predl, predr)
+                            # print >>sys.stderr, "p1, p2 = %s, %s" %(p1, p2)
+                            # print >>sys.stderr, "raw0, raw1 = %s, %s" %(raw[0], raw[1])
+                            # print >>sys.stderr, "p1+ps1,r1, p2+ps2,r2 = %s-%s:%s, %s-%s:%s" %(p1, ps1[0].lower(), r1, p2, ps2[0].lower(), r2)
+
+                            psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
+                            psr2 = "%s-%s:%s" %(p2, ps2[0].lower(), r2)
+                            
+                            if psr1 == raw[0] or psr2 == raw[1]:
+                                ic1 = icl
+                                ic2 = icr
+                            else:
+                                ic1 = icr
+                                ic2 = icl
+                                
                             for ic1e in ic1.split(" "):
-                                if ic1e in negcontext:
+                                if ic1e in negcontext + negcatenative:
                                     ibit[0] += 1
                                     match += [ic1e]
                                 if ic1e in negcontext2:
                                     ibit[2] += 1
                                     match += [ic1e]
                             for ic2e in ic2.split(" "):
-                                if ic2e in negcontext + negcontext2:
+                                if ic2e in negcontext + negcatenative:
                                     ibit[1] += 1
                                     match += [ic2e]
                                 if ic1e in negcontext2:
@@ -1163,9 +1206,32 @@ class feature_function_t:
                             sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sRuleAssoc # * penaltyscore
                         else:
                             sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc # * penaltyscore
-                        newCsim1 = calcnewConsim(ret.sIndexContext[ret.iIndexed], freq_p1)
-                        newCsim2 = calcnewConsim(ret.sPredictedContext, freq_p2)
-                        newCsim = newCsim1 * newCsim2
+                        sp_original = sp
+
+                        centers = [0.6, 0.7, 0.8]
+                        threshs = [200000, 500000, 800000]
+                        newCsimc = {}
+                        newCsimt = {}
+
+                        psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
+                        psr2 = "%s-%s:%s" %(p2, ps2[0].lower(), r2)
+                        
+                        if psr1 == raw[0] or psr2 == raw[1]:
+                            freq_pi = freq_p1
+                            freq_pp = freq_p2
+                        else:
+                            freq_pi = freq_p2
+                            freq_pp = freq_p1
+
+                        for center in centers:
+                            newCsim1c = calcnewConsim(ret.sIndexContext[ret.iIndexed], freq_pi, center)
+                            newCsim2c = calcnewConsim(ret.sPredictedContext, freq_pp, center)
+                            newCsimc[center] = newCsim1c * newCsim2c
+                        for thresh in threshs:
+                            newCsim1t = calcnewConsimthre(ret.sIndexContext[ret.iIndexed], freq_pi, thresh)
+                            newCsim2t = calcnewConsimthre(ret.sPredictedContext, freq_pp, thresh)
+                            newCsimt[thresh] = newCsim1t * newCsim2t
+
                         # print >>sys.stderr, ret.sIndexContext[ret.iIndexed], newCsim1,freq_p1 , ret.sPredictedContext, newCsim2, freq_p2, newCsim
                         
                         # if pa.pathsim1 == True:
@@ -1173,12 +1239,14 @@ class feature_function_t:
                         bitcached += [bittype]
                         
                         for settingname in "OFF bitON phON ON".split():
+                            sp = sp_original
+                            
                             if pa.bitsim == True and settingname in ("bitON", "ON"):                                
-                                sp = sp * penalty_bit
+                                sp = sp_original * penalty_bit
                                 if flag_continue_bit == 1:
                                     continue
                             if pa.ph == True and settingname in ("phON", "ON"):
-                                sp = sp * penalty_ph
+                                sp = sp_original * penalty_ph
                                 if flag_continue_ph == 1:
                                     continue                                
 
@@ -1220,10 +1288,17 @@ class feature_function_t:
                             outNN["iriArg%s" %(settingname)] += [(NNvoted, ret.sPredictedArg, bittype)]
                             outNN["iriCon%s" %(settingname)] += [(NNvoted, ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext, bittype)]
                             outNN["iriArgCon%s" %(settingname)] += [(NNvoted, ret.sPredictedArg*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext, bittype)]
-                            outNN["iriPredNCon%s" %(settingname)] += [(NNvoted, sp * newCsim, bittype)]
-                            outNN["iriPredArgNCon%s" %(settingname)] += [(NNvoted, spa * newCsim, bittype)]
-                            outNN["iriNCon%s" %(settingname)] += [(NNvoted, newCsim, bittype)]
-                            outNN["iriArgNCon%s" %(settingname)] += [(NNvoted, ret.sPredictedArg*newCsim, bittype)]
+
+                            for settingnameNCon, newCsim in newCsimc.items():
+                                outNN["iriPredNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, sp * newCsim, bittype)]
+                                outNN["iriPredArgNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, spa * newCsim, bittype)]
+                                outNN["iriNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, newCsim, bittype)]
+                                outNN["iriArgNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, ret.sPredictedArg*newCsim, bittype)]
+                            for settingnameNCon, newCsim in newCsimt.items():
+                                outNN["iriPredNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, sp * newCsim, bittype)]
+                                outNN["iriPredArgNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, spa * newCsim, bittype)]
+                                outNN["iriNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, newCsim, bittype)]
+                                outNN["iriArgNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, ret.sPredictedArg*newCsim, bittype)]
 
                             # outNN["iriAddPredCon%s" %(settingname)] += [(NNvoted, sp + 0.5*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
                             # outNN["iriAddPredArgCon%s" %(settingname)] += [(NNvoted, sp + 0.2*ret.sPredictedArg + 0.5*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
@@ -1232,30 +1307,131 @@ class feature_function_t:
 
                             # print >>sys.stderr, bitcached
                             nnVectors += [(spac, vec)]                            
-			# CONTEX TYPE-WISE EVAL.
-			def _calcConSim(_c, _funcWeight):
-				sc, scZ = 0.0, 0.0
+                            # CONTEX TYPE-WISE EVAL.
+                            def _calcConSim(_c, typelist):
+				scw, scZw = 0.0, 0.0
+				scd, scZd = 0.0, 0.0
 
 				for _t, _v in _c:
-					sc  += _funcWeight(_t)*float(_v)
-					scZ += _funcWeight(_t)
+                                    isfind = 0
+                                    for atype in typelist:
+                                        if _t.find(atype) != -1:
+                                            isfind = 1
+                                            # sc  += 0.01 * float(_v)
+                                            # scZ += 0.01
+                                        #     continue
+                                        # else:
+                                    if isfind == 1:
+                                        scw  += 1.0 * float(_v)
+                                        scZw += 1.0
+                                        scd  += 1.0 * float(_v)
+                                        scZd += 1.0
+                                    else:
+                                        scw  += 0.1 * float(_v)
+                                        scZw += 0.1
+                                # print >>sys.stderr, "==="
+                                # print >>sys.stderr, scw, scZw
+                                # print >>sys.stderr, scd, scZd
+                                if scZw == 0:
+                                    scZw, scw = 1.0, 1.0
+                                if scZd == 0:
+                                    scZd, scd = 1.0, 1.0
+				return scw/scZw, scd/scZd
 
-				return sc/scZ
 
-			for weightedType in self.deptypes:
+                            # tmp = [["nsubj", "dobj", "prep_"]]
+                            deptypedic = {}
+                            deptypedic["Min"] = ["obj", "prep_"]
+                            deptypedic["Min+subj"] = ["nsubj", "obj", "prep_"]
+                            deptypedic["Min+xcomp"] = ["xcomp", "obj", "prep_"]
+                            deptypedic["Min+xcomp+nsubj"] = ["nsubj", "xcomp", "obj", "prep_"]
+                            
+                            for typename, typelist in deptypedic.items():
 				# funcWeight = lambda x: 100.0 if None != re.match("^%s$" % weightedType, x) else 1.0
 				# funcWeight = lambda x: 100.0 if weightedType in x else 1.0
-				funcWeight = lambda x: 0.1 if weightedType in x else 1.0
+				# funcWeight = lambda x: 0.1 if weightedType in x else 1.0
 
 				try:
-					sc_i, sc_p = _calcConSim(vec[ret.iIndexed], funcWeight), _calcConSim(vec[2], funcWeight)
+					sc_iw, sc_id = _calcConSim(vec[ret.iIndexed], typelist)
+                                        sc_pw, sc_pd = _calcConSim(vec[2], typelist)
 				except IndexError:
 					continue
-					
-				outNN["iriPredArgConW_%s" % weightedType] += [(NNvoted, spa * sc_i * sc_p, bittype)]
-				
+
+                                # print >>sys.stderr, sc_iw, sc_pw
+                                # print >>sys.stderr, sc_id, sc_pd
+                                
+				outNN["iriPredArgConW_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_iw * sc_pw, bittype)]
+                                outNN["iriPredArgConD_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_id * sc_pd, bittype)]
+                                outNN["iriPredConW_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_iw * sc_pw, bittype)]
+                                outNN["iriPredConD_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_id * sc_pd, bittype)]
+                                outNN["iriConW_%s_%s" %(typename, settingname)] += [(NNvoted, sc_iw * sc_pw, bittype)]
+                                outNN["iriConD_%s_%s" %(typename, settingname)] += [(NNvoted, sc_id * sc_pd, bittype)]
+                                outNN["iriArgConW_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_iw * sc_pw, bittype)]
+                                outNN["iriArgConD_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_id * sc_pd, bittype)]
+
+                                newCsimcw = {}
+                                newCsimcd = {}
+                                newCsimtw = {}
+                                newCsimtd = {}
+                                for center in centers:
+                                    newCsim1cw = calcnewConsim(sc_iw, freq_pi, center)
+                                    newCsim2cw = calcnewConsim(sc_pw, freq_pp, center)
+                                    newCsimcw[center] = newCsim1cw * newCsim2cw
+                                    newCsim1cd = calcnewConsim(sc_id, freq_pi, center)
+                                    newCsim2cd = calcnewConsim(sc_pd, freq_pp, center)
+                                    newCsimcd[center] = newCsim1cd * newCsim2cd
 
 
+                                for thresh in threshs:
+                                    newCsim1tw = calcnewConsimthre(sc_iw, freq_pi, thresh)
+                                    newCsim2tw = calcnewConsimthre(sc_pw, freq_pp, thresh)
+                                    newCsimtw[thresh] = newCsim1tw * newCsim2tw
+                                    newCsim1td = calcnewConsimthre(sc_id, freq_pi, thresh)
+                                    newCsim2td = calcnewConsimthre(sc_pd, freq_pp, thresh)
+                                    newCsimtd[thresh] = newCsim1td * newCsim2td
+
+                                # newCsimiw = calcnewConsim(sc_iw, freq_p1)
+                                # newCsimpw = calcnewConsim(sc_pw, freq_p2)
+                                # newCsimw = newCsimiw * newCsimpw
+                                # newCsimid = calcnewConsim(sc_id, freq_p1)
+                                # newCsimpd = calcnewConsim(sc_pd, freq_p2)
+                                # newCsimd = newCsimid * newCsimpd
+
+                                # for Ncon center
+                                for settingnameNCon, newCsim in newCsimcw.items():
+                                    outNN["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim, bittype)]
+                                    outNN["iriPredNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim, bittype)]
+                                    outNN["iriNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim, bittype)]
+                                    outNN["iriArgNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim, bittype)]
+                                for settingnameNCon, newCsim in newCsimcd.items():
+                                    outNN["iriPredArgNConD_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim, bittype)]
+                                    outNN["iriPredNConD_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim, bittype)]
+                                    outNN["iriNConD_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim, bittype)]
+                                    outNN["iriArgNConD_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim, bittype)]
+                                # for Ncon thresh
+                                for settingnameNCon, newCsim in newCsimtw.items():
+                                    outNN["iriPredArgNConW_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim, bittype)]
+                                    outNN["iriPredNConW_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim, bittype)]
+                                    outNN["iriNConW_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim, bittype)]
+                                    outNN["iriArgNConW_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim, bittype)]
+                                for settingnameNCon, newCsim in newCsimtd.items():
+                                    outNN["iriPredArgNConD_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim, bittype)]
+                                    outNN["iriPredNConD_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim, bittype)]
+                                    outNN["iriNConD_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim, bittype)]
+                                    outNN["iriArgNConD_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim, bittype)]
+
+                                # print >>sys.stderr, "*****"
+                                # print >>sys.stderr, raw
+                                # print >>sys.stderr, freq_pi, freq_pp
+                                # # print >>sys.stderr, calcnewConsim(0.9, freq_p1), calcnewConsim(0.9, freq_p2)
+                                
+                                # print >>sys.stderr, calcnewConsim(0.8, freq_pi, 0.7), calcnewConsim(0.8, freq_pp, 0.7)
+                                # print >>sys.stderr, calcnewConsim(0.5, freq_pi, 0.7), calcnewConsim(0.5, freq_pp, 0.7)
+                                # print >>sys.stderr, calcnewConsimthre(0.8, freq_pi, 500000), calcnewConsimthre(0.8, freq_pp, 500000)
+                                # print >>sys.stderr, calcnewConsimthre(0.5, freq_pi, 500000), calcnewConsimthre(0.5, freq_pp, 500000)
+                                                                
+                                # print >>sys.stderr, newCsimiw, newCsimpw
+                                # print >>sys.stderr, newCsimid, newCsimpd
 		# for score, goodVec in sorted(nnVectors, key=lambda x: x[0], reverse=True)[:5]:
 		# 	outExamples += [(NNvoted, goodVec)]
 
