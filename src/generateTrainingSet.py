@@ -44,11 +44,15 @@ def main(options, args):
         print >>sys.stderr, "Use instances with required context = %s" % (options.req)
         print >>sys.stderr, "Not calculate features using KNN= %s" % (options.noknn)
         print >>sys.stderr, "Using small KB = %s" % (options.kbsmall)
+        print >>sys.stderr, "Using 400M KB = %s" % (options.kb4)
+        print >>sys.stderr, "Using 400M exact KB = %s" % (options.kb4e)
+        print >>sys.stderr, "Using 400M exact with cat KB = %s" % (options.kb4e2)
+        print >>sys.stderr, "Using 87M exact inter-sentential KB = %s" % (options.kb87ei)
         print >>sys.stderr, "Using old KB = %s" % (options.oldkb)
         print >>sys.stderr, "Using path similarity 1/0.5 = %s" % (options.pathsim1)
         print >>sys.stderr, "Using path similarity 1/0 = %s" % (options.pathsim2)
         print >>sys.stderr, "Using path group similarity = %s" % (options.pathgroup)
-
+        print >>sys.stderr, "Calculate generality of instance = %s" % (options.gensent)
         
 	# EXTRACT COREFERENCE RELATIONS IDENTIFIED BY CORE NLP
 	coref				= xmlText.xpath("/root/document/coreference/coreference")
@@ -59,7 +63,7 @@ def main(options, args):
 			for tok in xrange(int(men.xpath("./start/text()")[0]), int(men.xpath("./end/text()")[0])):
 				corefChains[(int(men.xpath("./sentence/text()")[0]), tok)] += [id_chain]
 
-	ff            = featureGenerator.feature_function_t(options, options.extkb)
+        ff            = featureGenerator.feature_function_t(options, options.extkb)
 	bp            = bypass_t(xmlText, corefChains)
 
         if options.input.endswith("test.tuples"):
@@ -170,7 +174,7 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options):
 	for fk, fvs in ranker.NN.iteritems():
                 if options.noknn == True:
                     continue
-		for K in xrange(1, 10):
+		for K in xrange(1, 11):
 			print "<feature type=\"kNN_%s,K=%d\" correct=\"%s\" wrong=\"%s\" />" % (
 				fk, K,
 				ranker.getKNNRankValue(antecedent.attrib["id"], fk, K),
@@ -252,11 +256,18 @@ if "__main__" == __name__:
         cmdparser.add_option("--req", help	= "Use instances with required context", action="store_true", default=False)
         cmdparser.add_option("--noknn", help	= "Not calculate features using KNN", action="store_true", default=False)
         cmdparser.add_option("--kbsmall", help	= "Using small kb", action="store_true", default=False)
+        cmdparser.add_option("--kb4", help	= "Using 400M kb", action="store_true", default=False)
+        cmdparser.add_option("--kb4e", help	= "Using 400M exact kb", action="store_true", default=False)
+        cmdparser.add_option("--kb4e2", help	= "Using 400M exact with cat kb ", action="store_true", default=False)        
+        cmdparser.add_option("--kb87ei", help	= "Using 87M exact kb", action="store_true", default=False)
         cmdparser.add_option("--kb100", help	= "Using 1/100 kb", default=False)
         cmdparser.add_option("--kb10", help	= "Using 1/10 kb",  default=False)
         cmdparser.add_option("--oldkb", help	= "Using old kb", action="store_true", default=False)
         cmdparser.add_option("--pathsim1", help	= "Path similarity (conective match: 1 or 0.5 )", action="store_true", default=False)
         cmdparser.add_option("--pathsim2", help	= "Path similarity (conective match: 1 or 0 )", action="store_true", default=False)
         cmdparser.add_option("--pathgroup", help	= "Using path similarity (conective group)", action="store_true", default=False)
-        
+        cmdparser.add_option("--bitsim", help	= "Bit similarity ON", action="store_true", default=False)
+        cmdparser.add_option("--gensent", help	= "Calculate generality of instance", action="store_true", default=False)
+        cmdparser.add_option("--sknn", help	= "Using scoreKNN", action="store_true", default=False)
+
 	main(*cmdparser.parse_args())

@@ -43,36 +43,37 @@ if None != fs.getvalue("query"):
 
 	# PRINT THE RESULT.
 	def _getCached(problemNo):
-		f														= open("/work/jun-s/kb/corefevents.0909.tsv")
-		m														= mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
-		examples										= []
-		numCorrect, numWrong				= 0, 0
-		governors, contexts, lemmas = [], [], []
-		text												= ""
+            f = open("/work/jun-s/kb/corefevents.0126.1.tsv")
+            # f = open("/work/jun-s/kb/corefevents.0909.tsv")
+
+            m = mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
+            examples = []
+            numCorrect, numWrong = 0, 0
+            governors, contexts, lemmas = [], [], []
+            text = ""
+                
+            for ln in os.popen("awk '$0 ~ /problem id=\"%s\"/ { fPrint=1; } 1 == fPrint { print $0 } fPrint && $0 ~ /<\/problem>/ {exit}' ./link-to-result" % problemNo):
+                if "governors" in ln: governors = re.findall("\"(.*?)\"", ln)
+                if "contexts" in ln:  contexts  = re.findall("\"(.*?)\"", ln)
+                if "text=" in ln:
+                    text   = re.findall("text=\"(.*?)\"", ln)[0]
+                    lemmas = re.findall("anaphor=\"(.*?)\" antecedent=\"(.*?)\" falseAntecedent=\"(.*?)\"", ln)[0]
+                    
+                if "iriInstances" not in ln: continue
+                
+                ir = iri.result_t(*[eval(x) for x in re.findall(">(.*?)<\/statistics", ln)[0].split("\t")])
+                examples += [(0 if "Correct" in ln else 1, ir, m[int(ir.offset):int(ir.offset)+int(ir.length)])]
+
+                if "Correct" in ln: numCorrect += 1
+                elif "Wrong" in ln: numWrong += 1
 		
-		for ln in os.popen("awk '$0 ~ /problem id=\"%s\"/ { fPrint=1; } 1 == fPrint { print $0 } fPrint && $0 ~ /<\/problem>/ {exit}' ./link-to-result" % problemNo):
-			if "governors" in ln: governors = re.findall("\"(.*?)\"", ln)
-			if "contexts" in ln:  contexts  = re.findall("\"(.*?)\"", ln)
-			if "text=" in ln:
-				text   = re.findall("text=\"(.*?)\"", ln)[0]
-				lemmas = re.findall("anaphor=\"(.*?)\" antecedent=\"(.*?)\" falseAntecedent=\"(.*?)\"", ln)[0]
+            for i in xrange(3):
+                contexts[i] = " ".join(filter(lambda x: x.split(":")[1] != governors[i].split(":")[1], contexts[i].split(" ")))
+            return result_t(*(
+                [lemmas[0], governors[0], contexts[0], lemmas[1], governors[1], contexts[1], lemmas[2], governors[2], contexts[2], numCorrect, numWrong, examples, text]))
 
-			if "iriInstances" not in ln: continue
-
-			ir = iri.result_t(*[eval(x) for x in re.findall(">(.*?)<\/statistics", ln)[0].split("\t")])
-			examples += [(0 if "Correct" in ln else 1, ir, m[int(ir.offset):int(ir.offset)+int(ir.length)])]
-
-			if "Correct" in ln: numCorrect += 1
-			elif "Wrong" in ln: numWrong += 1
-		
-		for i in xrange(3):
-			contexts[i] = " ".join(filter(lambda x: x.split(":")[1] != governors[i].split(":")[1], contexts[i].split(" ")))
-		return result_t(*(
-				[lemmas[0], governors[0], contexts[0], lemmas[1], governors[1], contexts[1], lemmas[2], governors[2], contexts[2], numCorrect, numWrong, examples, text]
-				))
-
-	timeStart								= time.time()
-	results									= _getCached(fs.getvalue("query"))
+	timeStart = time.time()
+	results	= _getCached(fs.getvalue("query"))
 	timeRetrieve, timeStart = time.time() - timeStart, time.time()
 
 	def _sortedScore(x):
@@ -126,7 +127,8 @@ if None != fs.getvalue("query"):
 		sortedRet = sorted(results.examples, key=lambda x: _sortedScore(x[1]), reverse=True)[:min(len(results.examples), int(fs.getvalue("k")))]
 		
 	timeSort, timeStart = time.time() - timeStart, time.time()
-
+        # print results.examples
+        
 	def _coloring(t):
 		return t.replace(
 			results.ante_lemma.split("-")[0], "<strong style=\"color:red\">%s<sup>+</sup></strong>" % results.ante_lemma.split("-")[0]).replace(
@@ -215,9 +217,12 @@ if None != fs.getvalue("query"):
 		print "<tr><th>%s</th></tr>" % "</th><th>".join(header.split())
 
 		nextAnchor = 1
-		
+                
+
 		for r, ret in enumerate(sortedRet):
+                        # print ret
 			voted, inst, ir = ret
+                        # print ir
 
 			if tp != voted:
 				print "<tr height=\"150px\">%s</tr>" % "".join(
@@ -231,6 +236,7 @@ if None != fs.getvalue("query"):
 						xrange(len(header.split()))
 						))
 				continue
+                        # print ir.split("\t")
 			irp1, irp2, ia12, sentdist, irc1, irc2, irpath, ig1, ig2 = ir.split("\t")
 			a1, a2 = ia12.split(",")
 			a12 = "%s,%s" % (a1, a2)

@@ -7,6 +7,7 @@ import cgi
 import os
 import time
 import gzip
+import commands
 
 import cdb
 import sys
@@ -32,22 +33,29 @@ print """<html><head>
 """
 
 if None != fs.getvalue("target"):
-	f, did = fs.getvalue("target").split(":")
+    f, did = fs.getvalue("target").split(":")
 else:
-	f, did = fs.getvalue("file"), fs.getvalue("docid")
+    f, did = fs.getvalue("file"), fs.getvalue("docid")
 	
-xml		= etree.parse(
-	os.popen("/home/naoya-i/work/wsc/src/extractDoc.sh %s %s" % (
-		f, did
-		)))
+# xml = etree.parse(os.popen("/home/naoya-i/work/wsc/src/extractDoc.sh %s %s" % (f, did)))
+# xml = os.popen("/home/jun-s/work/wsc/src/extractDoc.sh %s %s" % (f, did))
+
 
 def _coloring(t):
 	t = re.sub(fs.getvalue("s1"), lambda x: "<b>%s</b>" % x.group(0), t)
 	t = re.sub(fs.getvalue("s2"), lambda x: "<b>%s</b>" % x.group(0), t)
 	return t
 	
-for sent in xml.xpath("/root/document/sentences/sentence"):
-	print "<p>", _coloring(" ".join(sent.xpath("./tokens/token/word/text()"))), "</p>"
+# for sent in xml.xpath("/root/document/sentences/sentence"):
+	# print "<p>", _coloring(" ".join(sent.xpath("./tokens/token/word/text()"))), "</p>"
+
+# print "aaaa"
+# print f, did
+text = commands.getoutput("/home/jun-s/work/wsc/src/extractDoc.sh %s %s" % (f, did)).splitlines()
+# print text
+for line in text:
+    print "<p>", _coloring(line), "</p>"
+
 
 print """</div>
 </div>

@@ -19,6 +19,8 @@ import os
 import cdb
 import marshal
 
+import classify_gen.classify_gensent as CG
+
 #
 s_final = collections.namedtuple('s_final', 'sp spa spc spac')
 
@@ -81,6 +83,35 @@ def _mapconjgroup(word):
     else:
         return word
 
+def get_conjbit(pathline, negconjcol1):
+    # print >>sys.stderr, pathline
+    for pathe in pathline.replace("|", " ").split(" "):
+        # print >>sys.stderr, pathe
+        
+        if pathe == "":
+            continue
+        if pathe.find(":") == -1:
+            continue
+        pathcol1 = pathe.split(":")[1]
+        if pathcol1 in negconjcol1:
+            # print >>sys.stderr, "BBB"
+            return 1
+    return 0
+
+def calc_bitsim(pbit, ibit):
+    retsim = 1.0
+    if pbit == ibit:
+        return 1.0, 1
+    else:
+        psum = pbit[0] + pbit[1] + pbit[2]
+        isum = ibit[0] + ibit[1] + ibit[2]
+        if psum == isum:
+            return 0.5, 1
+        elif (psum - isum) ** 2 == 1:
+            return 0.5, -1
+    return 0, 0
+        
+        
 def _getpathsim(kbpaths, paths, simscore, pa):
     requiredlist = ["d:conj_", "g:conj_", "d:mark:", "g:mark:"]
     if kbpaths == [''] or paths == ['']:
@@ -154,7 +185,8 @@ def _calphpenalty(ph, ctxline, rel, penaltyscore, pa):
             tarctxl = [rel.split("_")[1]]
         else:
             tarctxl = []
-            
+
+        # print >>sys.stderr, "rel = %s" %(rel)
         if ctxline == "" and rel.startswith("prep_") == False:
             return penaltyscore * 0.2
 
@@ -166,10 +198,12 @@ def _calphpenalty(ph, ctxline, rel, penaltyscore, pa):
                     tarctxl.append(ctxdep.split('_')[1])
                 else:
                     tarctxl.append(ctx.split(':')[2].split('-')[0])
+
         # print >>sys.stderr, "reqctxl, tarctxl = %s, %s" %(reqctxl, tarctxl)
         for reqctx in reqctxl:
             if reqctx not in tarctxl:
                 return penaltyscore * 0.2
+        # print >>sys.stderr, "reqctxl, tarctxl = %s, %s" %(reqctxl, tarctxl)                
         return penaltyscore * 1.0
         
 def _phrasalget(gv, sent, dirPhDic):
@@ -265,7 +299,11 @@ def _phrasalget(gv, sent, dirPhDic):
     else:
         return gv
 
-        
+def calcnewConsim(csim, freq):
+    # return math.log(1 + csim ** (freq / 1000.0))
+    return math.log(1 + csim ** (freq / 100000.0))
+
+    
 class ranker_t:
     def __init__(self, ff, ana, candidates, sent, pa):
         self.NNexamples = []
@@ -273,11 +311,16 @@ class ranker_t:
         self.rankingsRv = collections.defaultdict(list)
         self.statistics = collections.defaultdict(list)
         self.pa	= pa
+        self.bitturn = []
 
         # if pa.simw2v: ff.libiri.setW2VSimilaritySearch(True)
         # if pa.simwn:  ff.libiri.setWNSimilaritySearch(True)
         # if pa.simwn:  ff.libiri.setWNSimilaritySearch(False)
-			
+
+        negcontext = tuple("d:neg:not-r d:neg:no-d d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r".split())
+        negcontext2 = tuple("d:advmod:however-r d:advmod:nevertheless-r d:advmod:nonetheless-r d:mark:while-i d:mark:unless-i d:mark:although-i d:mark:though-i".split())
+        negconjcol1 = tuple(["conj_but"])
+        
         # For REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
         # FOR EACH CANDIDATE.
         for can in candidates:
@@ -290,6 +333,29 @@ class ranker_t:
             self.rankingsRv["position"] += [(vCan, -int(can.attrib["id"]))]
 
             if None != gvAna and None != gvCan:
+
+                # # For ncnaive0pmi
+                # clineAna = scn.getFirstOrderContext(sent, gvAna.token).split()
+                # clineCan = scn.getFirstOrderContext(sent, gvCan.token).split()
+                # # bit = [0,0,0]
+
+                # for c1e in clineAna:
+                #     if c1e in negcontext + negcontext2:
+                #         bit[0] += 1
+                # for c2e in clineCan:
+                #     if c2e in negcontext + negcontext2:
+                #         bit[1] += 1
+                # for pathe in pathline.split():
+                #     if pathe == "":
+                #         continue
+                #     # print >>sys.stderr, pathe
+                #     # if pathe in negconj:
+                #     #     bit[2] += 1
+                #     pathcol1 = pathe.split(":")[1]
+                #     if pathcol1 in negconjcol1:
+                #         bit[2] += 1
+                        
+                # print >>sys.stderr, "for PMI = %s ~ %s ~ %s ~ %s" %(clineCan, clineAna, pathline, tuple(bit)) 
 
                 # if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
                 # else: gvanalemmas = gvAna.lemma[0].split("_")[:1] + gvAna.lemma[1:]
@@ -317,7 +383,11 @@ class ranker_t:
                                 
                     # NARRATIVE CHAIN FEATURE
                     if len(ff.ncnaive) > 0:
+                        # bit = tuple(bit)
                         for i in xrange(0, 1):
+                            # self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreqbit("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), bit))]
+                            # self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMIbit("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), bit, discount=1.0/(2**i)))]
+                            # self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMIbit("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), bit, discount=1.0/(2**i)))]
                             self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
                             self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
                             self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
@@ -358,6 +428,7 @@ class ranker_t:
                                    pathline,
                                    pa,
                                    ff,
+                                   self.bitturn,
                                    self.statistics["iriInstances"],
                                    self.NNexamples,
                             )
@@ -369,6 +440,7 @@ class ranker_t:
                                        pathline,
                                        pa,
                                        ff,
+                                       self.bitturn,
                                        self.statistics["iriInstances"],
                                        self.NNexamples,
                                    )
@@ -415,6 +487,7 @@ class ranker_t:
                             pathline,
                             pa,
                             ff,
+                            self.bitturn,
                             self.statistics["iriInstances"],
                             self.NNexamples,
                         )
@@ -427,6 +500,7 @@ class ranker_t:
                                    pathline,
                                    pa,
                                    ff,
+                                   self.bitturn,
                                    self.statistics["iriInstances"],
                                    self.NNexamples,
                                )
@@ -445,6 +519,7 @@ class ranker_t:
                            pathline,
                            pa,
                            ff,
+                           self.bitturn,
                            self.statistics["iriInstances"],
                            self.NNexamples,
                         )
@@ -457,6 +532,7 @@ class ranker_t:
                                    pathline,
                                    pa,
                                    ff,
+                                   self.bitturn,
                                    self.statistics["iriInstances"],
                                    self.NNexamples,
                                )                            
@@ -471,6 +547,7 @@ class ranker_t:
                            pathline,
                            pa,
                            ff,
+                           self.bitturn,
                            self.statistics["iriInstances"],
                            self.NNexamples,
                        )
@@ -482,6 +559,7 @@ class ranker_t:
                                pathline,
                                pa,
                                ff,
+                               self.bitturn,
                                self.statistics["iriInstances"],
                                self.NNexamples,
                            )
@@ -529,7 +607,7 @@ class ranker_t:
         # if len(set([v[0] for v in tmpNNt if v[1] == tmpNNt[K-1][1]])) >= 2 and tmpNNt[K-1][1] == tmpNNt[K][1]:
             # return 0
 
-        for votedCan, votedScore in self.NN[t][:K]:
+        for votedCan, votedScore, bittype in self.NN[t][:K]:
             votes[votedCan] += votedScore
 
         if len(votes) >= 2 and votes.values()[0] == votes.values()[1]:
@@ -542,23 +620,48 @@ class ranker_t:
 	
     def getKNNRankValue(self, x, t, K=20, score=False, de=0):
         votes = collections.defaultdict(int)
-
-        # print >>sys.stderr, "$$$$$ = %s" % self.NN[t]
-        # print >>sys.stderr, "$$$$$ = %s" % len(set([v for v in self.NN[t] if v[1] == self.NN[t][K][1]]))
         if 100 < len(self.NN[t]):
             tmpNNt = self.NN[t][:100]
         else:
             tmpNNt = self.NN[t]
         if K < len(self.NN[t]):
-            # K2 = len(self.NN[t])-1
             if len(set([v[0] for v in tmpNNt if v[1] == tmpNNt[K-1][1]])) >= 2 and tmpNNt[K-1][1] == tmpNNt[K][1]:
-            # print >>sys.stderr, "!!!!! = %s" % len(set([v for v in self.NN[t] if v[1] == self.NN[t][K][1]]))
-            # print >>sys.stderr, "##### = %s, K = %s" % ([v for v in self.NN[t] if v[1] == self.NN[t][K][1]], K)
                 return 0
         
-        for votedCan, votedScore in self.NN[t][:K]:
+        for votedCan, votedScore, bittype in self.NN[t][:K]:
             votes[votedCan] += 1 if not score else votedScore
             
+        for i, xc in enumerate(votes.iteritems()):
+            if x == xc[0]: return xc[1]
+
+        return de
+
+    def getKNNRankValue4bit(self, x, t, candidates, K=20, score=False, de=0):
+        
+        votes = collections.defaultdict(int)
+        
+        if 100 < len(self.NN[t]):
+            tmpNNt = self.NN[t][:100]
+        else:
+            tmpNNt = self.NN[t]
+        if K < len(self.NN[t]):
+            if len(set([v[0] for v in tmpNNt if v[1] == tmpNNt[K-1][1]])) >= 2 and tmpNNt[K-1][1] == tmpNNt[K][1]:
+                return 0
+
+        cand1, cand2 = candidates
+        id1 = cand1.attrib["id"]
+        id2 = cand2.attrib["id"]
+        
+                
+        for votedCan, votedScore, bittype in self.NN[t][:K]:
+            # print >>sys.stderr, "AAA = %s %s" % (votedCan, bittype)
+            if bittype == -1:
+                voteid = id2 if votedCan == id1 else id1
+            else:
+                voteid = id1 if votedCan == id1 else id2
+
+            votes[voteid] += 1 if not score else votedScore
+                
         for i, xc in enumerate(votes.iteritems()):
             if x == xc[0]: return xc[1]
 
@@ -573,6 +676,24 @@ class feature_function_t:
 
                 if pa.kbsmall:
                     coreftsv = "corefevents.0909small.tsv"
+                elif pa.kb4:
+                    coreftsv = "corefevents.0126.1.tsv"
+                    ncnaivecdb = "corefevents.0126.1.cdblist.ncnaive.0.cdb"
+                    tuplescdb = "corefevents.0126.1.cdblist.tuples.cdb"
+                elif pa.kb4e:
+                    coreftsv = "corefevents.0212.tsv"
+                    ncnaivecdb = "corefevents.0212.cdblist.ncnaive.0.cdb"
+                    tuplescdb = "corefevents.0212.cdblist.tuples.cdb"
+                elif pa.kb4e2:
+                    coreftsv = "corefevents.0218e2.tsv"
+                    ncnaivecdb = "corefevents.0218e2.cdblist.ncnaive.0.cdb"
+                    tuplescdb = "corefevents.0218e2.cdblist.tuples.cdb"
+                    # ncnaivecdbbit = "corefevents.0218e2bit.cdblist.ncnaive.0.cdb"
+                    # tuplescdbbit = "corefevents.0218e2bit.cdblist.tuples.cdb"
+                elif pa.kb87ei:
+                    coreftsv = "corefevents.0909inter.tsv"
+                    ncnaivecdb = "corefevents.0909inter.cdblist.ncnaive.0.cdb"
+                    tuplescdb = "corefevents.0909inter.cdblist.tuples.cdb"
                 elif pa.kb100:
                     coreftsv = "corefevents.100.%s.tsv" % pa.kb100
                     ncnaivecdb = "corefevents.100.%s.cdblist.ncnaive.0.cdb" % pa.kb100
@@ -581,16 +702,12 @@ class feature_function_t:
                     coreftsv = "corefevents.10.%s.tsv" % pa.kb10
                     ncnaivecdb = "corefevents.10.%s.cdblist.ncnaive.0.cdb" % pa.kb10
                     tuplescdb = "corefevents.10.%s.cdblist.tuples.cdb" % pa.kb10
-                    print >>sys.stderr, "coreftsv = %s" % coreftsv
-                    print >>sys.stderr, "ncnaivecdb = %s" % ncnaivecdb
-                    print >>sys.stderr, "tuplescdb = %s" % tuplescdb
-                                       
                 elif pa.oldkb:
                     coreftsv = "corefevents.tsv"
                 else:
                     coreftsv = "corefevents.0909.tsv"
                     ncnaivecdb = "ncnaive0909.0.cdb"
-                    tuplescdb = "tuples.0909.cdb"
+                    tuplescdb = "tuples.0909.tuples.cdb"
 		self.libiri    = iri.iri_t(
                         os.path.join(dirExtKb, coreftsv),
                         # os.path.join(dirExtKb, "corefevents.tsv"),
@@ -598,7 +715,7 @@ class feature_function_t:
 			dirExtKb,
                         pa,
 			os.path.join(dirExtKb, "corefevents.com.lsh"),
-			fUseMemoryMap=pa.quicktest
+			fUseMemoryMap=pa.quicktest,
 			)
 
 
@@ -614,8 +731,10 @@ class feature_function_t:
                     if pa.oldkb:
                         self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), "ncnaive.ds.%s.cdb" % p), os.path.join(_getPathKB(), "tuples.cdb"))
                     else:
-                        self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), ncnaivecdb), os.path.join(_getPathKB(), tuplescdb))                        
-                            
+                        self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), ncnaivecdb), os.path.join(_getPathKB(), tuplescdb))
+                    # else:
+                    #     self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), ncnaivecdbbit), os.path.join(_getPathKB(), tuplescdbbit))
+                        
 		self.nc        = nccj08.nccj08_t(os.path.join(_getPathKB(), "schemas-size12"), os.path.join(_getPathKB(), "verb-pair-orders"))
 		self.sp        = selpref.selpref_t(pathKB=_getPathKB())
                 if pa.newpol:
@@ -652,16 +771,21 @@ class feature_function_t:
 
 		# kNN FEATURES.
 		ranker.sort()
-                ScoreKnn = True
-                
+                flag_ScoreKnn = pa.sknn
+                # if pa.sknn:
+                #     ScoreKnn = True
+                # else:
+                #     ScoreKnn = False
 		for K in xrange(10):
                         K = K+1
 			for fk, fnn in ranker.NN.iteritems():
 				r = ranker.getKNNRank(can.attrib["id"], fk, K)
+                                # print ranker.bitturn
 
 				#if 0 == r:
 				yield "KNN%d_%s_%s" % (K, fk, r), 1
-				yield "SKNN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue(can.attrib["id"], fk, K, ScoreKnn)
+				yield "SKNN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue(can.attrib["id"], fk, K, flag_ScoreKnn)
+				yield "SKNNTURN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue4bit(can.attrib["id"], fk, candidates, K, flag_ScoreKnn)
 					
 		# RANKING FEATURES.
 		for fk, fr in ranker.rankingsRv.iteritems():
@@ -823,8 +947,9 @@ class feature_function_t:
 				threshold = 1, pos1=ps1, pos2=ps2, limit=1000, fVectorMode=True):
 			
 			outExamples += [(NNvoted, vector)]
-				
-	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, ph1, p2, r2, ps2, c2, a2, ph2, pathline, pa, ff, cached = None, outExamples = None):
+
+                        
+	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, ph1, p2, r2, ps2, c2, a2, ph2, pathline, pa, ff, bitcached, cached = None, outExamples = None):
 		if None == self.libiri: return 0
                 if pa.noknn == True: return 0
                 phnopara = False
@@ -844,18 +969,42 @@ class feature_function_t:
                         if phnopara == True: return 0
                         c2 = _rmphrasalctx(c2, ph2)
                         r2 = _setphrel(r2, ph2)
-
-
+                        
+                # freq_evp = ff.ncnaive[0].getFreq("%s-%s:%s" % (p1, ps1[0].lower(), r1), "%s-%s:%s" % (p2, ps2[0].lower(), r2))
+                freq_p1 = ff.ncnaive[0].getFreqPred("%s-%s:%s" % (p1, ps1[0].lower(), r1))
+                freq_p2 = ff.ncnaive[0].getFreqPred("%s-%s:%s" % (p2, ps2[0].lower(), r2))
 		# ELIMINATE THE ELEMENT WITH THE SAME ROLE AS ROLE.
                 
 		c1 = " ".join(filter(lambda x: x.split(":")[1] != r1, c1.strip().split(" "))) if "" != c1.strip() else c1
 		c2 = " ".join(filter(lambda x: x.split(":")[1] != r2, c2.strip().split(" "))) if "" != c2.strip() else c2
 
                 # print "c1 = %s, c2 = %s" %(c1, c2)
+
+                if pa.bitsim == True:
+                    pbit = [0,0,0]
+                    paths = pathline.split("|")                
+                    negcontext = tuple("d:neg:not-r d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r".split())
+                    negcontext2 = tuple("d:advmod:however-r d:advmod:nevertheless-r d:advmod:nonetheless-r d:mark:unless-i d:mark:although-i d:mark:though-i".split())
+                    negconjcol1 = tuple(["conj_but"])
+
+                    for c1e in c1.split(" "):
+                        if c1e in negcontext:
+                            pbit[0] += 1
+                        if c1e in negcontext2:
+                            pbit[2] += 1
+                            # match += [c1e]
+                    for c2e in c2.split(" "):
+                        if c2e in negcontext:
+                            pbit[1] += 1
+                        if c2e in negcontext2:
+                            pbit[2] += 1
+                            # match += [c2e]
+                    pbit[2] += get_conjbit(pathline, negconjcol1)
+                    pbit = tuple(pbit)
                 
 		nnVectors = []
                 requiredlist = ["d:conj_", "g:conj_", "d:mark:"]
-                paths = pathline.split("|")
+
                 # if pa.pathsim1 == True:
                 #     conjpath = False
                 #     for pppp in paths:
@@ -877,13 +1026,58 @@ class feature_function_t:
                 # if pa.simwn and nnn == 0:
                 #     print >>sys.stderr, "\nCHANGE SIMWN ON\n"
                 #     ff.libiri.setWNSimilaritySearch(True)
+                classifier = CG.train_classifier()
                 
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, simretry, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
                         # print >>sys.stderr, "ret = %s" %(ret)
+                        # print >>sys.stderr, "raw = %s" %(raw)
+                        # if pa.gensent == True:
+                        #     instid = raw[-1].lstrip("# ").strip()
+                        #     # instid = "1008wb-40:724:1:12"
+                        #     # print >>sys.stderr, "instid = %s" %(instid)
+                        #     generality = CG.classify_sent(classifier, instid)
+                        #     # print >>sys.stderr, "generality = %d" %(generality)
                             
-                        penaltyscore = 1.0
-                        if ph1 == True or ph2 == True:
+                        # penaltyscore = 1.0
+                        penalty_ph = 1.0
+                        # penalty_path = 1.0
+                        penalty_bit = 1.0
+                        # penalty_insent = 1.0
+                        flag_continue_bit = 0
+                        flag_continue_ph = 0
+                        # print >>sys.stderr, "ph1 = %s" %(repr(ph1))                        
+                        # print >>sys.stderr, "ph2 = %s" %(repr(ph2))
+                        
+                        if pa.bitsim == True:
+                            ic1, ic2, ipath = raw[4], raw[5], raw[6]                        
+
+                            ibit = [0,0,0]
+                            match = []
+                            for ic1e in ic1.split(" "):
+                                if ic1e in negcontext:
+                                    ibit[0] += 1
+                                    match += [ic1e]
+                                if ic1e in negcontext2:
+                                    ibit[2] += 1
+                                    match += [ic1e]
+                            for ic2e in ic2.split(" "):
+                                if ic2e in negcontext + negcontext2:
+                                    ibit[1] += 1
+                                    match += [ic2e]
+                                if ic1e in negcontext2:
+                                    ibit[2] += 1
+                                    match += [ic2e]
+                            ibit[2] += get_conjbit(ipath, negconjcol1)
+                            ibit = tuple(ibit)
+
+                            penalty_bit, bittype = calc_bitsim(pbit, ibit)
+                            if bittype == 0 or bittype == -1:
+                                flag_continue_bit = 1
+                            # else:
+                                # print >>sys.stderr, pbit, ibit, bittype, bitsim
+                        
+                        if ph1 != None or ph2 != None:
                             ctxlinel = raw[4].strip()
                             ctxliner = raw[5].strip()
                             predl = raw[0].split("-")[0]
@@ -904,16 +1098,17 @@ class feature_function_t:
                                 rel1 = relr
                                 rel2 = rell
                                 
-                            if ph1:
-                                penaltyscore = _calphpenalty(ph1, ctxline1, rel1, penaltyscore, pa)
+                            if ph1 != None:
+                                penalty_ph = _calphpenalty(ph1, ctxline1, rel1, penalty_ph, pa)
                                 if pa.reqph == True:
-                                    if penaltyscore == 0.2 or penaltyscore == 0.5:
-                                        continue
-                            if ph2:
-                                penaltyscore = _calphpenalty(ph2, ctxline2, rel2, penaltyscore, pa)
+                                    if penalty_ph == 0.2 or penalty_ph == 0.5:
+                                        flag_continue_ph = 1
+                            if ph2  != None:
+                                penalty_ph = _calphpenalty(ph2, ctxline2, rel2, penalty_ph, pa)
                                 if pa.reqph == True:
-                                    if penaltyscore == 0.2 or penaltyscore == 0.5:
-                                        continue
+                                    # print >>sys.stderr, "ph2 = %s" %(repr(ph2))
+                                    if penalty_ph == 0.2 or penalty_ph == 0.5:
+                                        flag_continue_ph = 1
                             # print >>sys.stderr, "raw = %s" %(raw)
 
                         kbpaths = raw[6].split("|")
@@ -922,85 +1117,121 @@ class feature_function_t:
                             if "1" == raw[3]:
                                 continue
 
-                        if pa.insent2 == True: # SET PENALTYSCORE=0.5  TO USE INSTANCES FROM NOT INTER-SENTENTIAL COREFERENCE
+                        if pa.insent2 == True: # SET PENALTY_INSENT=0.5  TO USE INSTANCES FROM NOT INTER-SENTENTIAL COREFERENCE
                             if "1" == raw[3]:
-                                penaltyscore = penaltyscore * 0.5
+                                penalty_insent = penalty_insent * 0.5
 
                         # print >>sys.stderr, "raw = %s" % (raw)
                         # print >>sys.stderr, "c1 = %s, c2 = %s" % (c1, c2)
 
-                        if pa.req == True: # CONTINUE INSTANCES IF NOT CONTAIN REQUIED CONTEXT
+                        # if pa.req == True: # CONTINUE INSTANCES IF NOT CONTAIN REQUIED CONTEXT
 
-                            reqc1 = []
-                            reqc2 = []
-                            for reqele in requiredlist:
-                                for matchreq in [x for x in c1.split(" ") if x.startswith(reqele)]:
-                                    reqc1.append(matchreq)
-                                for matchreq in [x for x in c2.split(" ") if x.startswith(reqele)]:
-                                    reqc2.append(matchreq)
-                            if raw[0].startswith(p1):
-                                assert(raw[1].startswith(p2))
-                                if reqc1 != []:
-                                    if set(reqc1) != set(reqc1) & set(raw[4].strip().split(" ")):
-                                        continue                                
-                                if reqc2 != []:
-                                    if set(reqc2) != set(reqc2) & set(raw[5].strip().split(" ")):
-                                        continue
-                            else:
-                                assert(raw[0].startswith(p2))
-                                assert(raw[1].startswith(p1))
-                                if reqc1 != []:
-                                    if set(reqc1) != set(reqc1) & set(raw[5].strip().split(" ")):
-                                        continue                                
-                                if reqc2 != []:
-                                    if set(reqc2) != set(reqc2) & set(raw[4].strip().split(" ")):
-                                        continue
+                        #     reqc1 = []
+                        #     reqc2 = []
+                        #     for reqele in requiredlist:
+                        #         for matchreq in [x for x in c1.split(" ") if x.startswith(reqele)]:
+                        #             reqc1.append(matchreq)
+                        #         for matchreq in [x for x in c2.split(" ") if x.startswith(reqele)]:
+                        #             reqc2.append(matchreq)
+                        #     if raw[0].startswith(p1):
+                        #         assert(raw[1].startswith(p2))
+                        #         if reqc1 != []:
+                        #             if set(reqc1) != set(reqc1) & set(raw[4].strip().split(" ")):
+                        #                 continue                                
+                        #         if reqc2 != []:
+                        #             if set(reqc2) != set(reqc2) & set(raw[5].strip().split(" ")):
+                        #                 continue
+                        #     else:
+                        #         assert(raw[0].startswith(p2))
+                        #         assert(raw[1].startswith(p1))
+                        #         if reqc1 != []:
+                        #             if set(reqc1) != set(reqc1) & set(raw[5].strip().split(" ")):
+                        #                 continue                                
+                        #         if reqc2 != []:
+                        #             if set(reqc2) != set(reqc2) & set(raw[4].strip().split(" ")):
+                        #                 continue
 
 
-                        if pa.pathsim1 == True or pa.pathsim2 == True:
-                            if pa.pathsim1: pathsimilarity = 0.5
-                            elif pa.pathsim2: pathsimilarity = 0
-                            pathsimilarity = _getpathsim(kbpaths, paths, pathsimilarity, pa)
-                            if pathsimilarity == 0: continue
+                        # if pa.pathsim1 == True or pa.pathsim2 == True:
+                        #     if pa.pathsim1: pathsimilarity = 0.5
+                        #     elif pa.pathsim2: pathsimilarity = 0
+                        #     pathsimilarity = _getpathsim(kbpaths, paths, pathsimilarity, pa)
+                        #     if pathsimilarity == 0: continue
                             # print "path similarity = %s" % (pathsimilarity)
                                 
                         if pa.simpred1 == True: # SET PRED SIMILARITY = 1 
-                            sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sRuleAssoc*penaltyscore
+                            sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sRuleAssoc # * penaltyscore
                         else:
-                            sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc*penaltyscore
+                            sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc # * penaltyscore
+                        newCsim1 = calcnewConsim(ret.sIndexContext[ret.iIndexed], freq_p1)
+                        newCsim2 = calcnewConsim(ret.sPredictedContext, freq_p2)
+                        newCsim = newCsim1 * newCsim2
+                        # print >>sys.stderr, ret.sIndexContext[ret.iIndexed], newCsim1,freq_p1 , ret.sPredictedContext, newCsim2, freq_p2, newCsim
+                        
+                        # if pa.pathsim1 == True:
+                        #     sp = sp * pathsimilarity
+                        bitcached += [bittype]
+                        
+                        for settingname in "OFF bitON phON ON".split():
+                            if pa.bitsim == True and settingname in ("bitON", "ON"):                                
+                                sp = sp * penalty_bit
+                                if flag_continue_bit == 1:
+                                    continue
+                            if pa.ph == True and settingname in ("phON", "ON"):
+                                sp = sp * penalty_ph
+                                if flag_continue_ph == 1:
+                                    continue                                
 
-                        if pa.pathsim1 == True:
-                            sp = sp * pathsimilarity
+                            spa = sp * ret.sPredictedArg
+                            spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                            spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                            
+                            sfinal = s_final(sp, spa, spc, spac)
+                            nret = ret._replace(s_final = sfinal)
+                            if None != cached: cached += [(NNvoted, nret)]
+                            # if None != cached: cached += [(NNvoted, ret)]
 
-                        spa = sp * ret.sPredictedArg
-			spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-			spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                            elif pa.bitsim == True and settingname == bitON:
+                                assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/bitsim - ret.score) < 0.1)
+                            else:
+                                assert(abs(spac/penaltyscore - ret.score) < 0.1)
+                        
+                            # if pa.simpred1 == True and pa.pathsim1 == True and pa.bitsim == True:
+                            #     assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore * pathsimilarity * bitsim) - ret.score) < 0.1)
+                            # elif pa.simpred1 == True and pa.bitsim == True:
+                            #     assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore * bitsim) - ret.score) < 0.1)
+                            # elif pa.pathsim1 == True and pa.bitsim == True:
+                            #     assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore * pathsimilarity * bitsim) - ret.score) < 0.1)
+                            # elif pa.simpred1 == True and pa.pathsim1 == True:
+                            #     assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore * pathsimilarity) - ret.score) < 0.1)
+                            # elif pa.simpred1 == True:
+                            #     assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore) - ret.score) < 0.1)
+                            # elif pa.pathsim1 == True:
+                            #     assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore * pathsimilarity) - ret.score) < 0.1)
+                            # elif pa.bitsim == True:
+                            #     assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore * bitsim) - ret.score) < 0.1)
+                            # else:
+                            #     assert(abs(spac/penaltyscore - ret.score) < 0.1)
+                            
+                            outNN["iriPred%s" %(settingname)] += [(NNvoted, sp, bittype)]
+                            outNN["iriPredArg%s" %(settingname)] += [(NNvoted, spa, bittype)]
+                            outNN["iriPredCon%s" %(settingname)] += [(NNvoted, spc, bittype)]
+                            outNN["iriPredArgCon%s" %(settingname)] += [(NNvoted, spac, bittype)]
+                            outNN["iriArg%s" %(settingname)] += [(NNvoted, ret.sPredictedArg, bittype)]
+                            outNN["iriCon%s" %(settingname)] += [(NNvoted, ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext, bittype)]
+                            outNN["iriArgCon%s" %(settingname)] += [(NNvoted, ret.sPredictedArg*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext, bittype)]
+                            outNN["iriPredNCon%s" %(settingname)] += [(NNvoted, sp * newCsim, bittype)]
+                            outNN["iriPredArgNCon%s" %(settingname)] += [(NNvoted, spa * newCsim, bittype)]
+                            outNN["iriNCon%s" %(settingname)] += [(NNvoted, newCsim, bittype)]
+                            outNN["iriArgNCon%s" %(settingname)] += [(NNvoted, ret.sPredictedArg*newCsim, bittype)]
 
-                        sfinal = s_final(sp, spa, spc, spac)
-                        nret = ret._replace(s_final = sfinal)
-                        if None != cached: cached += [(NNvoted, nret)]
-                        # if None != cached: cached += [(NNvoted, ret)]
+                            # outNN["iriAddPredCon%s" %(settingname)] += [(NNvoted, sp + 0.5*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
+                            # outNN["iriAddPredArgCon%s" %(settingname)] += [(NNvoted, sp + 0.2*ret.sPredictedArg + 0.5*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
+                            # outNN["iriAddPredArg%s" %(settingname)] += [(NNvoted, sp + 0.2*ret.sPredictedArg)]
+                            
 
-                        if pa.simpred1 == True and pa.pathsim1 == True:
-                            assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore * pathsimilarity) - ret.score) < 0.1)
-                        elif pa.simpred1 == True:
-                            assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore) - ret.score) < 0.1)
-                        elif pa.pathsim1 == True:
-                            assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore * pathsimilarity) - ret.score) < 0.1)
-                        else:
-                            assert(abs(spac/penaltyscore - ret.score) < 0.1)
-
-			outNN["iriPred"] += [(NNvoted, sp)]
-			outNN["iriPredArg"] += [(NNvoted, spa)]
-			outNN["iriPredCon"] += [(NNvoted, spc)]
-			outNN["iriPredArgCon"] += [(NNvoted, spac)]
-			outNN["iriArg"] += [(NNvoted, ret.sPredictedArg)]
-			outNN["iriCon"] += [(NNvoted, ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
-			outNN["iriArgCon"] += [(NNvoted, ret.sPredictedArg*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
-			outNN["iriAddPredCon"] += [(NNvoted, sp + 0.5*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
-			outNN["iriAddPredArgCon"] += [(NNvoted, sp + 0.2*ret.sPredictedArg + 0.5*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
-			outNN["iriAddPredArg"] += [(NNvoted, sp + 0.2*ret.sPredictedArg)]
-
+                            # print >>sys.stderr, bitcached
+                            nnVectors += [(spac, vec)]                            
 			# CONTEX TYPE-WISE EVAL.
 			def _calcConSim(_c, _funcWeight):
 				sc, scZ = 0.0, 0.0
@@ -1021,9 +1252,9 @@ class feature_function_t:
 				except IndexError:
 					continue
 					
-				outNN["iriPredArgConW_%s" % weightedType] += [(NNvoted, spa * sc_i * sc_p)]
+				outNN["iriPredArgConW_%s" % weightedType] += [(NNvoted, spa * sc_i * sc_p, bittype)]
 				
-			nnVectors += [(spac, vec)]
+
 
 		# for score, goodVec in sorted(nnVectors, key=lambda x: x[0], reverse=True)[:5]:
 		# 	outExamples += [(NNvoted, goodVec)]

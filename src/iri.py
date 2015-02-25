@@ -46,6 +46,22 @@ class iri_t:
 		if fUseMemoryMap: opts += ["-q"]
                 if pa.kbsmall:
                     opts += ["-c /work/jun-s/kb/corefevents.0909small.cdblist/"]
+                elif pa.kb4:
+                    tuplescdb = "corefevents.0126.1.cdblist.tuples.cdb"
+                    totalfreq = "corefevents.0126.1.cdblist.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0126.1.cdblist/"]
+                elif pa.kb4e:
+                    tuplescdb = "corefevents.0212.cdblist.tuples.cdb"
+                    totalfreq = "corefevents.0212.cdblist.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0212.cdblist/"]
+                elif pa.kb4e2:
+                    tuplescdb = "corefevents.0218e2.cdblist.tuples.cdb"
+                    totalfreq = "corefevents.0218e2.cdblist.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0218e2.cdblist/"]                    
+                elif pa.kb87ei:
+                    tuplescdb = "corefevents.0909inter.cdblist.tuples.cdb"
+                    totalfreq = "corefevents.0909inter.cdblist.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0909inter.cdblist/"]
                 elif pa.kb100:
                     tuplescdb = "corefevents.100.%s.cdblist.tuples.cdb" % pa.kb100
                     totalfreq = "corefevents.100.%s.cdblist.totalfreq.txt" % pa.kb100
@@ -231,7 +247,10 @@ class iri_t:
                         #     " offset length"
                         # )
                         # print >>sys.stderr, iPredicted, iIndexed, line, numExactMatchIRIs, numIRIs, spassoc, score
-        
+
+                        
+                        # print >>sys.stderr, (scm1, scm2), scm
+
 			yield result_t(score, iPredicted, iIndexed, spassoc,
 										 (spm1, spm2), (sam1, sam2), (scm1, scm2), (sm1, sm2),
 										 spm, sam, scm, sm,
