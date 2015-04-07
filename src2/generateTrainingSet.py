@@ -48,12 +48,14 @@ def main(options, args):
         print >>sys.stderr, "Using 400M KB = %s" % (options.kb4)
         print >>sys.stderr, "Using 400M exact KB = %s" % (options.kb4e)
         print >>sys.stderr, "Using 400M exact with cat KB = %s" % (options.kb4e2)
+        print >>sys.stderr, "Using 400M * 1 / %s" % (options.kb4e2down)
         print >>sys.stderr, "Using 87M exact inter-sentential KB = %s" % (options.kb87ei)
         print >>sys.stderr, "Using old KB = %s" % (options.oldkb)
         print >>sys.stderr, "Using path similarity 1/0.5 = %s" % (options.pathsim1)
         print >>sys.stderr, "Using path similarity 1/0 = %s" % (options.pathsim2)
         print >>sys.stderr, "Using path group similarity = %s" % (options.pathgroup)
         print >>sys.stderr, "Calculate generality of instance = %s" % (options.gensent)
+        print >>sys.stderr, "Skip Duplicate instances = %s" % (options.nodupli)
         
 	# EXTRACT COREFERENCE RELATIONS IDENTIFIED BY CORE NLP
 	coref				= xmlText.xpath("/root/document/coreference/coreference")
@@ -274,6 +276,7 @@ if "__main__" == __name__:
         cmdparser.add_option("--kb4", help	= "Using 400M kb", action="store_true", default=False)
         cmdparser.add_option("--kb4e", help	= "Using 400M exact kb", action="store_true", default=False)
         cmdparser.add_option("--kb4e2", help	= "Using 400M exact with cat kb ", action="store_true", default=False)        
+        cmdparser.add_option("--kb4e2down", help	= "Using down kb", default=False)
         cmdparser.add_option("--kb87ei", help	= "Using 87M exact kb", action="store_true", default=False)
         cmdparser.add_option("--kb100", help	= "Using 1/100 kb", default=False)
         cmdparser.add_option("--kb10", help	= "Using 1/10 kb",  default=False)
@@ -285,6 +288,6 @@ if "__main__" == __name__:
         cmdparser.add_option("--gensent", help	= "Calculate generality of instance", action="store_true", default=False)
         cmdparser.add_option("--sknn", help	= "Using scoreKNN", action="store_true", default=False)
         cmdparser.add_option("--onlybit", help	= "Using scoreKNN", action="store_true", default=False)
-        
+        cmdparser.add_option("--nodupli", help	= "No Duplication", action="store_true", default=False)        
 
 	main(*cmdparser.parse_args())

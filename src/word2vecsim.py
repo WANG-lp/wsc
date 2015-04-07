@@ -76,6 +76,9 @@ class word2vecsim_t:
 			return [0.0]*word2vecsim_t.DIMENSION
 	
 	def calc(self, w1, w2):
+		if w1 == w2:
+			return 1
+			
 		v1, v2 = self.getWordVector(w1), self.getWordVector(w2)
 		return 0.5*(1+_getCosineSimilarity(v1, v2))
 
