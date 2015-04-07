@@ -1089,8 +1089,8 @@ class feature_function_t:
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, simretry, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
 
-                        if pa.nodupli == True:
-                            if str(raw[:-2]) in set(instancecache):
+                        if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
+                            if str(raw[:-2]) in set(instancecache): # SAME without IDs
                                 print >>sys.stderr, "is Duplication"
                                 continue
                             # print >>sys.stderr, "ret = %s" % repr(ret)
