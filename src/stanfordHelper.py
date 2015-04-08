@@ -84,17 +84,23 @@ def getPath(xmlSent, p1, p2, pa):
     deplist, adjlist = get_dep_adjacent(xmlSent)
     paths = []
     p1sentid, p2sentid = 1, 1
-    p1nodeid, p2nodeid = p1.attrib["id"], p2.attrib["id"]
+    p1nodeid, p2nodeid = int(p1.attrib["id"])-1 , int(p2.attrib["id"])-1
     
     if abs(p1sentid - p2sentid) == 0:
         paths = []
+        # print >>sys.stderr, "nodeid"
+        # print >>sys.stderr, p1nodeid, p2nodeid 
         # adjacent = p1.adjl
         # adjacentdep = p1.depl
-        pathids = searchpath(adjlist, int(p2nodeid), [int(p1nodeid)], [int(p1nodeid)], paths)
+        # print >>sys.stderr, adjlist
+        pathids = searchpath(adjlist, p2nodeid, [p1nodeid], [p1nodeid], paths)
         x = ids2deps(adjlist, deplist, pathids)
+
         ret = "|".join([" ".join(y) for y in x])
     else:
-        ret = ""    
+        ret = ""
+    # print >>sys.stderr, ret 
+    
     return ret
     
 def getToken(sent, x, conn = None):
@@ -211,8 +217,8 @@ def getDependents4phrasal(sent, x, ph, phtype):
 	
         
 def convRel(r, tk, sent):
-	# if "agent" == r:
-	# 	return "dobj"
+	if "agent" == r:
+		return "nsubj"
 	
 	if "nsubjpass" == r:
 		return "nsubj_pass"
@@ -236,11 +242,32 @@ def getGovernors(sent, x):
 def getDeepSubject(sent, x):
 	ret = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='agent']/governor[@idx='%s']/../dependent/@idx" % x.attrib["id"])
 	return ret[0] if 0 < len(ret) else None
-	
+
+def checkCatenativeNeg(sent, x, pa, negcontext):
+    isCatenative = False
+    isNegCatenative = False
+    cg = getContentPredicativeGovernor(sent, x)    
+    if 0 < len(cg):
+        ps = getPOS(cg[-1][2])
+        
+        if "VB" in ps or "JJ" in ps:
+            tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
+            if pa.cat:
+                tmp2 = fgn._catenativeget(tmp1, sent)
+            if pa.cat and tmp1 != tmp2:
+                isCatenative = True
+                # print >>sys.stderr, "isCatenative2 = True"
+                catfoc = getFirstOrderContext(sent, tmp1.token) # get first order context of catenative verb
+		catfoc = " ".join(filter(lambda x: x.split(":")[1] != tmp1.rel, catfoc.strip().split(" "))) if "" != catfoc.strip() else catfoc
+                for catfoce in catfoc.split(" "):
+                    if catfoce in negcontext:
+                        isNegCatenative = True
+    return isCatenative, isNegCatenative
+                
 def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
 	if contentGovernor:
 		cg = getContentPredicativeGovernor(sent, x)
-		
+
 		if 0 < len(cg):
 			ps = getPOS(cg[-1][2])
 			
@@ -324,6 +351,7 @@ def getCatenativeDependent(sent, cate):
                     ret += [(tp, sent.xpath("./tokens/token[@id='%s']" % idx)[0], lm[0], ps[0])]
 
         if ret != []:
+            print >>sys.stderr, "isCatenative = True, %s %s" %(cate.lemma, ret[0][2])
             return governor_t(cate.rel, ret[0][1], ret[0][2], ret[0][3])
         else:
             return cate

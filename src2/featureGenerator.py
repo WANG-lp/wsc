@@ -343,7 +343,7 @@ class ranker_t:
         # if pa.simwn:  ff.libiri.setWNSimilaritySearch(True)
         # if pa.simwn:  ff.libiri.setWNSimilaritySearch(False)
 
-        negcontext = tuple("d:neg:not-r d:neg:no-d d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r".split())
+        negcontext = tuple("d:neg:not-r d:neg:no-d d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r d:advmod:less-r".split())
         negcontext2 = tuple("d:advmod:however-r d:advmod:nevertheless-r d:advmod:nonetheless-r d:mark:while-i d:mark:unless-i d:mark:although-i d:mark:though-i".split())
         negconjcol1 = tuple(["conj_but"])
         
@@ -356,6 +356,11 @@ class ranker_t:
             # print >>sys.stderr, wPrn, wCan
             vCan				 = can.attrib["id"]
             gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
+            isgvAnaCat, isgvAnaNegCat = scn.checkCatenativeNeg(sent, ana, pa, negcontext)
+            isgvCanCat, isgvCanNegCat = scn.checkCatenativeNeg(sent, can, pa, negcontext)
+            gvAnaCat = (isgvAnaCat, isgvAnaNegCat)
+            gvCanCat = (isgvCanCat, isgvCanNegCat)
+            
             # pathline = scn.getPath(sent, ana, can, pa)
             
 
@@ -463,8 +468,8 @@ class ranker_t:
                             p2 = canph[1]
                             ff.iri(self.NN,
                                    vCan,
-                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
-                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
+                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
+                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
                                    pathline,
                                    pa,
                                    ff,
@@ -475,8 +480,8 @@ class ranker_t:
                             if p1 == p2:                            
                                 ff.iri(self.NN,
                                        vCan,
-                                       p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
-                                       p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                                       p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
+                                       p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
                                        pathline,
                                        pa,
                                        ff,
@@ -522,8 +527,8 @@ class ranker_t:
                         p1 = anaph[1]                            
                         ff.iri(self.NN,
                             vCan,
-                            p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
-                            gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
+                            p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
+                            gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
                             pathline,
                             pa,
                             ff,
@@ -535,8 +540,8 @@ class ranker_t:
                         if p1 == gvCan.lemma:
                             ff.iri(self.NN,
                                    vCan,
-                                   gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
-                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                                   gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
+                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
                                    pathline,
                                    pa,
                                    ff,
@@ -554,8 +559,8 @@ class ranker_t:
                         p2 = canph[1]
                         ff.iri(self.NN,
                            vCan,
-                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
-                           p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
+                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
+                           p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
                            pathline,
                            pa,
                            ff,
@@ -567,8 +572,8 @@ class ranker_t:
                         if p2 == gvAna.lemma:
                             ff.iri(self.NN,
                                    vCan,
-                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
-                                   gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
+                                   gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
                                    pathline,
                                    pa,
                                    ff,
@@ -584,8 +589,8 @@ class ranker_t:
 
                     ff.iri(self.NN,
                            vCan,
-                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
-                           gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph, 
+                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
+                           gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph, gvCanCat,
                            pathline,
                            pa,
                            ff,
@@ -596,8 +601,8 @@ class ranker_t:
                     if gvAna.lemma == gvCan.lemma:
                         ff.iri(self.NN,
                                vCan,
-                               gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph,
-                               gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                               gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph, gvCanCat,
+                               gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
                                pathline,
                                pa,
                                ff,
@@ -995,7 +1000,7 @@ class feature_function_t:
 			outExamples += [(NNvoted, vector)]
 
                         
-	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, ph1, p2, r2, ps2, c2, a2, ph2, pathline, pa, ff, bitcached, cached = None, outExamples = None):
+	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, ph1, cat1, p2, r2, ps2, c2, a2, ph2, cat2, pathline, pa, ff, bitcached, cached = None, outExamples = None):
                 # print >>sys.stderr, p1, p2
                 if None == self.libiri: return 0
                 if pa.noknn == True: return 0
@@ -1030,12 +1035,17 @@ class feature_function_t:
                 if pa.bitsim == True:
                     pbit = [0,0,0]
                     paths = pathline.split("|")                
-                    negcontext = tuple("d:neg:not-r d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r d:advmod:less-r".split())
+                    negcontext = tuple("d:neg:not-r d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r d:advmod:less-r d:amod:less-j".split())
+                    # "d:advmod:less-r d:amod:less-j"
                     negcontext2 = tuple("d:advmod:however-r d:advmod:nevertheless-r d:advmod:nonetheless-r d:mark:unless-i d:mark:although-i d:mark:though-i".split())
                     negcatenative = tuple("g:xcomp:forbid-v g:xcomp:miss-v g:xcomp:quit-v g:xcomp:dislike-v g:xcomp:stop-v g:xcomp:deny-v g:xcomp:forget-v g:xcomp:resist-v g:xcomp:escape-v g:xcomp:fail-v g:xcomp:hesitate-v g:xcomp:avoid-v g:xcomp:detest-v g:xcomp:refuse-v g:xcomp:neglect-v".split())
                     negconjcol1 = tuple(["conj_but"])
 
                     match = []
+                    if cat1[1] == True:
+                        pbit[0] += 1
+                    if cat2[1] == True:
+                        pbit[1] += 1
                     for c1e in c1.split(" "):
                         if c1e in negcontext + negcatenative:
                             pbit[0] += 1

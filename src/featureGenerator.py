@@ -107,11 +107,11 @@ def calc_bitsim(pbit, ibit):
         psum = pbit[0] + pbit[1] + pbit[2]
         isum = ibit[0] + ibit[1] + ibit[2]
         if psum == isum:
-            return 0.5, 1
+            return 0.8, 1
         elif abs(psum - isum) % 2 == 0:
-            return 0.5, 1
+            return 0.8, 1
         elif abs(psum - isum) % 2 == 1:
-            return 0.5, -1
+            return 0.8, -1
     return 0, 0
         
         
@@ -343,7 +343,7 @@ class ranker_t:
         # if pa.simwn:  ff.libiri.setWNSimilaritySearch(True)
         # if pa.simwn:  ff.libiri.setWNSimilaritySearch(False)
 
-        negcontext = tuple("d:neg:not-r d:neg:no-d d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r".split())
+        negcontext = tuple("d:neg:not-r d:neg:no-d d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r d:advmod:less-r".split())
         negcontext2 = tuple("d:advmod:however-r d:advmod:nevertheless-r d:advmod:nonetheless-r d:mark:while-i d:mark:unless-i d:mark:although-i d:mark:though-i".split())
         negconjcol1 = tuple(["conj_but"])
         
@@ -356,6 +356,11 @@ class ranker_t:
             # print >>sys.stderr, wPrn, wCan
             vCan				 = can.attrib["id"]
             gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
+            isgvAnaCat, isgvAnaNegCat = scn.checkCatenativeNeg(sent, ana, pa, negcontext)
+            isgvCanCat, isgvCanNegCat = scn.checkCatenativeNeg(sent, can, pa, negcontext)
+            gvAnaCat = (isgvAnaCat, isgvAnaNegCat)
+            gvCanCat = (isgvCanCat, isgvCanNegCat)
+            
             # pathline = scn.getPath(sent, ana, can, pa)
             
 
@@ -463,8 +468,8 @@ class ranker_t:
                             p2 = canph[1]
                             ff.iri(self.NN,
                                    vCan,
-                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
-                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
+                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
+                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
                                    pathline,
                                    pa,
                                    ff,
@@ -475,8 +480,8 @@ class ranker_t:
                             if p1 == p2:                            
                                 ff.iri(self.NN,
                                        vCan,
-                                       p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
-                                       p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                                       p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
+                                       p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
                                        pathline,
                                        pa,
                                        ff,
@@ -522,8 +527,8 @@ class ranker_t:
                         p1 = anaph[1]                            
                         ff.iri(self.NN,
                             vCan,
-                            p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
-                            gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
+                            p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
+                            gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
                             pathline,
                             pa,
                             ff,
@@ -535,8 +540,8 @@ class ranker_t:
                         if p1 == gvCan.lemma:
                             ff.iri(self.NN,
                                    vCan,
-                                   gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
-                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                                   gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
+                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
                                    pathline,
                                    pa,
                                    ff,
@@ -554,8 +559,8 @@ class ranker_t:
                         p2 = canph[1]
                         ff.iri(self.NN,
                            vCan,
-                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
-                           p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
+                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
+                           p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
                            pathline,
                            pa,
                            ff,
@@ -567,8 +572,8 @@ class ranker_t:
                         if p2 == gvAna.lemma:
                             ff.iri(self.NN,
                                    vCan,
-                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph,
-                                   gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
+                                   gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
                                    pathline,
                                    pa,
                                    ff,
@@ -584,8 +589,8 @@ class ranker_t:
 
                     ff.iri(self.NN,
                            vCan,
-                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
-                           gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph, 
+                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
+                           gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph, gvCanCat,
                            pathline,
                            pa,
                            ff,
@@ -596,8 +601,8 @@ class ranker_t:
                     if gvAna.lemma == gvCan.lemma:
                         ff.iri(self.NN,
                                vCan,
-                               gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph,
-                               gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph,
+                               gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph, gvCanCat,
+                               gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
                                pathline,
                                pa,
                                ff,
@@ -732,6 +737,10 @@ class feature_function_t:
                     tuplescdb = "corefevents.0218e2.cdblist.tuples.cdb"
                     # ncnaivecdbbit = "corefevents.0218e2bit.cdblist.ncnaive.0.cdb"
                     # tuplescdbbit = "corefevents.0218e2bit.cdblist.tuples.cdb"
+                elif pa.kb4e2down:
+                    coreftsv = "corefevents.0218e2down%s.tsv" % pa.kb4e2down
+                    ncnaivecdb = "corefevents.0218e2down%s.cdblist.ncnaive.0.cdb" % pa.kb4e2down
+                    tuplescdb = "corefevents.0218e2down%s.cdblist.tuples.cdb" % pa.kb4e2down
                 elif pa.kb87ei:
                     coreftsv = "corefevents.0909inter.tsv"
                     ncnaivecdb = "corefevents.0909inter.cdblist.ncnaive.0.cdb"
@@ -991,7 +1000,7 @@ class feature_function_t:
 			outExamples += [(NNvoted, vector)]
 
                         
-	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, ph1, p2, r2, ps2, c2, a2, ph2, pathline, pa, ff, bitcached, cached = None, outExamples = None):
+	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, ph1, cat1, p2, r2, ps2, c2, a2, ph2, cat2, pathline, pa, ff, bitcached, cached = None, outExamples = None):
                 # print >>sys.stderr, p1, p2
                 if None == self.libiri: return 0
                 if pa.noknn == True: return 0
@@ -1026,12 +1035,17 @@ class feature_function_t:
                 if pa.bitsim == True:
                     pbit = [0,0,0]
                     paths = pathline.split("|")                
-                    negcontext = tuple("d:neg:not-r d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r".split())
+                    negcontext = tuple("d:neg:not-r d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r d:advmod:less-r d:amod:less-j".split())
+                    # "d:advmod:less-r d:amod:less-j"
                     negcontext2 = tuple("d:advmod:however-r d:advmod:nevertheless-r d:advmod:nonetheless-r d:mark:unless-i d:mark:although-i d:mark:though-i".split())
                     negcatenative = tuple("g:xcomp:forbid-v g:xcomp:miss-v g:xcomp:quit-v g:xcomp:dislike-v g:xcomp:stop-v g:xcomp:deny-v g:xcomp:forget-v g:xcomp:resist-v g:xcomp:escape-v g:xcomp:fail-v g:xcomp:hesitate-v g:xcomp:avoid-v g:xcomp:detest-v g:xcomp:refuse-v g:xcomp:neglect-v".split())
                     negconjcol1 = tuple(["conj_but"])
 
                     match = []
+                    if cat1[1] == True:
+                        pbit[0] += 1
+                    if cat2[1] == True:
+                        pbit[1] += 1
                     for c1e in c1.split(" "):
                         if c1e in negcontext + negcatenative:
                             pbit[0] += 1
@@ -1081,13 +1095,22 @@ class feature_function_t:
                 #     print >>sys.stderr, "\nCHANGE SIMWN ON\n"
                 #     ff.libiri.setWNSimilaritySearch(True)
                 # classifier = CG.train_classifier()
-                
+                instancecache = []
                 #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, simretry, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
 
+                        if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
+                            if str(raw[:-2]) in set(instancecache): # SAME without IDs
+                                print >>sys.stderr, "is Duplication"
+                                continue
+                            # print >>sys.stderr, "ret = %s" % repr(ret)
+                            # print >>sys.stderr, "raw[:-2] = %s" % str(raw[:-2])
+                        
+                            
                         ibit = [None]
                         penalty_ph = 1.0
                         penalty_bit = 1.0
+                        penaltyscore = 1.0
                         flag_continue_bit = 0
                         flag_continue_ph = 0
                         # print >>sys.stderr, "ph1 = %s" %(repr(ph1))                        
@@ -1131,10 +1154,11 @@ class feature_function_t:
 
                             penalty_bit, bittype = calc_bitsim(pbit, ibit)
                             # if bittype == 0 or bittype == -1:
+                            
                             if bittype == 0:
                                 flag_continue_bit = 1
                             # else:
-                                # print >>sys.stderr, pbit, ibit, bittype, bitsim
+                            #     print >>sys.stderr, pbit, ibit, bittype
                         else:
                             bittype = None
                         
@@ -1262,6 +1286,9 @@ class feature_function_t:
                         spa = sp * ret.sPredictedArg
                         spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
                         spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                        spa_original = spa
+                        spc_original = spc
+                        spac_original = spac
 
                         sfinal = {}
                         sfinal = {"sp": sp,"spa": spa,"spc": spc, "spac": spac, "scIndexed": ret.sIndexContext[ret.iIndexed], "scPredicted": ret.sPredictedContext}
@@ -1271,16 +1298,48 @@ class feature_function_t:
                         
                         for settingname in "OFF bitON phON ON".split():
                             sp = sp_original
+                            spa = spa_original
+                            spc = spc_original
+                            spac = spac_original
+                            penaltyscore = 1.0
                             
-                            if pa.bitsim == True and settingname in ("bitON", "ON"):                                
+                            # if pa.bitsim == True and settingname in ("bitON", "ON"):                                
+                            #     sp = sp_original * penalty_bit
+                            #     if flag_continue_bit == 1:
+                            #         continue
+                            # if pa.ph == True and settingname in ("phON", "ON"):
+                            #     sp = sp_original * penalty_ph
+                            #     if flag_continue_ph == 1:
+                            #         continue
+                                    
+                            if pa.bitsim == True and settingname == "bitON":                                
                                 sp = sp_original * penalty_bit
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                
+                                penaltyscore = penalty_bit
                                 if flag_continue_bit == 1:
                                     continue
-                            if pa.ph == True and settingname in ("phON", "ON"):
+                            if pa.ph == True and settingname == "phON":
                                 sp = sp_original * penalty_ph
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+
+                                penaltyscore = penalty_ph
                                 if flag_continue_ph == 1:
                                     continue                                
+                            if pa.bitsim == True and pa.ph == True and settingname == "ON":                                
+                                sp = sp_original * penalty_bit * penalty_ph
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
 
+                                penaltyscore = penalty_bit * penalty_ph
+                                if flag_continue_bit == 1 or flag_continue_ph == 1:
+                                    continue
+                                    
                             # if None != cached: cached += [(NNvoted, nret)]
                             # if None != cached: cached += [(NNvoted, ret)]
 
@@ -1311,15 +1370,15 @@ class feature_function_t:
                             outNN["iriPredArg%s" %(settingname)] += [(NNvoted, spa, bittype)]
                             outNN["iriPredCon%s" %(settingname)] += [(NNvoted, spc, bittype)]
                             outNN["iriPredArgCon%s" %(settingname)] += [(NNvoted, spac, bittype)]
-                            outNN["iriArg%s" %(settingname)] += [(NNvoted, ret.sPredictedArg, bittype)]
-                            outNN["iriCon%s" %(settingname)] += [(NNvoted, ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext, bittype)]
-                            outNN["iriArgCon%s" %(settingname)] += [(NNvoted, ret.sPredictedArg*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext, bittype)]
+                            outNN["iriArg%s" %(settingname)] += [(NNvoted, ret.sPredictedArg*penaltyscore, bittype)]
+                            outNN["iriCon%s" %(settingname)] += [(NNvoted, ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext*penaltyscore, bittype)]
+                            outNN["iriArgCon%s" %(settingname)] += [(NNvoted, ret.sPredictedArg*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext*penaltyscore, bittype)]
 
                             for settingnameNCon, newCsim in newCsimc.items():
                                 outNN["iriPredNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
                                 outNN["iriPredArgNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
-                                outNN["iriNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, newCsim[0]*newCsim[1], bittype)]
-                                outNN["iriArgNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, ret.sPredictedArg*newCsim[0]*newCsim[1], bittype)]
+                                outNN["iriNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, newCsim[0]*newCsim[1]*penaltyscore, bittype)]
+                                outNN["iriArgNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, ret.sPredictedArg*newCsim[0]*newCsim[1]*penaltyscore, bittype)]
 
                                 # if settingnameNCon == 0.7 and settingname == "OFF":
                                 #     sfinal["iriPredArgNCon_center%s_%s" % (settingnameNCon, settingname)] =  spa * newCsim[0]*newCsim[1]
@@ -1329,11 +1388,11 @@ class feature_function_t:
                                 #     nret = ret._replace(s_final = sfinal)
 
                                 
-                            for settingnameNCon, newCsim in newCsimt.items():
-                                outNN["iriPredNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
-                                outNN["iriPredArgNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
-                                outNN["iriNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, newCsim[0]*newCsim[1], bittype)]
-                                outNN["iriArgNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, ret.sPredictedArg*newCsim[0]*newCsim[1], bittype)]
+                            # for settingnameNCon, newCsim in newCsimt.items():
+                            #     outNN["iriPredNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
+                            #     outNN["iriPredArgNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
+                            #     outNN["iriNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, newCsim[0]*newCsim[1]*penaltyscore, bittype)]
+                            #     outNN["iriArgNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, ret.sPredictedArg*newCsim[0]*newCsim[1]*penaltyscore, bittype)]
 
                             # outNN["iriAddPredCon%s" %(settingname)] += [(NNvoted, sp + 0.5*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
                             # outNN["iriAddPredArgCon%s" %(settingname)] += [(NNvoted, sp + 0.2*ret.sPredictedArg + 0.5*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
@@ -1378,10 +1437,10 @@ class feature_function_t:
 
                             # tmp = [["nsubj", "dobj", "prep_"]]
                             deptypedic = {}
-                            deptypedic["Min"] = ["obj", "prep_"]
+                            # deptypedic["Min"] = ["obj", "prep_"]
                             deptypedic["Min+subj"] = ["nsubj", "obj", "prep_"]
-                            deptypedic["Min+xcomp"] = ["xcomp", "obj", "prep_"]
-                            deptypedic["Min+xcomp+nsubj"] = ["nsubj", "xcomp", "obj", "prep_"]
+                            # deptypedic["Min+xcomp"] = ["xcomp", "obj", "prep_"]
+                            # deptypedic["Min+xcomp+nsubj"] = ["nsubj", "xcomp", "obj", "prep_"]
                             
                             for typename, typelist in deptypedic.items():
 				# funcWeight = lambda x: 100.0 if None != re.match("^%s$" % weightedType, x) else 1.0
@@ -1399,13 +1458,13 @@ class feature_function_t:
                                 # print >>sys.stderr, sc_id, sc_pd
                                 
 				outNN["iriPredArgConW_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_iw * sc_pw, bittype)]
-                                outNN["iriPredArgConD_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_id * sc_pd, bittype)]
+                                # outNN["iriPredArgConD_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_id * sc_pd, bittype)]
                                 outNN["iriPredConW_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_iw * sc_pw, bittype)]
-                                outNN["iriPredConD_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_id * sc_pd, bittype)]
-                                outNN["iriConW_%s_%s" %(typename, settingname)] += [(NNvoted, sc_iw * sc_pw, bittype)]
-                                outNN["iriConD_%s_%s" %(typename, settingname)] += [(NNvoted, sc_id * sc_pd, bittype)]
-                                outNN["iriArgConW_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_iw * sc_pw, bittype)]
-                                outNN["iriArgConD_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_id * sc_pd, bittype)]
+                                # outNN["iriPredConD_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_id * sc_pd, bittype)]
+                                outNN["iriConW_%s_%s" %(typename, settingname)] += [(NNvoted, sc_iw * sc_pw *penaltyscore, bittype)]
+                                # outNN["iriConD_%s_%s" %(typename, settingname)] += [(NNvoted, sc_id * sc_pd *penaltyscore, bittype)]
+                                outNN["iriArgConW_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_iw * sc_pw *penaltyscore, bittype)]
+                                # outNN["iriArgConD_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_id * sc_pd *penaltyscore, bittype)]
 
                                 if typename == "Min+subj" and settingname == "OFF":
                                     sfinal["iriPredArgConW_%s_%s" % (typename, settingname)] =  spa * sc_iw * sc_pw
@@ -1451,31 +1510,31 @@ class feature_function_t:
                                 for settingnameNCon, newCsim in newCsimcw.items():
                                     outNN["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
                                     outNN["iriPredNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
-                                    outNN["iriNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1], bittype)]
-                                    outNN["iriArgNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1], bittype)]
+                                    outNN["iriNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1]*penaltyscore, bittype)]
+                                    outNN["iriArgNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1]*penaltyscore, bittype)]
                                     if settingnameNCon == 0.7 and typename == "Min+subj" and settingname == "OFF":
                                         sfinal["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] = spa*newCsim[0]*newCsim[1]
                                         sfinal["iriPredArgNConW_center%s_%s_%s.scIndexed" % (settingnameNCon, typename, settingname)] = newCsim[0]
                                         sfinal["iriPredArgNConW_center%s_%s_%s.scPredicted"  % (settingnameNCon, typename, settingname)] = newCsim[1]
                                         sfinal["iriPredArgNConW_center%s_%s_%s.bit"  % (settingnameNCon, typename, settingname)] = ibit
                                         nret = ret._replace(s_final = sfinal)
-                                for settingnameNCon, newCsim in newCsimcd.items():
-                                    outNN["iriPredArgNConD_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
-                                    outNN["iriPredNConD_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
-                                    outNN["iriNConD_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1], bittype)]
-                                    outNN["iriArgNConD_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1], bittype)]
+                                # for settingnameNCon, newCsim in newCsimcd.items():
+                                #     outNN["iriPredArgNConD_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
+                                #     outNN["iriPredNConD_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
+                                #     outNN["iriNConD_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1], bittype)]
+                                #     outNN["iriArgNConD_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1], bittype)]
 
                                 # for Ncon thresh
-                                for settingnameNCon, newCsim in newCsimtw.items():
-                                    outNN["iriPredArgNConW_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
-                                    outNN["iriPredNConW_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
-                                    outNN["iriNConW_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1], bittype)]
-                                    outNN["iriArgNConW_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1], bittype)]
-                                for settingnameNCon, newCsim in newCsimtd.items():
-                                    outNN["iriPredArgNConD_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
-                                    outNN["iriPredNConD_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
-                                    outNN["iriNConD_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1], bittype)]
-                                    outNN["iriArgNConD_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1], bittype)]
+                                # for settingnameNCon, newCsim in newCsimtw.items():
+                                #     outNN["iriPredArgNConW_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
+                                #     outNN["iriPredNConW_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
+                                #     outNN["iriNConW_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1], bittype)]
+                                #     outNN["iriArgNConW_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1], bittype)]
+                                # for settingnameNCon, newCsim in newCsimtd.items():
+                                #     outNN["iriPredArgNConD_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
+                                #     outNN["iriPredNConD_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
+                                #     outNN["iriNConD_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1], bittype)]
+                                #     outNN["iriArgNConD_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1], bittype)]
 
                         # for allsettingname, v in outNN.items():
                         #     # scoreofsetting = v[0][1]
@@ -1483,6 +1542,8 @@ class feature_function_t:
                         # nret = ret._replace(s_final = sfinal)
 
                         if None != cached: cached += [(NNvoted, nret)]
+                        if pa.nodupli == True:
+                            instancecache += [str(raw[:-2])]
                                 
                                 # print >>sys.stderr, "*****"
                                 # print >>sys.stderr, raw

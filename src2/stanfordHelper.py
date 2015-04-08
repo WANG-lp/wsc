@@ -242,7 +242,28 @@ def getGovernors(sent, x):
 def getDeepSubject(sent, x):
 	ret = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='agent']/governor[@idx='%s']/../dependent/@idx" % x.attrib["id"])
 	return ret[0] if 0 < len(ret) else None
-	
+
+def checkCatenativeNeg(sent, x, pa, negcontext):
+    isCatenative = False
+    isNegCatenative = False
+    cg = getContentPredicativeGovernor(sent, x)    
+    if 0 < len(cg):
+        ps = getPOS(cg[-1][2])
+        
+        if "VB" in ps or "JJ" in ps:
+            tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
+            if pa.cat:
+                tmp2 = fgn._catenativeget(tmp1, sent)
+            if pa.cat and tmp1 != tmp2:
+                isCatenative = True
+                # print >>sys.stderr, "isCatenative2 = True"
+                catfoc = getFirstOrderContext(sent, tmp1.token) # get first order context of catenative verb
+		catfoc = " ".join(filter(lambda x: x.split(":")[1] != tmp1.rel, catfoc.strip().split(" "))) if "" != catfoc.strip() else catfoc
+                for catfoce in catfoc.split(" "):
+                    if catfoce in negcontext:
+                        isNegCatenative = True
+    return isCatenative, isNegCatenative
+                
 def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
 	if contentGovernor:
 		cg = getContentPredicativeGovernor(sent, x)

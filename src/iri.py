@@ -57,7 +57,12 @@ class iri_t:
                 elif pa.kb4e2:
                     tuplescdb = "corefevents.0218e2.cdblist.tuples.cdb"
                     totalfreq = "corefevents.0218e2.cdblist.totalfreq.txt"
-                    opts += ["-c /work/jun-s/kb/corefevents.0218e2.cdblist/"]                    
+                    opts += ["-c /work/jun-s/kb/corefevents.0218e2.cdblist/"]
+                elif pa.kb4e2down:
+                    print >>sys.stderr, "Down sampling KB 1/%s" % pa.kb4e2down
+                    tuplescdb = "corefevents.0218e2down%s.cdblist.tuples.cdb" % pa.kb4e2down
+                    totalfreq = "corefevents.0218e2down%s.cdblist.totalfreq.txt" % pa.kb4e2down
+                    opts += ["-c /work/jun-s/kb/corefevents.0218e2down%s.cdblist/" % pa.kb4e2down] 
                 elif pa.kb87ei:
                     tuplescdb = "corefevents.0909inter.cdblist.tuples.cdb"
                     totalfreq = "corefevents.0909inter.cdblist.totalfreq.txt"
@@ -223,7 +228,8 @@ class iri_t:
 			try:
 				line   = self.procSearchServer.stdout.readline().strip().split("\t")
 				vector = map(lambda y: map(lambda x: tuple(x.rsplit(":", 1)), y.split(" ")), self.procSearchServer.stdout.readline().strip().split("\t"))
-				
+
+                                
 			except ValueError:
 				raise "Protocol Error"
 				continue
