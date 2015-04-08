@@ -59,12 +59,12 @@ def _catenativeget(gv, sent):
                       'allowed', 'mind', 'resist', 'need', 'imply', 'condescend',
                       'expect', 'want', 'escape', 'fail', 'happen', 'seek', 'seem',
                       'complete', 'hesitate', 'appear', 'suggest', 'avoid', 'get',
-                      'able', 'tend', 'delay', 'advise', 'make', 'begin', 'finish',
+                      'able', 'unable', 'tend', 'delay', 'advise', 'make', 'begin', 'finish',
                       'intend', 'resume', 'detest', 'let', 'plan', 'imagine', 'ask',
                       'come', 'wait', 'regret', 'refuse', 'undertake', 'attempt',
                       'remember', 'disdain', 'try', 'request', 'keep', 'admit', 'swear',
                       'stand', 'allow', 'permit', 'strive', 'neglect', 'struggle', 'manage']
-    negcatenativelist = "forbit miss quit dislike stop deny forget resist escape fail hesitate avoid detest refuse neglect".split()
+    negcatenativelist = "forbit miss quit dislike stop deny forget resist escape fail hesitate avoid detest refuse neglect unable".split()
     
     
     if gv.lemma in catenativelist:
@@ -1030,6 +1030,11 @@ class feature_function_t:
 		c1 = " ".join(filter(lambda x: x.split(":")[1] != r1, c1.strip().split(" "))) if "" != c1.strip() else c1
 		c2 = " ".join(filter(lambda x: x.split(":")[1] != r2, c2.strip().split(" "))) if "" != c2.strip() else c2
 
+                if "agent" == r1:
+                    r1 = "nsubj"
+                if "agent" == r2:
+                    r2 = "nsubj"
+
                 # print "c1 = %s, c2 = %s" %(c1, c2)
 
                 if pa.bitsim == True:
@@ -1038,7 +1043,7 @@ class feature_function_t:
                     negcontext = tuple("d:neg:not-r d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r d:advmod:less-r d:amod:less-j".split())
                     # "d:advmod:less-r d:amod:less-j"
                     negcontext2 = tuple("d:advmod:however-r d:advmod:nevertheless-r d:advmod:nonetheless-r d:mark:unless-i d:mark:although-i d:mark:though-i".split())
-                    negcatenative = tuple("g:xcomp:forbid-v g:xcomp:miss-v g:xcomp:quit-v g:xcomp:dislike-v g:xcomp:stop-v g:xcomp:deny-v g:xcomp:forget-v g:xcomp:resist-v g:xcomp:escape-v g:xcomp:fail-v g:xcomp:hesitate-v g:xcomp:avoid-v g:xcomp:detest-v g:xcomp:refuse-v g:xcomp:neglect-v".split())
+                    negcatenative = tuple("g:xcomp:forbid-v g:xcomp:miss-v g:xcomp:quit-v g:xcomp:dislike-v g:xcomp:stop-v g:xcomp:deny-v g:xcomp:forget-v g:xcomp:resist-v g:xcomp:escape-v g:xcomp:fail-v g:xcomp:hesitate-v g:xcomp:avoid-v g:xcomp:detest-v g:xcomp:refuse-v g:xcomp:neglect-v g:xcomp:unable-j".split())
                     negconjcol1 = tuple(["conj_but"])
 
                     match = []
