@@ -217,8 +217,8 @@ def getDependents4phrasal(sent, x, ph, phtype):
 	
         
 def convRel(r, tk, sent):
-	if "agent" == r:
-		return "nsubj"
+	# if "agent" == r:
+	# 	return "nsubj"
 	
 	if "nsubjpass" == r:
 		return "nsubj_pass"
@@ -243,9 +243,19 @@ def getDeepSubject(sent, x):
 	ret = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='agent']/governor[@idx='%s']/../dependent/@idx" % x.attrib["id"])
 	return ret[0] if 0 < len(ret) else None
 
-def checkCatenativeNeg(sent, x, pa, negcontext):
+def checkCatenativeNeg(sent, x, gvx, pa, negcontext, negcontext2, catenativelist):
     isCatenative = False
     isNegCatenative = False
+    isNegCatenativeConj = False
+
+    # print >>sys.stderr, "gvlemma = %s" % getLemma(gvx.token)
+    # target = x
+    # for gxcomp in getXcompGovernors(sent, gvx.token):
+    #     if gxcomp != None:
+    #         if getLemma(gxcomp) in set(catenativelist):
+    #             isCatenative = True
+    # print >>sys.stderr, "targetanalemma = %s" % scn.getLemma(targetana)
+    
     cg = getContentPredicativeGovernor(sent, x)    
     if 0 < len(cg):
         ps = getPOS(cg[-1][2])
@@ -261,8 +271,24 @@ def checkCatenativeNeg(sent, x, pa, negcontext):
 		catfoc = " ".join(filter(lambda x: x.split(":")[1] != tmp1.rel, catfoc.strip().split(" "))) if "" != catfoc.strip() else catfoc
                 for catfoce in catfoc.split(" "):
                     if catfoce in negcontext:
-                        isNegCatenative = True
-    return isCatenative, isNegCatenative
+                        isNegCatenativeConj = True
+                    if catfoce in negcontext2:
+                        isNegCatenativeConj = True
+
+            elif pa.cat and tmp1 == tmp2:
+                for gxcomp in getXcompGovernors(sent, tmp1.token):
+                    if gxcomp != None:
+                        if getLemma(gxcomp) in set(catenativelist):
+                            isCatenative = True
+                            catfoc = getFirstOrderContext(sent, gxcomp) # get first order context of catenative verb
+                            catfoc = " ".join(filter(lambda x: x.split(":")[1] != tmp1.rel, catfoc.strip().split(" "))) if "" != catfoc.strip() else catfoc
+                            for catfoce in catfoc.split(" "):
+                                if catfoce in negcontext:
+                                    isNegCatenative = True
+                                if catfoce in negcontext2:
+                                    isNegCatenativeConj = True
+                
+    return (isCatenative, isNegCatenative, isNegCatenativeConj)
                 
 def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
 	if contentGovernor:
@@ -408,7 +434,11 @@ def getPhrasal(sent, phgv, phdict):
         return phgv
 
     
-
+def getXcompGovernors(sent, x):
+    	return [
+		getTokenById(sent, y.find("governor").attrib["idx"])
+		for y in 
+		sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='xcomp']/dependent[@idx='%s']/.." % x.attrib["id"])]
             
 def getContentPredicativeGovernor(sent, p):
 	governing_predicate = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/dependent[@idx='%s']" % p.attrib["id"])

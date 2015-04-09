@@ -21,6 +21,26 @@ import marshal
 
 import classify_gen.classify_gensent as CG
 
+catenativelist = ['love', 'help', 'forbid', 'consent', 'move',
+                  'prefer', 'promise', 'go', 'miss', 'consider', 'quit', 'proceed',
+                  'prepare', 'long', 'start', 'choose', 'recommend', 'threaten',
+                  'dislike', 'practise', 'tell', 'hope', 'risk', 'offer', 'afford',
+                  'propose', 'stop', 'bother', 'bear', 'resent', 'deserve',
+                  'decide', 'dare', 'arrange', 'deny', 'like', 'recall', 'require',
+                  'pretend', 'tolerate', 'beg', 'aim', 'continue', 'wish', 'agree',
+                  'care', 'mean', 'enjoy', 'forget', 'have', 'appreciate',
+                  'allowed', 'mind', 'resist', 'need', 'imply', 'condescend',
+                  'expect', 'want', 'escape', 'fail', 'happen', 'seek', 'seem',
+                  'complete', 'hesitate', 'appear', 'suggest', 'avoid', 'get',
+                  'able', 'unable', 'tend', 'delay', 'advise', 'make', 'begin', 'finish',
+                  'intend', 'resume', 'detest', 'let', 'plan', 'imagine', 'ask',
+                  'come', 'wait', 'regret', 'refuse', 'undertake', 'attempt',
+                  'remember', 'disdain', 'try', 'request', 'keep', 'admit', 'swear',
+                  'stand', 'allow', 'permit', 'strive', 'neglect', 'struggle', 'manage']
+negcatenativelist = "forbit miss quit dislike stop deny forget resist escape fail hesitate avoid detest refuse neglect unable".split()
+    
+
+
 #
 # s_final = collections.namedtuple('s_final', 'sp spa spc spac')
 
@@ -48,24 +68,6 @@ def _catenativeget(gv, sent):
     # catenativelistObj = ['ask', 'beg', 'allow', 'forbid', 'permit', 'request', 'require', 'admit', 'advise', 'imagine', 'need', 'recommend', 'suggest', 'tolerate', 'want', 'help', 'let', 'tell', 'make']
     # catenativelist = list(set(catenativelistA)|set(catenativelistB)|set(catenativelistC)|set(catenativelistD)|set(catenativelistObj))
 
-    catenativelist = ['love', 'help', 'forbid', 'consent', 'move',
-                      'prefer', 'promise', 'go', 'miss', 'consider', 'quit', 'proceed',
-                      'prepare', 'long', 'start', 'choose', 'recommend', 'threaten',
-                      'dislike', 'practise', 'tell', 'hope', 'risk', 'offer', 'afford',
-                      'propose', 'stop', 'bother', 'bear', 'resent', 'deserve',
-                      'decide', 'dare', 'arrange', 'deny', 'like', 'recall', 'require',
-                      'pretend', 'tolerate', 'beg', 'aim', 'continue', 'wish', 'agree',
-                      'care', 'mean', 'enjoy', 'forget', 'have', 'appreciate',
-                      'allowed', 'mind', 'resist', 'need', 'imply', 'condescend',
-                      'expect', 'want', 'escape', 'fail', 'happen', 'seek', 'seem',
-                      'complete', 'hesitate', 'appear', 'suggest', 'avoid', 'get',
-                      'able', 'tend', 'delay', 'advise', 'make', 'begin', 'finish',
-                      'intend', 'resume', 'detest', 'let', 'plan', 'imagine', 'ask',
-                      'come', 'wait', 'regret', 'refuse', 'undertake', 'attempt',
-                      'remember', 'disdain', 'try', 'request', 'keep', 'admit', 'swear',
-                      'stand', 'allow', 'permit', 'strive', 'neglect', 'struggle', 'manage']
-    negcatenativelist = "forbit miss quit dislike stop deny forget resist escape fail hesitate avoid detest refuse neglect".split()
-    
     
     if gv.lemma in catenativelist:
         # print gv.lemma
@@ -356,21 +358,16 @@ class ranker_t:
             # print >>sys.stderr, wPrn, wCan
             vCan				 = can.attrib["id"]
             gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
-            isgvAnaCat, isgvAnaNegCat = scn.checkCatenativeNeg(sent, ana, pa, negcontext)
-            isgvCanCat, isgvCanNegCat = scn.checkCatenativeNeg(sent, can, pa, negcontext)
-            gvAnaCat = (isgvAnaCat, isgvAnaNegCat)
-            gvCanCat = (isgvCanCat, isgvCanNegCat)
-            
+
+            gvAnaCat = scn.checkCatenativeNeg(sent, ana, gvAna, pa, negcontext, negcontext2, catenativelist)
+            gvCanCat = scn.checkCatenativeNeg(sent, can, gvCan, pa, negcontext, negcontext2, catenativelist)
+            # print >>sys.stderr, "ana = %s" % ana
+            # print >>sys.stderr, "gvAna = %s" % gvAna.token
+
+            print >>sys.stderr, "gvAnaCat = %s" % repr(gvAnaCat)
+            print >>sys.stderr, "gvCanCat = %s" % repr(gvCanCat)
             # pathline = scn.getPath(sent, ana, can, pa)
             
-
-
-            # print >>sys.stderr, "BBB"
-            # print >>sys.stderr, gvAna, gvCan
-            # print >>sys.stderr, ana, can
-            # print >>sys.stderr, pathline
-
-                        
             self.rankingsRv["position"] += [(vCan, -int(can.attrib["id"]))]
 
             
@@ -1030,6 +1027,13 @@ class feature_function_t:
 		c1 = " ".join(filter(lambda x: x.split(":")[1] != r1, c1.strip().split(" "))) if "" != c1.strip() else c1
 		c2 = " ".join(filter(lambda x: x.split(":")[1] != r2, c2.strip().split(" "))) if "" != c2.strip() else c2
 
+                if "agent" == r1:
+                    print >>sys.stderr, "replace agent2nsubj r1"
+                    r1 = "nsubj"
+                if "agent" == r2:
+                    print >>sys.stderr, "replace agent2nsubj r2"
+                    r2 = "nsubj"
+
                 # print "c1 = %s, c2 = %s" %(c1, c2)
 
                 if pa.bitsim == True:
@@ -1038,7 +1042,7 @@ class feature_function_t:
                     negcontext = tuple("d:neg:not-r d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r d:advmod:less-r d:amod:less-j".split())
                     # "d:advmod:less-r d:amod:less-j"
                     negcontext2 = tuple("d:advmod:however-r d:advmod:nevertheless-r d:advmod:nonetheless-r d:mark:unless-i d:mark:although-i d:mark:though-i".split())
-                    negcatenative = tuple("g:xcomp:forbid-v g:xcomp:miss-v g:xcomp:quit-v g:xcomp:dislike-v g:xcomp:stop-v g:xcomp:deny-v g:xcomp:forget-v g:xcomp:resist-v g:xcomp:escape-v g:xcomp:fail-v g:xcomp:hesitate-v g:xcomp:avoid-v g:xcomp:detest-v g:xcomp:refuse-v g:xcomp:neglect-v".split())
+                    negcatenative = tuple("g:xcomp:forbid-v g:xcomp:miss-v g:xcomp:quit-v g:xcomp:dislike-v g:xcomp:stop-v g:xcomp:deny-v g:xcomp:forget-v g:xcomp:resist-v g:xcomp:escape-v g:xcomp:fail-v g:xcomp:hesitate-v g:xcomp:avoid-v g:xcomp:detest-v g:xcomp:refuse-v g:xcomp:neglect-v g:xcomp:unable-j".split())
                     negconjcol1 = tuple(["conj_but"])
 
                     match = []
@@ -1046,6 +1050,8 @@ class feature_function_t:
                         pbit[0] += 1
                     if cat2[1] == True:
                         pbit[1] += 1
+                    if cat1[2] == True or cat2[2] == True:
+                        pbit[2] += 1    
                     for c1e in c1.split(" "):
                         if c1e in negcontext + negcatenative:
                             pbit[0] += 1
@@ -1406,13 +1412,12 @@ class feature_function_t:
 				scw, scZw = 0.0, 0.0
 				scd, scZd = 0.0, 0.0
 
-
 				for _t, _v in _c:
-
                                     isfind = 0
                                     for atype in typelist:
                                         if _t.find(atype) != -1:
                                             isfind = 1
+                                            # print >>sys.stderr, scw, scZw
                                             # sc  += 0.01 * float(_v)
                                             # scZ += 0.01
                                         #     continue
