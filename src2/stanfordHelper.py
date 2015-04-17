@@ -370,6 +370,8 @@ def getCatenativeDependent(sent, cate):
 
             # FOLLOWED BY A TO-INFINITIVE or A GERUND
             if "xcomp" == tp or "ccomp" == tp:
+                if ps[0] == "TO":
+                    continue
                 if checkObjectCatenative(sent, idx):
                     continue
                 else:                

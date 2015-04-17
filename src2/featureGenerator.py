@@ -363,6 +363,7 @@ class ranker_t:
             gvCanCat = scn.checkCatenativeNeg(sent, can, gvCan, pa, negcontext, negcontext2, catenativelist)
             # print >>sys.stderr, "ana = %s" % ana
             # print >>sys.stderr, "gvAna = %s" % gvAna.token
+            # print >>sys.stderr, "gvCan = %s" % gvCan.token
 
             print >>sys.stderr, "gvAnaCat = %s" % repr(gvAnaCat)
             print >>sys.stderr, "gvCanCat = %s" % repr(gvCanCat)
@@ -998,7 +999,6 @@ class feature_function_t:
 
                         
 	def iri(self, outNN, NNvoted, p1, r1, ps1, c1, a1, ph1, cat1, p2, r2, ps2, c2, a2, ph2, cat2, pathline, pa, ff, bitcached, cached = None, outExamples = None):
-                # print >>sys.stderr, p1, p2
                 if None == self.libiri: return 0
                 if pa.noknn == True: return 0
                 phnopara = False
@@ -1094,15 +1094,8 @@ class feature_function_t:
                     self.libiri.setWNSimilaritySearch(False)
                     simretry = True
 
-                # nnn = self.libiri.getNumRules("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000)
-                # print >>sys.stderr, "NumRules = %d" % (nnn)
-                
-                # if pa.simwn and nnn == 0:
-                #     print >>sys.stderr, "\nCHANGE SIMWN ON\n"
-                #     ff.libiri.setWNSimilaritySearch(True)
-                # classifier = CG.train_classifier()
                 instancecache = []
-                #for ret, raw in self.libiri.predict(p1, c1, r1, a1, p2, c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2):
+
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, simretry, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
 
                         if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
@@ -1167,7 +1160,9 @@ class feature_function_t:
                             #     print >>sys.stderr, pbit, ibit, bittype
                         else:
                             bittype = None
-                        
+
+                        # print >>sys.stderr, pbit, ibit, bittype
+                            
                         if ph1 != None or ph2 != None:
                             ctxlinel = raw[4].strip()
                             ctxliner = raw[5].strip()
@@ -1258,7 +1253,7 @@ class feature_function_t:
 
                         # centers = [0.6, 0.7, 0.8]
                         # threshs = [200000, 500000, 800000]
-                        centers = [0.7]
+                        centers = [0.6, 0.7]
                         threshs = [500000]
 
                         newCsimc = {}
@@ -1301,6 +1296,8 @@ class feature_function_t:
                         # sfinal = s_final(sp, spa, spc, spac)
                         nret = ret._replace(s_final = sfinal)
 
+                        # print >>sys.stderr, "bit == %s == %s" % (penalty_bit, flag_continue_bit)
+                        # print >>sys.stderr, "ph == %s == %s" % (penalty_ph, flag_continue_ph)
                         
                         for settingname in "OFF bitON phON ON".split():
                             sp = sp_original
@@ -1518,6 +1515,12 @@ class feature_function_t:
                                     outNN["iriNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1]*penaltyscore, bittype)]
                                     outNN["iriArgNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1]*penaltyscore, bittype)]
                                     if settingnameNCon == 0.7 and typename == "Min+subj" and settingname == "OFF":
+                                        sfinal["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] = spa*newCsim[0]*newCsim[1]
+                                        sfinal["iriPredArgNConW_center%s_%s_%s.scIndexed" % (settingnameNCon, typename, settingname)] = newCsim[0]
+                                        sfinal["iriPredArgNConW_center%s_%s_%s.scPredicted"  % (settingnameNCon, typename, settingname)] = newCsim[1]
+                                        sfinal["iriPredArgNConW_center%s_%s_%s.bit"  % (settingnameNCon, typename, settingname)] = ibit
+                                        nret = ret._replace(s_final = sfinal)
+                                    if settingnameNCon == 0.7 and typename == "Min+subj" and settingname == "ON":
                                         sfinal["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] = spa*newCsim[0]*newCsim[1]
                                         sfinal["iriPredArgNConW_center%s_%s_%s.scIndexed" % (settingnameNCon, typename, settingname)] = newCsim[0]
                                         sfinal["iriPredArgNConW_center%s_%s_%s.scPredicted"  % (settingnameNCon, typename, settingname)] = newCsim[1]

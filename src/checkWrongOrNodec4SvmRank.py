@@ -27,6 +27,9 @@ for lnTestData in open(sys.argv[2]):
 	can, qid      = lnTestData[:2]
 	qid           = qid[len("qid:"):]
 
+        # print >>sys.stderr, fsPrediction
+        # print >>sys.stderr, lnPrediction
+
 	if None != rangeEval and int(qid) not in rangeEval:
 		continue
 		
@@ -34,7 +37,7 @@ for lnTestData in open(sys.argv[2]):
 
 fsOut = open("tmp", "w")
 
-for K in xrange(2, 3):
+for K in xrange(5, 6):
 	freq			= collections.defaultdict(int)
 	
 	for qid, NN in votes.iteritems():
