@@ -63,6 +63,7 @@ for K in xrange(5, 6):
 			freq["WRONG"]   += 1
 		else:
 			print >>fsOut, "\t".join([str(int(qid)-1), "NO DEC"])
+                        # print >>sys.stderr, "\t".join([str(int(qid)-1), "NO DEC", repr(vote[1]), repr(vote[2])])
 			freq["NO_DECISION"] += 1
 
 	rows = []

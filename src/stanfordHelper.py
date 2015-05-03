@@ -440,7 +440,7 @@ def getXcompGovernors(sent, x):
     	return [
 		getTokenById(sent, y.find("governor").attrib["idx"])
 		for y in 
-		sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='xcomp' or @type='ccomp']/dependent[@idx='%s']/.." % x.attrib["id"])]
+		sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='xcomp']/dependent[@idx='%s']/.." % x.attrib["id"])]
             
 def getContentPredicativeGovernor(sent, p):
 	governing_predicate = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/dependent[@idx='%s']" % p.attrib["id"])

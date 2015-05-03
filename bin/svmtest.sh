@@ -20,40 +20,60 @@
 settings=('google|selpref|LEX|HPOL' 'google|selpref|LEX|HPOL|Rank_NCCJ08' \
     'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ' \
     
-    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredphON' \
-    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredArgConphON' \
-    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredArgphON' \
-    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredConphON' \
-    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriArgphON' \
-    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriConphON' \
-    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriArgConphON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredArgConON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredArgON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredConON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriArgON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriConON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriArgConON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SUM[1-5]' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SUMTURN[1-5]' \
     
     'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNNTURN[1-5]_iriPredArgNConW_center0.7_Min\+subj_ON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNNTURN[1-10]_iriPredArgNConW_center0.7_Min\+subj_ON' \
     'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNNTURN[1-5]_iriPredArgNCon_center0.7_ON' \
     'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNNTURN[1-5]_iriPredArgConW_Min\+subj_ON' \
-    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredArgNConW_center0.7_Min\+subj_phON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredArgNConW_center0.7_Min\+subj_ON' \
 
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNNTURN[1-5]_iriPredArgNConW_center0.6_Min\+subj_ON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNNTURN[1-10]_iriPredArgNConW_center0.6_Min\+subj_ON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNNTURN[1-5]_iriPredArgNCon_center0.6_ON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriPredArgNConW_center0.6_Min\+subj_ON' \
+	
     'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNNTURN[1-5]_iriArgNConW_center0.7_Min\+subj_ON' \
     'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNNTURN[1-5]_iriArgNCon_center0.7_ON' \
     'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNNTURN[1-5]_iriArgConW_Min\+subj_ON' \
-    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriArgNConW_center0.7_Min\+subj_phON' \
+    'google|selpref|LEX|HPOL|NCNAIVE0PMI|NCNAIVE0NPMI|NCNAIVE0FREQ|SKNN[1-5]_iriArgNConW_center0.7_Min\+subj_ON' \
 
     
-    'SKNN[1-5]_iriPredphON' \
-    'SKNN[1-5]_iriPredArgConphON' \
-    'SKNN[1-5]_iriPredArgphON' \
-    'SKNN[1-5]_iriPredConphON' \
-    'SKNN[1-5]_iriArgphON' \
-    'SKNN[1-5]_iriConphON' \
-    'SKNN[1-5]_iriArgConphON' \
+    'SKNN[1-5]_iriPredON' \
+    'SKNN[1-5]_iriPredArgConON' \
+    'SKNN[1-5]_iriPredArgON' \
+    'SKNN[1-5]_iriPredConON' \
+    'SKNN[1-5]_iriArgON' \
+    'SKNN[1-5]_iriConON' \
+    'SKNN[1-5]_iriArgConON' \
+    'SUM[1-5]' \
+    'SUMTURN[1-5]' \
+    'SUMTURN1' \
+    'SUMTURN2' \
+    'SUMTURN3' \
+    'SUMTURN4' \
+    'SUMTURN5' \
+
     'SKNNTURN[1-5]_iriPredArgNConW_center0.7_Min\+subj_ON' \
     'SKNNTURN[1-5]_iriPredArgNCon_center0.7_ON' \
     'SKNNTURN[1-5]_iriPredArgConW_Min\+subj_ON' \
-    'SKNN[1-5]_iriPredArgNConW_center0.7_Min\+subj_phON' \
+    'SKNN[1-5]_iriPredArgNConW_center0.7_Min\+subj_ON' \
     'SKNNTURN[1-5]_iriArgNConW_center0.7_Min\+subj_ON' \
     'SKNNTURN[1-5]_iriArgNCon_center0.7_ON' \
     'SKNNTURN[1-5]_iriArgConW_Min\+subj_ON' \
-    'SKNN[1-5]_iriArgNConW_center0.7_Min\+subj_phON' \
+    'SKNN[1-5]_iriArgNConW_center0.7_Min\+subj_ON' \
+
+    'SKNNTURN[1-5]_iriPredArgNConW_center0.6_Min\+subj_ON' \
+    'SKNNTURN[1-5]_iriPredArgNCon_center0.6_ON' \
+    'SKNN[1-5]_iriPredArgNConW_center0.6_Min\+subj_ON' \
 )
 # settings=( \
 #     'HPOL' \

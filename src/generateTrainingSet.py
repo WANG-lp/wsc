@@ -155,16 +155,25 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options):
 
 	_printContextualInfo(sent, anaphor, antecedent, antecedent_false, options)
 
+        featureVectors = {}
+        
 	for can in candidates:
-		print "<feature-vector for=\"%s\">%s</feature-vector>" % (
-			"correct" if can == antecedent else "wrong",
-			"\n".join([
+            featureVectors[can] = "\n".join([
 				"%d qid:%d %s" % (
 					1 if can == antecedent else 2, 1+i, escape(" ".join(["%s:%s" % x for x in fv])))
 				for fv in ff.generateFeatureSet(anaphor, can, sent, ranker, candidates, options)
 			])
-		)
 
+        for G4fk in "CV CVW JC".split():
+            if "x_Rank_google%s_R1:1" % G4fk in featureVectors[antecedent] or "x_Rank_google%s_R1:1" % G4fk in featureVectors[antecedent_false]:
+                target = antecedent if "x_Rank_google%s_R1:1" % G4fk in featureVectors[antecedent] else antecedent_false
+                featureVectors[target] += " x_Rank_G4_R1:1"
+                break
+
+	for can in candidates:
+            print "<feature-vector for=\"%s\">%s</feature-vector>" % (
+			"correct" if can == antecedent else "wrong", featureVectors[can])
+        
 	#
 	# FOR MORE INFORMATIVE OUTPUTS
 	print >>sys.stderr, "Writing statistics..."
@@ -177,6 +186,22 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options):
 			ranker.getRankValue(antecedent_false.attrib["id"], fk),
 			)
 
+	# SUM EACH SCORES
+	for fk, fvs in ranker.NN.iteritems():
+                if options.noknn == True: continue
+                if fk != "iriPredArgNConW_center0.7_Min+subj_ON": continue
+		for V in xrange(1, 6):
+			print "<feature type=\"SUM_%s,V=%d\" correct=\"%s\" wrong=\"%s\" />" % (
+				fk, V,
+				ranker.getSumVScores(antecedent.attrib["id"], fk, candidates, V, False)[0],
+				ranker.getSumVScores(antecedent_false.attrib["id"], fk, candidates, V, False)[0],
+				)
+                        print "<feature type=\"SUMTURN_%s,V=%d\" correct=\"%s\" wrong=\"%s\" />" % (
+				fk, V,
+				ranker.getSumVScores(antecedent.attrib["id"], fk, candidates, V, True)[0],
+				ranker.getSumVScores(antecedent_false.attrib["id"], fk, candidates, V, True)[0],
+				)
+                
 	# k-NEAREST NEIGHBOR SCORES
 	for fk, fvs in ranker.NN.iteritems():
                 if options.noknn == True:

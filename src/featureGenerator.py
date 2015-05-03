@@ -436,28 +436,55 @@ class ranker_t:
                             self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
                             
                 # Q1, 2: CV
-                if "O" == scn.getNEtype(can):
+                # if "O" == scn.getNEtype(can):
+                if "JJ" in gvAna.POS or "NN" in gvAna.POS:
                     tkNextAna = scn.getNextPredicateToken(sent, ana)
-                    qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
-                    ret = ff.gn.search(qCV)
-                    self.statistics["CV"] += [(vCan, " ".join(qCV))]
-                    self.rankingsRv["googleCV"] += [(vCan, ret)]
+                else:
+                    tkNextAna = gvAna.token
+                qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
+                ret = ff.gn.search(qCV)
+                self.statistics["CV"] += [(vCan, " ".join(qCV))]
+                self.rankingsRv["googleCV"] += [(vCan, ret)]
 																
-                    # Q3, Q4: CVW
-                    tkNeighbor = scn.getNextToken(sent, tkNextAna)
-                    if None != tkNeighbor:
-                        qCV = [scn.getSurf(can), scn.getSurf(tkNextAna), scn.getSurf(tkNeighbor)]
-                        ret = ff.gn.search(qCV)
-                        self.statistics["CVW"] += [(vCan, " ".join(qCV))]
-                        self.rankingsRv["googleCVW"] += [(vCan, ret)]
+                # Q3, Q4: CVW
+                tkNeighbor = scn.getNextToken(sent, tkNextAna)
+                if None != tkNeighbor:
+                    qCV = [scn.getSurf(can), scn.getSurf(tkNextAna), scn.getSurf(tkNeighbor)]
+                    ret = ff.gn.search(qCV)
+                    self.statistics["CVW"] += [(vCan, " ".join(qCV))]
+                    self.rankingsRv["googleCVW"] += [(vCan, ret)]
 
-                    if "JJ" in gvAna.POS:
-                        # Q5, Q6: JC
-                        qCV = [scn.getSurf(gvAna.token), scn.getSurf(can)]
-                        ret = ff.gn.search(qCV)
-                        self.statistics["JC"] += [(vCan, " ".join(qCV))]
-                        self.rankingsRv["googleJC"] += [(vCan, ret)]
-                                
+                if "JJ" in gvAna.POS:
+                    # Q5, Q6: JC
+                    qCV = [scn.getSurf(gvAna.token), scn.getSurf(can)]
+                    ret = ff.gn.search(qCV)
+                    self.statistics["JC"] += [(vCan, " ".join(qCV))]
+                    self.rankingsRv["googleJC"] += [(vCan, ret)]
+
+                # # Q1, 2: CV
+                # if "O" == scn.getNEtype(can):
+                #     tkNextAna = scn.getNextPredicateToken(sent, ana)
+                #     qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
+                #     ret = ff.gn.search(qCV)
+                #     self.statistics["CV"] += [(vCan, " ".join(qCV))]
+                #     self.rankingsRv["googleCV"] += [(vCan, ret)]
+																
+                #     # Q3, Q4: CVW
+                #     tkNeighbor = scn.getNextToken(sent, tkNextAna)
+                #     if None != tkNeighbor:
+                #         qCV = [scn.getSurf(can), scn.getSurf(tkNextAna), scn.getSurf(tkNeighbor)]
+                #         ret = ff.gn.search(qCV)
+                #         self.statistics["CVW"] += [(vCan, " ".join(qCV))]
+                #         self.rankingsRv["googleCVW"] += [(vCan, ret)]
+
+                #     if "JJ" in gvAna.POS:
+                #         # Q5, Q6: JC
+                #         qCV = [scn.getSurf(gvAna.token), scn.getSurf(can)]
+                #         ret = ff.gn.search(qCV)
+                #         self.statistics["JC"] += [(vCan, " ".join(qCV))]
+                #         self.rankingsRv["googleJC"] += [(vCan, ret)]
+
+                        
                 if isinstance(gvAna.lemma, list) and isinstance(gvCan.lemma, list):
                     # print >>sys.stderr, "anaphra govornor and candidate govornor are phrasal verb"
                     for anaph in gvAna.lemma:
@@ -637,7 +664,71 @@ class ranker_t:
             random.shuffle(self.NN[fk])
 			
             self.NN[fk].sort(key=lambda y: y[1], reverse=True)
-		
+
+    # def getSumVScores(self, x, t, V):
+    #     upper = 10000
+    #     votes = collections.defaultdict(int)
+    #     votesnum = collections.defaultdict(int)
+    #     tmp = []
+
+    #     if upper < len(self.NN[t]):
+    #         tmpNNt = self.NN[t][:upper]
+    #     else:
+    #         tmpNNt = self.NN[t]
+    #     for votedCan, votedScore, bittype in tmpNNt:
+    #         if votesnum[votedCan] == V:
+    #             continue
+    #         tmp.append([votedCan, votedScore])
+    #         votes[votedCan] += votedScore
+    #         votesnum[votedCan] += 1
+
+    #     for i, xc in enumerate(votes.iteritems()):
+    #         if x == xc[0]: return xc[1], tmp
+            
+    #     return 0
+
+    def getSumVScores(self, x, t, candidates, V, revote=False ):
+        upper = 10000
+        votes = collections.defaultdict(int)
+        votesnum = collections.defaultdict(int)
+        tmp = []
+        num = 1
+
+        if upper < len(self.NN[t]):
+            tmpNNt = self.NN[t][:upper]
+        else:
+            tmpNNt = self.NN[t]
+
+        cand1, cand2 = candidates
+        id1 = cand1.attrib["id"]
+        id2 = cand2.attrib["id"]
+            
+        for votedCan, votedScore, bittype in tmpNNt:
+
+            if revote == False:
+                voteid = votedCan
+            elif bittype == -1:
+                voteid = id2 if votedCan == id1 else id1
+            else:
+                voteid = id1 if votedCan == id1 else id2
+            
+            if votesnum[voteid] == V:
+            # if votesnum[votedCan] == 5:
+                continue
+            tmp.append([voteid, votedScore, bittype])
+            votes[voteid] += votedScore
+            votesnum[voteid] += 1
+
+        for i, xcn in enumerate(votesnum.iteritems()):
+            if x == xcn[0]:
+                num = xcn[1]
+                if num == 0: num = 1
+            
+        for i, xc in enumerate(votes.iteritems()):
+            if x == xc[0]: return (1.0 * xc[1] / num), tmp
+            
+        return 0, tmp
+        
     def getKNNRank(self, x, t, K=20):
         votes = collections.defaultdict(int)
 
@@ -695,8 +786,7 @@ class ranker_t:
 
         cand1, cand2 = candidates
         id1 = cand1.attrib["id"]
-        id2 = cand2.attrib["id"]
-        
+        id2 = cand2.attrib["id"]        
                 
         for votedCan, votedScore, bittype in self.NN[t][:K]:
             # print >>sys.stderr, "AAA = %s %s" % (votedCan, bittype)
@@ -835,8 +925,47 @@ class feature_function_t:
 				yield "KNN%d_%s_%s" % (K, fk, r), 1
 				yield "SKNN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue(can.attrib["id"], fk, K, flag_ScoreKnn)
 				yield "SKNNTURN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue4bit(can.attrib["id"], fk, candidates, K, flag_ScoreKnn)
-					
+
+
+                for fk, fnn in ranker.NN.iteritems():
+                    # V = 5
+                    for V in xrange(1,6):
+                        # print >>sys.stderr, "testing...sumVscore"
+                        # print >>sys.stderr, fk
+                        if fk != "iriPredArgNConW_center0.7_Min+subj_ON": continue
+                        sumVscores, elementlst = ranker.getSumVScores(can.attrib["id"], fk, candidates, V, False)
+                        print >>sys.stderr, "sumVscores = %s" % (sumVscores)
+                        # for ele in elementlst:
+                        #     print >>sys.stderr, "%s" % (ele)
+                        # print >>sys.stderr, "%s" % ("\n".join(elementlst))
+                        # print >>sys.stderr, "sumVscores = %s, %s" % (sumVscores, elementlst)
+                        sumVscoresRevote, elementlstRevote = ranker.getSumVScores(can.attrib["id"], fk, candidates, V, True)
+                        print >>sys.stderr, "sumVscoresRevote = %s" % (sumVscoresRevote)
+                        # for ele in elementlstRevote:
+                        #     print >>sys.stderr, "%s" % (ele)
+
+                        # self.rankingsRv["SUM%d" % V] += ([gvCan, sumVscores])
+                        # self.rankingsRv["SUMTURN%d" % V] += ([gvCan, sumVscoresRevote])
+                        # self.rankingsRv["googleJC"] += [(vCan, ret)]
+                        # yield "%s_Rank_SUM%d_%s" %("x", V, fk), sumVscores
+                        # yield "%s_SUMTURN%d_%s" %("x", V, fk), sumVscoresRevote
+                        yield "%s_Rank_SUM%d" %("x", V), sumVscores
+                        yield "%s_Rank_SUMTURN%d" %("x", V), sumVscoresRevote
+
+                    # print >>sys.stderr, "sumVscoresRevote = %s, %s" % (sumVscoresRevote, elementlstRevote)
 		# RANKING FEATURES.
+                # G1, G2, G3 = {}, {}, {}
+
+                # for c in candidates:
+                #     G1[c.attrib["id"]] = 0
+                #     G2[c.attrib["id"]] = 0
+                #     G3[c.attrib["id"]] = 0
+
+                # def _target(x):
+                #     if "googleCV" == x: return G1
+                #     if "googleCVW" == x: return G2
+                #     if "googleJC" == x: return G3
+                    
 		for fk, fr in ranker.rankingsRv.iteritems():
 			if "position" == fk: continue
 			
@@ -847,11 +976,22 @@ class feature_function_t:
 
 			if "NCNAIVE0NPMI" == fk:
 				yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
-				
+
+                        # if "google" in fk:
+                        #     # min(fr[1][1], fr[0][1]) > 0 and
+                        #     if max(fr[1][1], fr[0][1]) > 0 and \
+                        #        float(abs(fr[1][1] - fr[0][1])) / max(fr[1][1], fr[0][1]) > 0.2:
+
+                        #         if ranker.getRank(can.attrib["id"], fk) == 
+                        #         # _target(fk)[can.attrib["id"]] = 1
+                            
 			if "R1" == r:
 				if "google" in fk:
-					if min(fr[1][1], fr[0][1]) > 0 and max(fr[1][1], fr[0][1]) > 0 and \
+                                        # min(fr[1][1], fr[0][1]) > 0 and
+					if max(fr[1][1], fr[0][1]) > 0 and \
 								 float(abs(fr[1][1] - fr[0][1])) / max(fr[1][1], fr[0][1]) > 0.2:
+						# _target(fk)[can.attrib["id"]] = 1
+                                                
 						yield "%s_Rank_%s_%s" % ("x", fk, r), 1
 						
 				elif "NCCJ08" == fk:
@@ -865,6 +1005,12 @@ class feature_function_t:
 				else:
 					yield "%s_Rank_%s_%s" % ("x", fk, r), 1
 
+                # c1n, c2n = can.attrib["id"], candidates[0] if candidates[1] == can.attrib["id"] else candidates[1]
+
+                # if G1[c1n] == 1 or G1[c2n] == 1: yield "G4", G1[c1n]
+                # elif G2[c1n] == 1 or G2[c2n] == 1: yield "G4", G2[c1n]
+                # elif G3[c1n] == 1 or G3[c2n] == 1: yield "G4", G3[c1n]                
+                
 		#
 		# LEXICAL FEATURES.
 		yield "%s_LEX_AD_%s,%s" % (position, scn.getLemma(ana), scn.getLemma(can)), 1
@@ -1100,7 +1246,7 @@ class feature_function_t:
 
                         if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
                             if str(raw[:-2]) in set(instancecache): # SAME without IDs
-                                print >>sys.stderr, "is Duplication"
+                                # print >>sys.stderr, "is Duplication"
                                 continue
                             # print >>sys.stderr, "ret = %s" % repr(ret)
                             # print >>sys.stderr, "raw[:-2] = %s" % str(raw[:-2])
