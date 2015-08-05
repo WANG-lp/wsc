@@ -396,7 +396,7 @@ def checkObjectCatenative(sent, idx):
     depend2step_items = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/governor[@idx='%s']" % idx)
     for dep2item in depend2step_items:
         tp2  = dep2item.xpath("..")[0].attrib["type"]
-        # lm2 = sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx2
+        # lm2 = sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)
         # print "Checking..."
         # print tp2, lm2        
         if "nsubj" == tp2:
@@ -424,7 +424,10 @@ def getCatenativeDependent(sent, cate):
 
             lm = sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)
             ps = sent.xpath("./tokens/token[@id='%s']/POS/text()" % idx)
-            
+
+            # print "Checking..."
+            # print lm, ps
+ 
             if 0 == len(lm): lm = ["?"]
             # if 0 == int(idx): continue
             # ret += [(tp, lm[0], sent.xpath("./tokens/token[@id='%s']" % idx)[0])]

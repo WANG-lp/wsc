@@ -356,6 +356,9 @@ def get_VPpengfromctx(v, rel, ctx, ps):
     ret = [v]
     nrel = rel
     tctx = []
+    if "::" in ctx or "--" in ctx:
+        return ret, nrel
+        
     for x in ctx.strip().split(" "):
         if x.startswith("d:"):
             tctx += [x]
@@ -367,7 +370,7 @@ def get_VPpengfromctx(v, rel, ctx, ps):
                 ret += [rel.split("_")[1]]
                 nrel = "dobj"
             else:
-                for tlm, tps in [x.split(":")[-1].split("-")[:2] for x in tctx]:
+                for tlm, tps in [x.split(":", 2)[2].split("-", 1) for x in tctx]:
                     if tps in ["i", "t"]:
                         ret += [tlm]
     if ps == "v":
@@ -375,7 +378,7 @@ def get_VPpengfromctx(v, rel, ctx, ps):
             ret += [rel.split("_")[1]]
             nrel = "dobj"
         else:
-            for tlm, tps in [x.split(":")[-1].split("-")[:2] for x in tctx]:
+            for tlm, tps in [x.split(":", 2)[2].split("-", 1) for x in tctx]:
                 if tps in ["i", "t"]:
                     ret += [tlm]
                 elif tps == "j":
@@ -2048,7 +2051,7 @@ class feature_function_t:
                             # print >>sys.stderr, "ret = %s" % repr(ret)
                             # print >>sys.stderr, "raw[:-2] = %s" % str(raw[:-2])
 
-                        print >>sys.stderr, "rew = %s" % repr(raw)
+                        # print >>sys.stderr, "rew = %s" % repr(raw)
                             
                         psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
                         psr2 = "%s-%s:%s" %(p2, ps2[0].lower(), r2)
@@ -2075,20 +2078,20 @@ class feature_function_t:
                         isvor = [s2r, ipr, o2r]
                         
                         isvpol, isvpor, isvosvotype = getsvpo(ipl, addicl, imention, irl, ipsl,  ipr, addicr, imention, irr, ipsr)
-                        print >>sys.stderr, "isvpol, isvpor = %s, %s" % (repr(isvpol), repr(isvpor))
-                        print >>sys.stderr, "psvoplist = %s\n" % (repr(svoplst))
+                        # print >>sys.stderr, "isvpol, isvpor = %s, %s" % (repr(isvpol), repr(isvpor))
+                        # print >>sys.stderr, "psvoplist = %s\n" % (repr(svoplst))
 
                         # phrase check
                         pphs = set([svoplst[0][1], svoplst[1][1]])
                         iphs = set([isvpol[1], isvpor[1]])
-                        print >>sys.stderr, "pph, iph = %s, %s\n" % (repr(pphs), repr(iphs))
-                        if pa.phpeng == True and pphs == iphs:
+                        # print >>sys.stderr, "pph, iph = %s, %s\n" % (repr(pphs), repr(iphs))
+                        if pa.phpeng == True and pphs != iphs:
                                 continue
                                 
                         if psr1 == raw[0] or psr2 == raw[1]: 
                             ic1, ic2, isvpo1, isvpo2 = icl, icr, isvpol, isvpor
                         else:
-                            ic1, ic2, isvpo1, isvop2 = icr, icl, isvpor, isvpol
+                            ic1, ic2, isvpo1, isvpo2 = icr, icl, isvpor, isvpol
 
                         inegconjbit = 0
                         for ic1e in ic1.split(" "):
@@ -2351,7 +2354,7 @@ class feature_function_t:
                         spac_original = spac
 
                         sfinal = {}
-                        sfinal = {"sp": sp,"spa": spa,"spc": spc, "spac": spac, "scIndexed": ret.sIndexContext[ret.iIndexed], "scPredicted": ret.sPredictedContext}
+                        sfinal = {"sp": sp,"spa": spa,"spc": spc, "spac": spac, "scIndexed": ret.sIndexContext[ret.iIndexed], "scPredicted": ret.sPredictedContext, "bittype": bittype}
                         # sfinal = s_final(sp, spa, spc, spac)
                         nret = ret._replace(s_final = sfinal)
 
@@ -2453,11 +2456,19 @@ class feature_function_t:
                             outNN["iriCon%s" %(settingname)] += [(NNvoted, ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext*penaltyscore, bittype)]
                             outNN["iriArgCon%s" %(settingname)] += [(NNvoted, ret.sPredictedArg*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext*penaltyscore, bittype)]
 
-                            for settingnameNCon, newCsim in newCsimc.items():
-                                outNN["iriPredNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
-                                outNN["iriPredArgNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
-                                outNN["iriNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, newCsim[0]*newCsim[1]*penaltyscore, bittype)]
-                                outNN["iriArgNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, ret.sPredictedArg*newCsim[0]*newCsim[1]*penaltyscore, bittype)]
+                            if settingname != "OFF":
+                                sfinal["iriPred%s" % (settingname)] =  sp
+                                sfinal["iriPredArg%s" % (settingname)] =  spa
+                                sfinal["iriPredCon%s" % (settingname)] =  spc
+                                sfinal["iriPredArgCon%s" % (settingname)] =  spac                            
+                                sfinal["iriPredArgCon%s.bit" % (settingname)] = ibit
+                                nret = ret._replace(s_final = sfinal)
+                            
+                            # for settingnameNCon, newCsim in newCsimc.items():
+                            #     outNN["iriPredNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
+                            #     outNN["iriPredArgNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
+                            #     outNN["iriNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, newCsim[0]*newCsim[1]*penaltyscore, bittype)]
+                            #     outNN["iriArgNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, ret.sPredictedArg*newCsim[0]*newCsim[1]*penaltyscore, bittype)]
 
                                 # if settingnameNCon == 0.7 and settingname == "OFF":
                                 #     sfinal["iriPredArgNCon_center%s_%s" % (settingnameNCon, settingname)] =  spa * newCsim[0]*newCsim[1]
@@ -2520,88 +2531,89 @@ class feature_function_t:
                             # deptypedic["Min+xcomp"] = ["xcomp", "obj", "prep_"]
                             # deptypedic["Min+xcomp+nsubj"] = ["nsubj", "xcomp", "obj", "prep_"]
                             
-                            for typename, typelist in deptypedic.items():
-				# funcWeight = lambda x: 100.0 if None != re.match("^%s$" % weightedType, x) else 1.0
-				# funcWeight = lambda x: 100.0 if weightedType in x else 1.0
-				# funcWeight = lambda x: 0.1 if weightedType in x else 1.0
+                            # for typename, typelist in deptypedic.items():
+			    #     # funcWeight = lambda x: 100.0 if None != re.match("^%s$" % weightedType, x) else 1.0
+			    #     # funcWeight = lambda x: 100.0 if weightedType in x else 1.0
+			    #     # funcWeight = lambda x: 0.1 if weightedType in x else 1.0
 
-				try:
-					sc_iw, sc_id = _calcConSim(vec[ret.iIndexed], typelist)
-                                        sc_pw, sc_pd = _calcConSim(vec[2], typelist)
-				except IndexError:
-					continue
+			    #     try:
+			    #     	sc_iw, sc_id = _calcConSim(vec[ret.iIndexed], typelist)
+                            #             sc_pw, sc_pd = _calcConSim(vec[2], typelist)
+			    #     except IndexError:
+			    #     	continue
 
 
 
-                                # print >>sys.stderr, sc_id, sc_pd
+                            #     # print >>sys.stderr, sc_id, sc_pd
                                 
-				outNN["iriPredArgConW_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_iw * sc_pw, bittype)]
-                                # outNN["iriPredArgConD_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_id * sc_pd, bittype)]
-                                outNN["iriPredConW_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_iw * sc_pw, bittype)]
-                                # outNN["iriPredConD_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_id * sc_pd, bittype)]
-                                outNN["iriConW_%s_%s" %(typename, settingname)] += [(NNvoted, sc_iw * sc_pw *penaltyscore, bittype)]
-                                # outNN["iriConD_%s_%s" %(typename, settingname)] += [(NNvoted, sc_id * sc_pd *penaltyscore, bittype)]
-                                outNN["iriArgConW_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_iw * sc_pw *penaltyscore, bittype)]
-                                # outNN["iriArgConD_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_id * sc_pd *penaltyscore, bittype)]
+			    #     outNN["iriPredArgConW_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_iw * sc_pw, bittype)]
+                            #     # outNN["iriPredArgConD_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_id * sc_pd, bittype)]
+                            #     outNN["iriPredConW_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_iw * sc_pw, bittype)]
+                            #     # outNN["iriPredConD_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_id * sc_pd, bittype)]
+                            #     outNN["iriConW_%s_%s" %(typename, settingname)] += [(NNvoted, sc_iw * sc_pw *penaltyscore, bittype)]
+                            #     # outNN["iriConD_%s_%s" %(typename, settingname)] += [(NNvoted, sc_id * sc_pd *penaltyscore, bittype)]
+                            #     outNN["iriArgConW_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_iw * sc_pw *penaltyscore, bittype)]
+                            #     # outNN["iriArgConD_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_id * sc_pd *penaltyscore, bittype)]
 
-                                if typename == "Min+subj" and settingname == "OFF":
-                                    sfinal["iriPredArgConW_%s_%s" % (typename, settingname)] =  spa * sc_iw * sc_pw
-                                    sfinal["iriPredArgConW_%s_%s.scIndexed" % (typename, settingname)] = sc_iw
-                                    sfinal["iriPredArgConW_%s_%s.scPredicted" % (typename, settingname)] = sc_pw
-                                    sfinal["iriPredArgConW_%s_%s.bit" % (typename, settingname)] = ibit
-                                    nret = ret._replace(s_final = sfinal)
+                            #     if typename == "Min+subj" and settingname == "OFF":
+                            #         sfinal["iriPredArgConW_%s_%s" % (typename, settingname)] =  spa * sc_iw * sc_pw
+                            #         sfinal["iriPredArgConW_%s_%s.scIndexed" % (typename, settingname)] = sc_iw
+                            #         sfinal["iriPredArgConW_%s_%s.scPredicted" % (typename, settingname)] = sc_pw
+                            #         sfinal["iriPredArgConW_%s_%s.bit" % (typename, settingname)] = ibit
+                            #         nret = ret._replace(s_final = sfinal)
                                     
-                                    # print >>sys.stderr, sc_iw, sc_pw, raw
-                                    # print >>sys.stderr, vec[ret.iIndexed], "\n", vec[2]
+                            #         # print >>sys.stderr, sc_iw, sc_pw, raw
+                            #         # print >>sys.stderr, vec[ret.iIndexed], "\n", vec[2]
 
                                 
-                                newCsimcw = {}
-                                newCsimcd = {}
-                                newCsimtw = {}
-                                newCsimtd = {}
-                                for center in centers:
-                                    newCsim1cw = calcnewConsim(sc_iw, freq_pi, center)
-                                    newCsim2cw = calcnewConsim(sc_pw, freq_pp, center)
-                                    newCsimcw[center] = [newCsim1cw, newCsim2cw]
-                                    newCsim1cd = calcnewConsim(sc_id, freq_pi, center)
-                                    newCsim2cd = calcnewConsim(sc_pd, freq_pp, center)
-                                    newCsimcd[center] = [newCsim1cd, newCsim2cd]
+                            #     newCsimcw = {}
+                            #     newCsimcd = {}
+                            #     newCsimtw = {}
+                            #     newCsimtd = {}
+                            #     for center in centers:
+                            #         newCsim1cw = calcnewConsim(sc_iw, freq_pi, center)
+                            #         newCsim2cw = calcnewConsim(sc_pw, freq_pp, center)
+                            #         newCsimcw[center] = [newCsim1cw, newCsim2cw]
+                            #         newCsim1cd = calcnewConsim(sc_id, freq_pi, center)
+                            #         newCsim2cd = calcnewConsim(sc_pd, freq_pp, center)
+                            #         newCsimcd[center] = [newCsim1cd, newCsim2cd]
 
 
-                                for thresh in threshs:
-                                    newCsim1tw = calcnewConsimthre(sc_iw, freq_pi, thresh)
-                                    newCsim2tw = calcnewConsimthre(sc_pw, freq_pp, thresh)
-                                    newCsimtw[thresh] = [newCsim1tw, newCsim2tw]
-                                    newCsim1td = calcnewConsimthre(sc_id, freq_pi, thresh)
-                                    newCsim2td = calcnewConsimthre(sc_pd, freq_pp, thresh)
-                                    newCsimtd[thresh] = [newCsim1td, newCsim2td]
+                            #     for thresh in threshs:
+                            #         newCsim1tw = calcnewConsimthre(sc_iw, freq_pi, thresh)
+                            #         newCsim2tw = calcnewConsimthre(sc_pw, freq_pp, thresh)
+                            #         newCsimtw[thresh] = [newCsim1tw, newCsim2tw]
+                            #         newCsim1td = calcnewConsimthre(sc_id, freq_pi, thresh)
+                            #         newCsim2td = calcnewConsimthre(sc_pd, freq_pp, thresh)
+                            #         newCsimtd[thresh] = [newCsim1td, newCsim2td]
 
                                     
-                                # newCsimiw = calcnewConsim(sc_iw, freq_p1)
-                                # newCsimpw = calcnewConsim(sc_pw, freq_p2)
-                                # newCsimw = newCsimiw * newCsimpw
-                                # newCsimid = calcnewConsim(sc_id, freq_p1)
-                                # newCsimpd = calcnewConsim(sc_pd, freq_p2)
-                                # newCsimd = newCsimid * newCsimpd
+                            #     # newCsimiw = calcnewConsim(sc_iw, freq_p1)
+                            #     # newCsimpw = calcnewConsim(sc_pw, freq_p2)
+                            #     # newCsimw = newCsimiw * newCsimpw
+                            #     # newCsimid = calcnewConsim(sc_id, freq_p1)
+                            #     # newCsimpd = calcnewConsim(sc_pd, freq_p2)
+                            #     # newCsimd = newCsimid * newCsimpd
 
-                                # for Ncon center
-                                for settingnameNCon, newCsim in newCsimcw.items():
-                                    outNN["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
-                                    outNN["iriPredNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
-                                    outNN["iriNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1]*penaltyscore, bittype)]
-                                    outNN["iriArgNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1]*penaltyscore, bittype)]
-                                    if settingnameNCon == 0.7 and typename == "Min+subj" and settingname == "OFF":
-                                        sfinal["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] = spa*newCsim[0]*newCsim[1]
-                                        sfinal["iriPredArgNConW_center%s_%s_%s.scIndexed" % (settingnameNCon, typename, settingname)] = newCsim[0]
-                                        sfinal["iriPredArgNConW_center%s_%s_%s.scPredicted"  % (settingnameNCon, typename, settingname)] = newCsim[1]
-                                        sfinal["iriPredArgNConW_center%s_%s_%s.bit"  % (settingnameNCon, typename, settingname)] = ibit
-                                        nret = ret._replace(s_final = sfinal)
-                                    if settingnameNCon == 0.7 and typename == "Min+subj" and settingname == "ON":
-                                        sfinal["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] = spa*newCsim[0]*newCsim[1]
-                                        sfinal["iriPredArgNConW_center%s_%s_%s.scIndexed" % (settingnameNCon, typename, settingname)] = newCsim[0]
-                                        sfinal["iriPredArgNConW_center%s_%s_%s.scPredicted"  % (settingnameNCon, typename, settingname)] = newCsim[1]
-                                        sfinal["iriPredArgNConW_center%s_%s_%s.bit"  % (settingnameNCon, typename, settingname)] = ibit
-                                        nret = ret._replace(s_final = sfinal)
+                            #     # for Ncon center
+                            #     for settingnameNCon, newCsim in newCsimcw.items():
+                            #         outNN["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
+                            #         outNN["iriPredNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
+                            #         outNN["iriNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1]*penaltyscore, bittype)]
+                            #         outNN["iriArgNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1]*penaltyscore, bittype)]
+                            #         if settingnameNCon == 0.7 and typename == "Min+subj" and settingname == "OFF":
+                            #             sfinal["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] = spa*newCsim[0]*newCsim[1]
+                            #             sfinal["iriPredArgNConW_center%s_%s_%s.scIndexed" % (settingnameNCon, typename, settingname)] = newCsim[0]
+                            #             sfinal["iriPredArgNConW_center%s_%s_%s.scPredicted"  % (settingnameNCon, typename, settingname)] = newCsim[1]
+                            #             sfinal["iriPredArgNConW_center%s_%s_%s.bit"  % (settingnameNCon, typename, settingname)] = ibit
+                            #             nret = ret._replace(s_final = sfinal)
+                            #         if settingnameNCon == 0.7 and typename == "Min+subj" and settingname == "ON":
+                            #             sfinal["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] = spa*newCsim[0]*newCsim[1]
+                            #             sfinal["iriPredArgNConW_center%s_%s_%s.scIndexed" % (settingnameNCon, typename, settingname)] = newCsim[0]
+                            #             sfinal["iriPredArgNConW_center%s_%s_%s.scPredicted"  % (settingnameNCon, typename, settingname)] = newCsim[1]
+                            #             sfinal["iriPredArgNConW_center%s_%s_%s.bit"  % (settingnameNCon, typename, settingname)] = ibit
+                            #             nret = ret._replace(s_final = sfinal)
+
                                 # for settingnameNCon, newCsim in newCsimcd.items():
                                 #     outNN["iriPredArgNConD_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
                                 #     outNN["iriPredNConD_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
