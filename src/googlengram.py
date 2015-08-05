@@ -6,7 +6,7 @@ import os
 class googlengram_t:
 	TOTAL = 1024908267229
 	
-	def __init__(self, path = "/work/naoya-i/kb/ngrams"):
+	def __init__(self, path = "/work/jun-s/kb/ngrams"):
 		self.path   = path
 
 		self.idx  = {}

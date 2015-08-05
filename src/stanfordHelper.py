@@ -104,7 +104,13 @@ def getPath(xmlSent, p1, p2, pa):
     return ret
     
 def getToken(sent, x, conn = None):
-	r = sent.xpath("./tokens/token/word[text()='%s']/.." % x.split(" ")[-1].strip().replace("'", ""))
+        # print >>sys.stderr, x
+        # print >>sys.stderr, sent
+        # print >>sys.stderr, x.split(" ")[-1].strip()
+        # print >>sys.stderr, x.split(" ")[-1].strip().replace("'", "")
+	# print >>sys.stderr, sent.xpath("./tokens/token/word/text()")
+
+        r = sent.xpath("./tokens/token/word[text()='%s']/.." % x.split(" ")[-1].strip().replace("'", ""))
 
 	if 0 == len(r):
 		r = sent.xpath("./tokens/token/word[text()=\"%s\"]/.." % x.split(" ")[-1].strip().replace("\"", ""))
@@ -112,13 +118,31 @@ def getToken(sent, x, conn = None):
 		if 0 == len(r):
 			r = sent.xpath("./tokens/token/lemma[text()='%s']/.." % x.split(" ")[-1].strip().replace("'", ""))
 
+        print >>sys.stderr, r, len(r)
+        # print >>sys.stderr,  "%s %s" % (tk.getprevious().xpath("word/text()")[0], tk.xpath("word/text()")[0])
+        
 	# DISAMBIGUATE
-	if 1 < len(x.split(" ")) and 1 < len(r):
+        if 2 < len(x.split(" ")) and 1 < len(r):
 		new_r = []
 		
 		for tk in r:
 			tk_prev = tk.getprevious()
+                        tk_prev2 = tk_prev.getprevious()
+                        if tk_prev2 == None:
+                            continue
+                        print >>sys.stderr, "%s %s %s" % (tk_prev2.xpath("word/text()")[0], tk_prev.xpath("word/text()")[0], tk.xpath("word/text()")[0])
+                        print >>sys.stderr, " ".join(x.split(" ")[-3:])
 
+                        if "%s %s %s" % (tk_prev2.xpath("word/text()")[0], tk_prev.xpath("word/text()")[0], tk.xpath("word/text()")[0]) == " ".join(x.split(" ")[-3:]):
+				new_r += [tk]
+
+		r = new_r
+	elif 1 < len(x.split(" ")) and 1 < len(r):
+		new_r = []
+		
+		for tk in r:
+			tk_prev = tk.getprevious()
+			print >>sys.stderr,  "%s %s" % (tk_prev.xpath("word/text()")[0], tk.xpath("word/text()")[0])
 			if "%s %s" % (tk_prev.xpath("word/text()")[0], tk.xpath("word/text()")[0]) == " ".join(x.split(" ")[-2:]):
 				new_r += [tk]
 
@@ -141,6 +165,8 @@ def getTokenById(sent, x):
 	return r[0] if 1 <= len(r) else None
 
 def getNextToken(sent, x):
+        if None == x:
+                return None
 	return getTokenById(sent, int(x.attrib["id"])+1)
 
 def getNextPredicateToken(sent, x):
@@ -155,6 +181,8 @@ def getNextPredicateToken(sent, x):
 	return x
 	
 def getPreviousToken(sent, x):
+        if None == x:
+                return None
 	return getTokenById(sent, int(x.attrib["id"])-1)
 	
 def getConn(sent):
@@ -182,6 +210,28 @@ def getNEtype(x): return x.find("NER").text
 def getLemma(x):  return x.find("lemma").text
 def getSurf(x):  return x.find("word").text
 def getPOS(x):  return x.find("POS").text
+
+def getSubj(sent, x):
+    return [getTokenById(sent, y.find("dependent").attrib["idx"])
+            for y in 
+            sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='nsubj']/governor[@idx='%s']/.." % x.attrib["id"])][-1]
+def getAuxpass(sent, x):
+    # print >>sys.stderr,  sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/governor[@idx='%s']/.." % x.attrib["id"])
+    if [] != sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='auxpass']/governor[@idx='%s']/.." % x.attrib["id"]):
+        return [getTokenById(sent, y.find("dependent").attrib["idx"])
+                for y in 
+                sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='auxpass']/governor[@idx='%s']/.." % x.attrib["id"])][-1]
+    else:
+        return []
+
+def getTarget(sent, x, target):
+    # print >>sys.stderr,  sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/governor[@idx='%s']/.." % x.attrib["id"])
+    if [] != sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='%s']/governor[@idx='%s']/.." % (target, x.attrib["id"])):
+        return [getTokenById(sent, y.find("dependent").attrib["idx"])
+                for y in 
+                sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='%s']/governor[@idx='%s']/.." % (target, x.attrib["id"]))][-1]
+    else:
+        return []        
 
 def getDependents(sent, x):
 	return [
@@ -271,7 +321,7 @@ def checkCatenativeNeg(sent, x, gvx, pa, negcontext, negcontext2, catenativelist
 		catfoc = " ".join(filter(lambda x: x.split(":")[1] != tmp1.rel, catfoc.strip().split(" "))) if "" != catfoc.strip() else catfoc
                 for catfoce in catfoc.split(" "):
                     if catfoce in negcontext:
-                        isNegCatenativeConj = True
+                        isNegCatenative = True
                     if catfoce in negcontext2:
                         isNegCatenativeConj = True
 
@@ -316,8 +366,8 @@ def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
                                     tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
                                     return tmp1
                                 
-	for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/dependent[@idx='%s']/.." % x.attrib["id"]):
-		tk = getTokenById(sent, y.find("governor").attrib["idx"])
+        for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/dependent[@idx='%s']/.." % x.attrib["id"]):
+                tk = getTokenById(sent, y.find("governor").attrib["idx"])
 
 		if _isPredicativeGovernorRel(y.attrib["type"]):
 			ps = getPOS(tk)
@@ -353,6 +403,17 @@ def checkObjectCatenative(sent, idx):
             return True
     return False    
 
+def getCatRel(sent, idx, catrel):
+    if catrel == "nsubj_pass":
+        auxpass = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[@type='auxpass']/dependent[@idx='%s']/.." % idx)
+        if auxpass == []:
+            return "nsubj"
+        else:
+            return catrel
+    else:
+        return catrel
+    
+    
 def getCatenativeDependent(sent, cate):
     	dependent_items = sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep[not(@type='conj_and')]/governor[@idx='%s']" % cate.token.attrib["id"])
         ret = []
@@ -374,13 +435,14 @@ def getCatenativeDependent(sent, cate):
                     continue
                 if checkObjectCatenative(sent, idx):
                     continue
-                else:                
+                else:
+                    newrel = getCatRel(sent, idx, cate.rel)
                     # ret += getContentPredicativeGovernor(sent, sent.xpath("./tokens/token[@id='%s']" % idx)[0])
-                    ret += [(tp, sent.xpath("./tokens/token[@id='%s']" % idx)[0], lm[0], ps[0])]
+                    ret += [(tp, sent.xpath("./tokens/token[@id='%s']" % idx)[0], lm[0], ps[0], newrel)]
 
         if ret != []:
             print >>sys.stderr, "isCatenative = True, %s %s" %(cate.lemma, ret[0][2])
-            return governor_t(cate.rel, ret[0][1], ret[0][2], ret[0][3])
+            return governor_t(ret[0][4], ret[0][1], ret[0][2], ret[0][3])
         else:
             return cate
 
@@ -509,4 +571,4 @@ def getContentPredicativeGovernor(sent, p):
 		
 def getNeg(sent, x):
 	return 0 < len(sent.xpath("./dependencies[@type='basic-dependencies']/dep[@type='neg']/governor[@idx='%s']" % x.attrib["id"])) or \
-			0 < len(sent.xpath("./dependencies[@type='basic-dependencies']/dep[@type='advmod']/governor[@idx='%s']/../dependent[text()='less']" % x.attrib["id"]))
+			0 < len(sent.xpath("./dependencies[@type='basic-dependencies']/dep[@type='advmod']/governor[@idx='%s']/../dependent[text()='less' or text()='scarcely' or text()='hardly' or text()='rarely' or text()='seldom' or text()='lower']" % x.attrib["id"]))

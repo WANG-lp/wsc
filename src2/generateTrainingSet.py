@@ -15,6 +15,8 @@ import featureGenerator
 
 from progressbar import progressbar_t
 from lxml import etree
+from kyotocabinet import *
+
 
 bypass_t = collections.namedtuple("bypass_t", "xmlText corefChains")
 
@@ -44,6 +46,7 @@ def main(options, args):
         print >>sys.stderr, "Assign penalty not to use intra-sentential coreference = %s" % (options.insent2)
         print >>sys.stderr, "Use instances with required context = %s" % (options.req)
         print >>sys.stderr, "Not calculate features using KNN= %s" % (options.noknn)
+        print >>sys.stderr, "No Print KNN features = %s" % (options.noprknn)
         print >>sys.stderr, "Using small KB = %s" % (options.kbsmall)
         print >>sys.stderr, "Using 400M KB = %s" % (options.kb4)
         print >>sys.stderr, "Using 400M exact KB = %s" % (options.kb4e)
@@ -68,7 +71,14 @@ def main(options, args):
 
         ff            = featureGenerator.feature_function_t(options, options.extkb)
 	bp            = bypass_t(xmlText, corefChains)
-
+        db = DB()
+        pairdb = DB()
+        # if not db.open("/work/jun-s/kb/svocount.0525nodet.kch", DB.OREADER):
+        if not db.open("/work/jun-s/kb/svocount.0616.vp.kch", DB.OREADER):
+            print >>sys.stderr, "open error: " + str(db.error())
+        if not pairdb.open("/work/jun-s/kb/svosvocount.0613.vp.kch", DB.OREADER):
+            print >>sys.stderr, "open error: " + str(pairdb.error())
+        
         # if options.input.endswith("test.tuples"):
         #     parseerrlist = open(os.path.join(options.extkb, "parseerrno.txt")).read().strip().split(' ')
         # elif options.input.endswith("train.tuples"):
@@ -98,12 +108,17 @@ def main(options, args):
 		# PARSE THE INPUT TUPLE.
 		ti = eval(ln)
 		
-		_writeFeatures(ff, i, ti, bp, options)
+		_writeFeatures(ff, i, ti, bp, options, db, pairdb)
 		sys.stdout.flush()
 
 	if options.fullxml:
 		print "</root>"
-		
+        if not db.close():
+            print >>sys.stderr, "close error: " + str(db.error())
+        if not pairdb.close():
+            print >>sys.stderr, "close error: " + str(pairdb.error())
+
+            
 def _toWordConstant(w):
 	return "W%s%s" % (w.attrib["id"], scn.getLemma(w))
 	
@@ -133,18 +148,30 @@ def _printContextualInfo(sent, anaphor, antecedent, antecedent_false, options):
 		scn.getFirstOrderContext(sent, gvFalseAnte.token) if None != gvFalseAnte else "-"
 		)
 	
-def _writeFeatures(ff, i, tupleInstance, bypass, options):
-	sent																	= bypass.xmlText.xpath("/root/document/sentences/sentence[@id='%s']" % (1+i))[0]	
+def _writeFeatures(ff, i, tupleInstance, bypass, options, db, pairdb):
+	sent = bypass.xmlText.xpath("/root/document/sentences/sentence[@id='%s']" % (1+i))[0]	
 	anaphor, antecedent, antecedent_false =	_getBrothers(sent, tupleInstance)
-
+        print >>sys.stderr, "tupleInstance = "
+        print >>sys.stderr, tupleInstance
+        anaphor_full = tupleInstance[2]
+        antecedent_full = tupleInstance[4]
+        antecedent_false_full = tupleInstance[3].split(",")[0] if tupleInstance[3].split(",")[0] != tupleInstance[4] else tupleInstance[3].split(",")[1]
+        # print >>sys.stderr, anaphor_full, antecedent_full, antecedent_false_full
+        # print >>sys.stderr, "TESTS"
+	# print >>sys.stderr, anaphor, antecedent, antecedent_false
 	if None == anaphor or None == antecedent or None == antecedent_false:
 		return
-
+        # print >>sys.stderr, "OK?"
 	candidates = [antecedent, antecedent_false]
+        mentions_full = (anaphor_full, antecedent_full, antecedent_false_full)
 
 	# FOR EACH CANDIDATE ANTECEDENT, WE GENERATE THE FEATURES.
-	ranker = featureGenerator.ranker_t(ff, anaphor, candidates, sent, options)
+        print >>sys.stderr, "START ranker_t"
+	ranker = featureGenerator.ranker_t(ff, anaphor, candidates, sent, options, mentions_full, db, pairdb)
 
+        # if not db.close():
+        #     print >>sys.stderr, "close error: " + str(db.error())
+        
 	# WRITE THE HEADER AND BASIC INFORMATION OF ANAPHOR AND ANTECEDENTS
 	print "<problem id=\"%s\" text=\"%s\" anaphor=\"%s-%s-%s\" antecedent=\"%s-%s-%s\" falseAntecedent=\"%s-%s-%s\">" % (
 		i, tupleInstance[1].replace("\"", "&quot;"),
@@ -164,11 +191,11 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options):
 				for fv in ff.generateFeatureSet(anaphor, can, sent, ranker, candidates, options)
 			])
 
-        for G4fk in "JC CVW CV".split():
-            if "x_Rank_google%s_R1:1" % G4fk in featureVectors[antecedent] or "x_Rank_google%s_R1:1" % G4fk in featureVectors[antecedent_false]:
-                target = antecedent if "x_Rank_google%s_R1:1" % G4fk in featureVectors[antecedent] else antecedent_false
-                featureVectors[target] += " x_Rank_googleG4_R1:1"
-                break
+        # for G4fk in "JC CVW CV".split():
+        #     if "x_Rank_google%s_R1:1" % G4fk in featureVectors[antecedent] or "x_Rank_google%s_R1:1" % G4fk in featureVectors[antecedent_false]:
+        #         target = antecedent if "x_Rank_google%s_R1:1" % G4fk in featureVectors[antecedent] else antecedent_false
+        #         featureVectors[target] += " x_Rank_googleG4_R1:1"
+        #         break
 
 	for can in candidates:
             print "<feature-vector for=\"%s\">%s</feature-vector>" % (
@@ -261,15 +288,40 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options):
 				NumRulesCorrect,
 				NumRulesWrong
 			)
-
+                elif fk in ["predicate", "argument", "governor", "adjective", "subject"]:
+                    print "<statistics type=\"%s\" anaphor=\"%s\" />" % (
+                        fk,                        
+                        ranker.getRankValue(antecedent.attrib["id"], fk, 0.0, ranker.statistics),
+                        # ranker.getRankValue(antecedent_false.attrib["id"], fk, 0.0, ranker.statistics),
+                        )
+                elif "svopair_q" == fk:
+                    # print >>sys.stderr, fvs
+                    for fvss in fvs:
+                            print "<statistics type=\"%s\" svopair%s=\"%s\" />" % (fk, fvss[0], fvss[1])
+                            # print "<statistics type=\"%s\" svopair2=\"%s\" />" % (fk, fvs[1][1])
+                elif "svopair" in fk:
+                    print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
+                        fk,
+                        ranker.getRankValue(antecedent.attrib["id"], fk),
+                        ranker.getRankValue(antecedent_false.attrib["id"], fk),
+                    )
+                    
 		else:
+                        print >>sys.stderr, fk
 			print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" />" % (
 				fk,
 				ranker.getRankValue(antecedent.attrib["id"], fk, 0.0, ranker.statistics),
 				ranker.getRankValue(antecedent_false.attrib["id"], fk, 0.0, ranker.statistics),
 				)
-		
+        # FOR GOOGLE QUERY
+        print "<statistics type=\"%s\" correct=\"%s\" wrong=\"%s\" anaphor=\"%s\" />" % (
+            "mention",
+            antecedent_full,
+            antecedent_false_full,
+            anaphor_full)
 	print "</problem>"
+        # if not db.close():
+        #     print >>sys.stderr, "close error: " + str(db.error())
 
 def _diff(x, y, th):
 	return (x > y) and (1.0*(x-y)/x > th)
@@ -292,11 +344,13 @@ if "__main__" == __name__:
 	cmdparser.add_option("--cat", help	= "Catenative ON", action="store_true", default=False)
         cmdparser.add_option("--ph", help	= "Phrasal ON", action="store_true", default=False)
         cmdparser.add_option("--reqph", help	= "Use instances with required phrasal", action="store_true", default=False)
+        cmdparser.add_option("--phpeng", help	= "Phrasal ON with Peng style", action="store_true", default=False)
         cmdparser.add_option("--newpol", help	= "Use new polarity dictionaly ON", action="store_true", default=False)
         cmdparser.add_option("--insent", help	= "Using instances from inter-sentential coreference", action="store_true", default=False)
         cmdparser.add_option("--insent2", help	= "assign penalty not to use inter-sentential coreference", action="store_true", default=False)
         cmdparser.add_option("--req", help	= "Use instances with required context", action="store_true", default=False)
         cmdparser.add_option("--noknn", help	= "Not calculate features using KNN", action="store_true", default=False)
+        cmdparser.add_option("--noprknn", help	= "No Print KNN features", action="store_true", default=False)
         cmdparser.add_option("--kbsmall", help	= "Using small kb", action="store_true", default=False)
         cmdparser.add_option("--kb4", help	= "Using 400M kb", action="store_true", default=False)
         cmdparser.add_option("--kb4e", help	= "Using 400M exact kb", action="store_true", default=False)
@@ -313,6 +367,7 @@ if "__main__" == __name__:
         cmdparser.add_option("--gensent", help	= "Calculate generality of instance", action="store_true", default=False)
         cmdparser.add_option("--sknn", help	= "Using scoreKNN", action="store_true", default=False)
         cmdparser.add_option("--onlybit", help	= "Using scoreKNN", action="store_true", default=False)
-        cmdparser.add_option("--nodupli", help	= "No Duplication", action="store_true", default=False)        
+        cmdparser.add_option("--nodupli", help	= "No Duplication", action="store_true", default=False)
+        cmdparser.add_option("--peng", help	= "Using Peng style instances (control penalty)", action="store_true", default=False)        
 
 	main(*cmdparser.parse_args())

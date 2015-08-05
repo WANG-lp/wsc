@@ -65,7 +65,10 @@ for K in xrange(5, 6):
 			print >>fsOut, "\t".join([str(int(qid)-1), "NO DEC"])
                         # print >>sys.stderr, "\t".join([str(int(qid)-1), "NO DEC", repr(vote[1]), repr(vote[2])])
 			freq["NO_DECISION"] += 1
-
+        prec = 0
+        if freq["CORRECT"] + freq["WRONG"] != 0:
+            prec = 100.0 * freq["CORRECT"] / (freq["CORRECT"] + freq["WRONG"])
+                        
 	rows = []
 
 	for t in "CORRECT WRONG NO_DECISION".split():
@@ -73,5 +76,5 @@ for K in xrange(5, 6):
 			100.0 * freq[t] / sum(freq.values()), freq[t],
 			sum(freq.values()) )]
 
-	print " & ".join(map(lambda x: x.replace("_", "\\_").replace("|", " + ").replace("^", "\\^"), [sys.argv[1], "K=%d" % K] + rows)), "\\\\"
+	print " & ".join(map(lambda x: x.replace("_", "\\_").replace("|", " + ").replace("^", "\\^"), [sys.argv[1], "K=%d" % K] + rows)), "%.1f" % prec, "%", "\\\\"
 		
