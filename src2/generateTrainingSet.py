@@ -59,6 +59,7 @@ def main(options, args):
         print >>sys.stderr, "Using path group similarity = %s" % (options.pathgroup)
         print >>sys.stderr, "Calculate generality of instance = %s" % (options.gensent)
         print >>sys.stderr, "Skip Duplicate instances = %s" % (options.nodupli)
+        print >>sys.stderr, "Problem fileter = %s" % (options.pfilter)
         
 	# EXTRACT COREFERENCE RELATIONS IDENTIFIED BY CORE NLP
 	coref				= xmlText.xpath("/root/document/coreference/coreference")
@@ -78,11 +79,12 @@ def main(options, args):
             print >>sys.stderr, "open error: " + str(db.error())
         if not pairdb.open("/work/jun-s/kb/svosvocount.0613.vp.kch", DB.OREADER):
             print >>sys.stderr, "open error: " + str(pairdb.error())
-        
-        # if options.input.endswith("test.tuples"):
-        #     parseerrlist = open(os.path.join(options.extkb, "parseerrno.txt")).read().strip().split(' ')
-        # elif options.input.endswith("train.tuples"):
-        #     parseerrlist = open(os.path.join(options.extkb, "parseerrno.train.txt")).read().strip().split(' ')
+
+        if options.pfilter:
+            if options.input.endswith("test.tuples"):
+                parseerrlist = open(os.path.join(options.extkb, "parseerrno.txt")).read().strip().split(' ')
+            elif options.input.endswith("train.tuples"):
+                parseerrlist = open(os.path.join(options.extkb, "parseerrno.train.txt")).read().strip().split(' ')
 
         # parseerrlist = []
         # parseerrlist = open("./data/parseerrno.txt").read().strip().split(' ')
@@ -101,9 +103,9 @@ def main(options, args):
                 else:
                     print >>sys.stderr, "Processing No. %d..." % (i)
                 
-                # if str(i) in parseerrlist:
-                #     print >>sys.stderr, "No. %d has Parse Errors" % (i)
-                #     continue
+                if str(i) in parseerrlist:
+                    print >>sys.stderr, "No. %d has Parse Errors" % (i)
+                    continue
 
 		# PARSE THE INPUT TUPLE.
 		ti = eval(ln)
@@ -368,6 +370,7 @@ if "__main__" == __name__:
         cmdparser.add_option("--sknn", help	= "Using scoreKNN", action="store_true", default=False)
         cmdparser.add_option("--onlybit", help	= "Using scoreKNN", action="store_true", default=False)
         cmdparser.add_option("--nodupli", help	= "No Duplication", action="store_true", default=False)
-        cmdparser.add_option("--peng", help	= "Using Peng style instances (control penalty)", action="store_true", default=False)        
+        cmdparser.add_option("--peng", help	= "Using Peng style instances (control penalty)", action="store_true", default=False)
+        cmdparser.add_option("--pfilter", help	= "problem filter ON", action="store_true", default=False)
 
 	main(*cmdparser.parse_args())

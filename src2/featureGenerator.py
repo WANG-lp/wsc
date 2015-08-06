@@ -2531,36 +2531,36 @@ class feature_function_t:
                             # deptypedic["Min+xcomp"] = ["xcomp", "obj", "prep_"]
                             # deptypedic["Min+xcomp+nsubj"] = ["nsubj", "xcomp", "obj", "prep_"]
                             
-                            # for typename, typelist in deptypedic.items():
-			    #     # funcWeight = lambda x: 100.0 if None != re.match("^%s$" % weightedType, x) else 1.0
-			    #     # funcWeight = lambda x: 100.0 if weightedType in x else 1.0
-			    #     # funcWeight = lambda x: 0.1 if weightedType in x else 1.0
+                            for typename, typelist in deptypedic.items():
+			        # funcWeight = lambda x: 100.0 if None != re.match("^%s$" % weightedType, x) else 1.0
+			        # funcWeight = lambda x: 100.0 if weightedType in x else 1.0
+			        # funcWeight = lambda x: 0.1 if weightedType in x else 1.0
 
-			    #     try:
-			    #     	sc_iw, sc_id = _calcConSim(vec[ret.iIndexed], typelist)
-                            #             sc_pw, sc_pd = _calcConSim(vec[2], typelist)
-			    #     except IndexError:
-			    #     	continue
+			        try:
+			        	sc_iw, sc_id = _calcConSim(vec[ret.iIndexed], typelist)
+                                        sc_pw, sc_pd = _calcConSim(vec[2], typelist)
+			        except IndexError:
+			        	continue
 
 
 
-                            #     # print >>sys.stderr, sc_id, sc_pd
+                                # print >>sys.stderr, sc_id, sc_pd
                                 
-			    #     outNN["iriPredArgConW_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_iw * sc_pw, bittype)]
-                            #     # outNN["iriPredArgConD_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_id * sc_pd, bittype)]
-                            #     outNN["iriPredConW_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_iw * sc_pw, bittype)]
-                            #     # outNN["iriPredConD_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_id * sc_pd, bittype)]
-                            #     outNN["iriConW_%s_%s" %(typename, settingname)] += [(NNvoted, sc_iw * sc_pw *penaltyscore, bittype)]
-                            #     # outNN["iriConD_%s_%s" %(typename, settingname)] += [(NNvoted, sc_id * sc_pd *penaltyscore, bittype)]
-                            #     outNN["iriArgConW_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_iw * sc_pw *penaltyscore, bittype)]
+			        outNN["iriPredArgConW_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_iw * sc_pw, bittype)]
+                                # outNN["iriPredArgConD_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_id * sc_pd, bittype)]
+                                outNN["iriPredConW_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_iw * sc_pw, bittype)]
+                                # outNN["iriPredConD_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_id * sc_pd, bittype)]
+                                outNN["iriConW_%s_%s" %(typename, settingname)] += [(NNvoted, sc_iw * sc_pw *penaltyscore, bittype)]
+                                # outNN["iriConD_%s_%s" %(typename, settingname)] += [(NNvoted, sc_id * sc_pd *penaltyscore, bittype)]
+                                outNN["iriArgConW_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_iw * sc_pw *penaltyscore, bittype)]
                             #     # outNN["iriArgConD_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_id * sc_pd *penaltyscore, bittype)]
 
-                            #     if typename == "Min+subj" and settingname == "OFF":
-                            #         sfinal["iriPredArgConW_%s_%s" % (typename, settingname)] =  spa * sc_iw * sc_pw
-                            #         sfinal["iriPredArgConW_%s_%s.scIndexed" % (typename, settingname)] = sc_iw
-                            #         sfinal["iriPredArgConW_%s_%s.scPredicted" % (typename, settingname)] = sc_pw
-                            #         sfinal["iriPredArgConW_%s_%s.bit" % (typename, settingname)] = ibit
-                            #         nret = ret._replace(s_final = sfinal)
+                                if typename == "Min+subj" and settingname == "bitON":
+                                    sfinal["iriPredArgConW_%s_%s" % (typename, settingname)] =  spa * sc_iw * sc_pw
+                                    sfinal["iriPredArgConW_%s_%s.scIndexed" % (typename, settingname)] = sc_iw
+                                    sfinal["iriPredArgConW_%s_%s.scPredicted" % (typename, settingname)] = sc_pw
+                                    sfinal["iriPredArgConW_%s_%s.bit" % (typename, settingname)] = ibit
+                                    nret = ret._replace(s_final = sfinal)
                                     
                             #         # print >>sys.stderr, sc_iw, sc_pw, raw
                             #         # print >>sys.stderr, vec[ret.iIndexed], "\n", vec[2]
