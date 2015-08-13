@@ -5,8 +5,8 @@ import sys
 import re
 
 # Define heuristic rules.
-list_prn_ant = "because|since| if |when| although | though | as "
-list_ant_prn = "When| so | but | and "
+list_prn_ant = "because|since| if |when| although | though | as | after"
+list_ant_prn = "When| so | but | and | before"
 
 
 def _estimateTempoRel(x):
