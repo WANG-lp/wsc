@@ -214,8 +214,71 @@ def _calphpenalty(ph, ctxline, rel, penaltyscore, pa):
                 return penaltyscore * 0.2
         # print >>sys.stderr, "reqctxl, tarctxl = %s, %s" %(reqctxl, tarctxl)                
         return penaltyscore * 1.0
-        
-def _phrasalget(gv, sent, dirPhDic):
+
+def _getnphrasal(gv, sent):
+    if gv == None:
+        return "-", "-", "-"
+    ret = []
+    ret += [gv.lemma]
+    phrasedict = marshal.load( open("/home/jun-s/work/wsc/data/phrasedict.msl") )
+
+    prepret = None    
+    if gv.rel.startswith("prep_"):
+        prepret = [gv.lemma, gv.rel.replace("prep_", "")]
+
+    c = scn.getFirstOrderContext(sent, gv.token)
+    dependent_items = sent.xpath("./dependencies[@type='basic-dependencies']/dep[not(@type='conj_and')]/governor[@idx='%s']" % gv.token.attrib["id"])
+
+    prtret = None
+    for depitem in dependent_items:
+        idx = depitem.xpath("../dependent")[0].attrib["idx"]
+        tp  = depitem.xpath("..")[0].attrib["type"]
+        lm = sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)        
+        if 0 == len(lm): lm = ["?"]
+        if tp in ["prt"]:
+            prtret = [gv.lemma] + lm
+
+    dicret = None
+    if gv.lemma in phrasedict:
+        maxlen = 0
+        for phkey in phrasedict[gv.lemma].keys():
+            if maxlen < len(phkey.split("_")):
+                maxlen = len(phkey.split("_"))
+        # maxlen = 3
+        sid = int(gv.token.attrib["id"])
+        eid = sid + 4
+        wordseqlist = []
+        for ids in range(sid, eid):
+            word = sent.xpath("./tokens/token[@id='%s']/lemma/text()" %ids)
+            if word != []:
+                wordseqlist.append(word[0])
+        wssize = len(wordseqlist)
+
+        paratpllst = []
+        if wssize == 2:
+            wseq = "_".join(wordseqlist)
+            if wseq in phrasedict[gv.lemma]:
+                dicret = wordseqlist
+
+        elif wssize == 3:
+            for wseql in [wordseqlist, wordseqlist[:-1], [wordseqlist[0]]+[wordseqlist[2]]]:
+                wseq = "_".join(wseql)
+                if wseq in phrasedict[gv.lemma]:
+                    dicret = wseql
+                    break
+        elif wssize == 4:
+            for wseql in [wordseqlist, wordseqlist[:-1], wordseqlist[:2]+[wordseqlist[3]], [wordseqlist[0]]+wordseqlist[2:], wordseqlist[:2], [wordseqlist[0]]+[wordseqlist[2]], [wordseqlist[0]]+[wordseqlist[3]]]:
+                wseq = "_".join(wseql)
+                if wseq in phrasedict[gv.lemma]:
+                    dicret = wseql
+                    break
+
+    prepret = "-" if prepret == None else "_".join(prepret)
+    prtret = "-"  if prtret == None else "_".join(prtret)
+    dicret = "-" if dicret == None else "_".join(dicret)
+    return prepret, prtret, dicret
+    
+def _phrasalget(gv, sent, dirPhDic="/home/jun-s/work/wsc/data/phrasedict.msl"):
     phrasedict = marshal.load( open(os.path.join(dirPhDic, "phrasedict.msl")) )
     # dirPhDic = "/home/jun-s/work/wsc/data"
     # phrasedict = marshal.load( open("/home/jun-s/work/wsc/data/phrasedict.msl") )
@@ -721,20 +784,28 @@ class ranker_t:
             print >>sys.stderr, "gvAnaCat = %s" % repr(gvAnaCat)
             print >>sys.stderr, "gvCanCat = %s" % repr(gvCanCat)
 
-            
+            if pa.nph == True:
+                print >>sys.stderr, "NewPhrasal Start" 
+                nphAprep, nphAprt, nphAdic = _getnphrasal(gvAna, sent)
+                nphCprep, nphCprt, nphCdic = _getnphrasal(gvCan, sent)
+                
+                print >>sys.stderr, "nphraseA", nphAprep, nphAprt, nphAdic
+                print >>sys.stderr, "nphraseC", nphCprep, nphCprt, nphCdic
+                print >>sys.stderr, "NewPhrasal End" 
+                
             self.rankingsRv["position"] += [(vCan, -int(can.attrib["id"]))]
 
             if None != gvAna:
                 if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
                 else: gvanalemmas = [x[1] for x in gvAna.lemma]
 
-                for gvanalemma in gvanalemmas:
+                # for gvanalemma in gvanalemmas:
                 
-                    # SELECTIONAL PREFERENCE
-                    if "O" == scn.getNEtype(can):
-                        ret = ff.sp.calc("%s-%s" % (gvanalemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
-                        self.rankingsRv["selpref"] += [(vCan, ret[0])]
-                        self.rankingsRv["selprefCnt"] += [(vCan, ret[1])]
+                    # # SELECTIONAL PREFERENCE
+                    # if "O" == scn.getNEtype(can):
+                    #     ret = ff.sp.calc("%s-%s" % (gvanalemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
+                    #     self.rankingsRv["selpref"] += [(vCan, ret[0])]
+                    #     self.rankingsRv["selprefCnt"] += [(vCan, ret[1])]
 
                 # GOOGLE HIT COUNT
 
@@ -743,179 +814,202 @@ class ranker_t:
                 svoVPlms, svoVPsurfs, vptype, vprel = get_VPpeng(sent, gvAna.token, gvAna.rel)
                 
                 # Q1, 2: CV
-                # if "O" == scn.getNEtype(can):
-                # tkNextAna = scn.getNextPredicateToken(sent, ana)
-                if "JJ" in gvAna.POS or "NN" in gvAna.POS:
+                # ## USING GOOGLE NGRAM
+                if "O" == scn.getNEtype(can):
                     tkNextAna = scn.getNextPredicateToken(sent, ana)
-                else:
-                    tkNextAna = gvAna.token
+                    qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
+                    ret = ff.gn.search(qCV)
+                    self.statistics["CV"] += [(vCan, " ".join(qCV))]
+                    self.rankingsRv["googleCV"] += [(vCan, ret)]
 
-                print >>sys.stderr, "tkNextAna.rel = %s" % gvAna.rel
+                    # Q3, Q4: CVW
+                    tkNeighbor = scn.getNextToken(sent, tkNextAna)
+                    if None != tkNeighbor:
+                        qCV = [scn.getSurf(can), scn.getSurf(tkNextAna), scn.getSurf(tkNeighbor)]
+                        ret = ff.gn.search(qCV)
+                        self.statistics["CVW"] += [(vCan, " ".join(qCV))]
+                        self.rankingsRv["googleCVW"] += [(vCan, ret)]
 
-                if "dobj" == gvAna.rel:
-                    qC = googleS.split(" ")
-                    self.statistics["subject"] += [(vCan, " ".join(qC))]
-                else:
-                    qC = [scn.getSurf(can)]
-                    # idqC = can.attrib["id"]
-                    # lmqC = [scn.getLemma(can)]
+                    if "JJ" in gvAna.POS:
+                        # Q5, Q6: JC
+                        qCV = [scn.getSurf(gvAna.token), scn.getSurf(can)]
+                        ret = ff.gn.search(qCV)
+                        self.statistics["JC"] += [(vCan, " ".join(qCV))]
+                        self.rankingsRv["googleJC"] += [(vCan, ret)]
 
-                if qC[0] in mentions[1].split() and qC[0] in mentions[2].split():
-                    print >>sys.stderr, "EACH MENTION MATCH!"
-                    # WHICH MENTION = CAN?
+                # ============
+                # ## USING GOOGLE SEARCH API
 
-                    m1, m2 = mentions[1].split(), mentions[2].split()
-                    lenm1, lenm2 = len(m1), len(m2)
+                # # tkNextAna = scn.getNextPredicateToken(sent, ana)
+                # if "JJ" in gvAna.POS or "NN" in gvAna.POS:
+                #     tkNextAna = scn.getNextPredicateToken(sent, ana)
+                # else:
+                #     tkNextAna = gvAna.token
+
+                # print >>sys.stderr, "tkNextAna.rel = %s" % gvAna.rel
+
+                # if "dobj" == gvAna.rel:
+                #     qC = googleS.split(" ")
+                #     self.statistics["subject"] += [(vCan, " ".join(qC))]
+                # else:
+                #     qC = [scn.getSurf(can)]
+                #     # idqC = can.attrib["id"]
+                #     # lmqC = [scn.getLemma(can)]
+
+                # if qC[0] in mentions[1].split() and qC[0] in mentions[2].split():
+                #     print >>sys.stderr, "EACH MENTION MATCH!"
+                #     # WHICH MENTION = CAN?
+
+                #     m1, m2 = mentions[1].split(), mentions[2].split()
+                #     lenm1, lenm2 = len(m1), len(m2)
                     
-                    startid1 = int(vCan) - m1.index(qC[0])
-                    startid2 = int(vCan) - m2.index(qC[0])
-                    endid1 = startid1 + lenm1
-                    endid2 = startid2 + lenm2 
+                #     startid1 = int(vCan) - m1.index(qC[0])
+                #     startid2 = int(vCan) - m2.index(qC[0])
+                #     endid1 = startid1 + lenm1
+                #     endid2 = startid2 + lenm2 
 
-                    if startid1 > 0:
-                        surfs1 = [scn.getSurf(scn.getTokenById(sent, x)) for x in range(startid1, endid1)]
-                    else: surfs1 = ""
-                    if startid2 > 0:
-                        surfs2 = [scn.getSurf(scn.getTokenById(sent, x)) for x in range(startid2, endid2)]
-                    else: surfs2 = ""
+                #     if startid1 > 0:
+                #         surfs1 = [scn.getSurf(scn.getTokenById(sent, x)) for x in range(startid1, endid1)]
+                #     else: surfs1 = ""
+                #     if startid2 > 0:
+                #         surfs2 = [scn.getSurf(scn.getTokenById(sent, x)) for x in range(startid2, endid2)]
+                #     else: surfs2 = ""
 
-                    if " ".join(surfs1) == mentions[1] or " ".join(surfs2) == mentions[1]:
-                        print >>sys.stderr, "%s = %s" %(qC[0], mentions[1])
-                        qC = mentions[1].split()
-                    elif " ".join(surfs1) == mentions[2] or " ".join(surfs2) == mentions[2]:
-                        print >>sys.stderr, "%s = %s" %(qC[0], mentions[2])
-                        qC = mentions[2].split()
-                    else:
-                        print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
-                        qC = mentions[0].split()
+                #     if " ".join(surfs1) == mentions[1] or " ".join(surfs2) == mentions[1]:
+                #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[1])
+                #         qC = mentions[1].split()
+                #     elif " ".join(surfs1) == mentions[2] or " ".join(surfs2) == mentions[2]:
+                #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[2])
+                #         qC = mentions[2].split()
+                #     else:
+                #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
+                #         qC = mentions[0].split()
                         
-                else:                    
-                    if qC[0] in mentions[1].split():
-                        print >>sys.stderr, "%s = %s" %(qC[0], mentions[1])
-                        qC = mentions[1].split()
+                # else:                    
+                #     if qC[0] in mentions[1].split():
+                #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[1])
+                #         qC = mentions[1].split()
                         
-                    elif qC[0] in mentions[2].split():
-                        print >>sys.stderr, "%s = %s" %(qC[0], mentions[2])
-                        qC = mentions[2].split()
-                    else:
-                        print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
-                        qC = mentions[0].split()
+                #     elif qC[0] in mentions[2].split():
+                #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[2])
+                #         qC = mentions[2].split()
+                #     else:
+                #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
+                #         qC = mentions[0].split()
 
-                # lmqC = [scn.getLemma(scn.getTokenById(sent, x)) for x in range(int(idqC) - len(qC)+1, int(idqC)+1)]
-                # print >>sys.stderr, "lmqC = %s" %lmqC
-                labelC = "+".join(qC)
+                # # lmqC = [scn.getLemma(scn.getTokenById(sent, x)) for x in range(int(idqC) - len(qC)+1, int(idqC)+1)]
+                # # print >>sys.stderr, "lmqC = %s" %lmqC
+                # labelC = "+".join(qC)
                     
                     
-                qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
-                if "nsubj_pass" == gvAna.rel and "JJ" not in gvAna.POS and "NN" not in gvAna.POS:
-                    # print >>sys.stderr, scn.getSurf(gvAna.token)
-                    tktmpqV = scn.getTarget(sent, gvAna.token, "auxpass")
-                    if tktmpqV == []:
-                        print >>sys.stderr, "Cannot find auxpass"
-                        qV = [scn.getSurf(tkNextAna)]
-                        lmqV = [scn.getLemma(tkNextAna)]
-                    else:
-                        qV = [scn.getSurf(tktmpqV), scn.getSurf(tkNextAna)]
-                        lmqV = [scn.getLemma(tktmpqV), scn.getLemma(tkNextAna)]
-                else:
-                    qV = [scn.getSurf(tkNextAna)]
-                    lmqV = [scn.getLemma(tkNextAna)]
-                labelV = "+".join(qV)
+                # qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
+                # if "nsubj_pass" == gvAna.rel and "JJ" not in gvAna.POS and "NN" not in gvAna.POS:
+                #     # print >>sys.stderr, scn.getSurf(gvAna.token)
+                #     tktmpqV = scn.getTarget(sent, gvAna.token, "auxpass")
+                #     if tktmpqV == []:
+                #         print >>sys.stderr, "Cannot find auxpass"
+                #         qV = [scn.getSurf(tkNextAna)]
+                #         lmqV = [scn.getLemma(tkNextAna)]
+                #     else:
+                #         qV = [scn.getSurf(tktmpqV), scn.getSurf(tkNextAna)]
+                #         lmqV = [scn.getLemma(tktmpqV), scn.getLemma(tkNextAna)]
+                # else:
+                #     qV = [scn.getSurf(tkNextAna)]
+                #     lmqV = [scn.getLemma(tkNextAna)]
+                # labelV = "+".join(qV)
                 
-                # print >>sys.stderr, qCV
-                # ret = ff.gn.search(qC+qV)
-                # print >>sys.stderr, "CV = %s" %(qC+qV)
-                labelcv = "+".join([labelC, labelV])
-                # print >>sys.stderr, "labelcv = %s" %(labelcv)
-                filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labelcv)) 
-                # print >>sys.stderr, filename
-                if filename == []:
-                    ret = 0.0
-                else:
-                    ret = int(lSAPI.loadresult(filename[0]))
+
+                # # ret = ff.gn.search(qC+qV)
+
+                # labelcv = "+".join([labelC, labelV])
+                # filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labelcv)) 
+                # if filename == []:
+                #     ret = 0.0
+                # else:
+                #     ret = int(lSAPI.loadresult(filename[0]))
                 
-                self.statistics["CV"] += [(vCan, " ".join(qC+qV))]
-                self.statistics["governor"] += [(vCan, "%s:%s" % (" ".join(qV),gvAna.rel))]
-                self.rankingsRv["googleCV"] += [(vCan, ret)]
-                self.rankingsRv["ggllogedCV"] += [(vCan, math.log(1+ret))]
+                # self.statistics["CV"] += [(vCan, " ".join(qC+qV))]
+                # self.statistics["governor"] += [(vCan, "%s:%s" % (" ".join(qV),gvAna.rel))]
+                # self.rankingsRv["googleCV"] += [(vCan, ret)]
+                # self.rankingsRv["ggllogedCV"] += [(vCan, math.log(1+ret))]
                                 
-                # Q3, Q4: CVW
-                tkNeighbor = scn.getNextToken(sent, tkNextAna)
-                if None != tkNeighbor:
-                    if scn.getPOS(tkNeighbor) == "DT":
-                        tkNeighborGovs = scn.getGovernors(sent, tkNeighbor)
-                        # print >>sys.stderr, tkNeighborGovs
-                        # print >>sys.stderr, "tkNeighborGovs"
-                        if tkNeighborGovs != None and len(tkNeighborGovs) == 1:
-                            qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
-                            qW = [scn.getSurf(tkNeighbor), scn.getSurf(tkNeighborGovs[0][1])]
-                            lmqW = [scn.getLemma(tkNeighbor), scn.getLemma(tkNeighborGovs[0][1])]
-                        else:
-                            qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
-                            qW = [scn.getSurf(tkNeighbor)]
-                            lmqW = [scn.getLemma(tkNeighbor)]
-                    else:
-                        # print >>sys.stderr, "POS="
-                        # print >>sys.stderr, scn.getPOS(tkNeighbor)
-                        qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
-                        if "JJ" in gvAna.POS or "NN" in gvAna.POS and "RB" in scn.getPOS(tkNeighbor):
-                            qW = [scn.getSurf(gvAna.token)]
-                            lmqW = [scn.getLemma(gvAna.token)]
-                        else:
-                            qW = [scn.getSurf(tkNeighbor)]
-                            lmqW = [scn.getLemma(tkNeighbor)]
+                # # Q3, Q4: CVW
+                # tkNeighbor = scn.getNextToken(sent, tkNextAna)
+                # if None != tkNeighbor:
+                #     if scn.getPOS(tkNeighbor) == "DT":
+                #         tkNeighborGovs = scn.getGovernors(sent, tkNeighbor)
+                #         # print >>sys.stderr, tkNeighborGovs
+                #         # print >>sys.stderr, "tkNeighborGovs"
+                #         if tkNeighborGovs != None and len(tkNeighborGovs) == 1:
+                #             qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
+                #             qW = [scn.getSurf(tkNeighbor), scn.getSurf(tkNeighborGovs[0][1])]
+                #             lmqW = [scn.getLemma(tkNeighbor), scn.getLemma(tkNeighborGovs[0][1])]
+                #         else:
+                #             qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
+                #             qW = [scn.getSurf(tkNeighbor)]
+                #             lmqW = [scn.getLemma(tkNeighbor)]
+                #     else:
+                #         # print >>sys.stderr, "POS="
+                #         # print >>sys.stderr, scn.getPOS(tkNeighbor)
+                #         qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
+                #         if "JJ" in gvAna.POS or "NN" in gvAna.POS and "RB" in scn.getPOS(tkNeighbor):
+                #             qW = [scn.getSurf(gvAna.token)]
+                #             lmqW = [scn.getLemma(gvAna.token)]
+                #         else:
+                #             qW = [scn.getSurf(tkNeighbor)]
+                #             lmqW = [scn.getLemma(tkNeighbor)]
 
-                    labelW = "+".join(qW)
-                    labelcvw = "+".join([labelC, labelV, labelW])
-                    labelma = "+".join([labelC, labelW])
-                    # print >>sys.stderr, "labelcvw = %s" %(labelcvw)
-                    filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labelcvw)) 
-                    # print >>sys.stderr, filename
-                    if filename == []:
-                        ret = 0.0
-                    else:
-                        ret = int(lSAPI.loadresult(filename[0]))
+                #     labelW = "+".join(qW)
+                #     labelcvw = "+".join([labelC, labelV, labelW])
+                #     labelma = "+".join([labelC, labelW])
+                #     # print >>sys.stderr, "labelcvw = %s" %(labelcvw)
+                #     filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labelcvw)) 
+                #     # print >>sys.stderr, filename
+                #     if filename == []:
+                #         ret = 0.0
+                #     else:
+                #         ret = int(lSAPI.loadresult(filename[0]))
                     
-                    # if len(qC+qV+qW) > 4:
-                    #     ret = 0.0
-                    # else:
-                    #     ret = ff.gn.search(qC+qV+qW)
-                    self.statistics["CVW"] += [(vCan, " ".join(qC+qV+qW))]
-                    self.statistics["argument"] += [(vCan, " ".join(qW))]
-                    self.rankingsRv["googleCVW"] += [(vCan, ret)]
-                    self.rankingsRv["ggllogedCVW"] += [(vCan, math.log(1+ret))]
+                #     # if len(qC+qV+qW) > 4:
+                #     #     ret = 0.0
+                #     # else:
+                #     #     ret = ff.gn.search(qC+qV+qW)
+                #     self.statistics["CVW"] += [(vCan, " ".join(qC+qV+qW))]
+                #     self.statistics["argument"] += [(vCan, " ".join(qW))]
+                #     self.rankingsRv["googleCVW"] += [(vCan, ret)]
+                #     self.rankingsRv["ggllogedCVW"] += [(vCan, math.log(1+ret))]
 
-                    filename = glob.glob("/home/jun-s/work/wsc/data/google2/*_%s.json" %(labelma)) 
-                    if filename == []:
-                        ret = 0.0
-                    else:
-                        ret = int(lSAPI.loadresult(filename[0]))
+                #     filename = glob.glob("/home/jun-s/work/wsc/data/google2/*_%s.json" %(labelma)) 
+                #     if filename == []:
+                #         ret = 0.0
+                #     else:
+                #         ret = int(lSAPI.loadresult(filename[0]))
                     
-                    self.statistics["MA"] += [(vCan, " ".join(qC+qW))]
-                    self.rankingsRv["googleMA"] += [(vCan, ret)]
-                    self.rankingsRv["ggllogedMA"] += [(vCan, math.log(1+ret))]
+                #     self.statistics["MA"] += [(vCan, " ".join(qC+qW))]
+                #     self.rankingsRv["googleMA"] += [(vCan, ret)]
+                #     self.rankingsRv["ggllogedMA"] += [(vCan, math.log(1+ret))]
                     
 
-                if "JJ" in gvAna.POS:
-                    # Q5, Q6: JC
-                    qCV = [scn.getSurf(gvAna.token), scn.getSurf(can)]
-                    qJ = [scn.getSurf(gvAna.token)]
+                # if "JJ" in gvAna.POS:
+                #     # Q5, Q6: JC
+                #     qCV = [scn.getSurf(gvAna.token), scn.getSurf(can)]
+                #     qJ = [scn.getSurf(gvAna.token)]
 
-                    labelJ = "+".join(qJ)
-                    labeljc = "+".join([labelJ, labelC])
-                    print >>sys.stderr, "labeljc = %s" %(labeljc)
-                    filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labeljc)) 
-                    print >>sys.stderr, filename
-                    if filename == []:
-                        ret = 0.0
-                    else:
-                        ret = int(lSAPI.loadresult(filename[0]))
+                #     labelJ = "+".join(qJ)
+                #     labeljc = "+".join([labelJ, labelC])
+                #     print >>sys.stderr, "labeljc = %s" %(labeljc)
+                #     filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labeljc)) 
+                #     print >>sys.stderr, filename
+                #     if filename == []:
+                #         ret = 0.0
+                #     else:
+                #         ret = int(lSAPI.loadresult(filename[0]))
                     
-                    # ret = ff.gn.search(qCV)
-                    self.statistics["JC"] += [(vCan, " ".join(qCV))]
-                    self.statistics["adjective"] += [(vCan, " ".join(qJ))]
-                    self.rankingsRv["googleJC"] += [(vCan, ret)]
-                    self.rankingsRv["ggllogedJC"] += [(vCan, math.log(1+ret))]
+                #     self.statistics["JC"] += [(vCan, " ".join(qCV))]
+                #     self.statistics["adjective"] += [(vCan, " ".join(qJ))]
+                #     self.rankingsRv["googleJC"] += [(vCan, ret)]
+                #     self.rankingsRv["ggllogedJC"] += [(vCan, math.log(1+ret))]
+                # ==============
                     
                 # SVO COUNT
                 # cAna = scn.getFirstOrderContext(sent, gvAna.token)
@@ -1076,12 +1170,12 @@ class ranker_t:
                 
                 for (gvanalemma, gvcanlemma) in itertools.product(gvanalemmas, gvcanlemmas):
 
-                    # # SELECTIONAL PREFERENCE
-                    # if "O" == scn.getNEtype(can):
-                    #     ret = ff.sp.calc("%s-%s" % (gvanalemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
-                    #     self.rankingsRv["selpref"] += [(vCan, ret[0])]
-                    #     self.rankingsRv["selprefCnt"] += [(vCan, ret[1])]
-                                        
+                    # SELECTIONAL PREFERENCE
+                    if "O" == scn.getNEtype(can):
+                        ret = ff.sp.calc("%s-%s" % (gvanalemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
+                        self.rankingsRv["selpref"] += [(vCan, ret[0])]
+                        self.rankingsRv["selprefCnt"] += [(vCan, ret[1])]
+                    
                     # NARRATIVE CHAIN FEATURE (C&J08'S OUTPUT)
                     self.rankingsRv["NCCJ08"] += [(vCan, 1 if 1 <= len(ff.nc.getChains(
                         ff.nc.createQuery(gvanalemma, gvAna.rel),
@@ -1099,31 +1193,6 @@ class ranker_t:
                             self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
                             self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
                             
-
-                # # Q1, 2: CV
-                # if "O" == scn.getNEtype(can):
-                #     tkNextAna = scn.getNextPredicateToken(sent, ana)
-                #     qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
-                #     ret = ff.gn.search(qCV)
-                #     self.statistics["CV"] += [(vCan, " ".join(qCV))]
-                #     self.rankingsRv["googleCV"] += [(vCan, ret)]
-																
-                #     # Q3, Q4: CVW
-                #     tkNeighbor = scn.getNextToken(sent, tkNextAna)
-                #     if None != tkNeighbor:
-                #         qCV = [scn.getSurf(can), scn.getSurf(tkNextAna), scn.getSurf(tkNeighbor)]
-                #         ret = ff.gn.search(qCV)
-                #         self.statistics["CVW"] += [(vCan, " ".join(qCV))]
-                #         self.rankingsRv["googleCVW"] += [(vCan, ret)]
-
-                #     if "JJ" in gvAna.POS:
-                #         # Q5, Q6: JC
-                #         qCV = [scn.getSurf(gvAna.token), scn.getSurf(can)]
-                #         ret = ff.gn.search(qCV)
-                #         self.statistics["JC"] += [(vCan, " ".join(qCV))]
-                #         self.rankingsRv["googleJC"] += [(vCan, ret)]
-
-                        
                 if isinstance(gvAna.lemma, list) and isinstance(gvCan.lemma, list):
                     # print >>sys.stderr, "anaphra govornor and candidate govornor are phrasal verb"
                     for anaph in gvAna.lemma:
@@ -1531,7 +1600,7 @@ class feature_function_t:
                     tuplescdb = "corefevents.10.%s.cdblist.tuples.cdb" % pa.kb10
                 elif pa.oldkb:
                     coreftsv = "corefevents.tsv"
-                else:
+                elif pa.kb0909:
                     coreftsv = "corefevents.0909.tsv"
                     ncnaivecdb = "ncnaive0909.0.cdb"
                     tuplescdb = "tuples.0909.tuples.cdb"
@@ -1709,8 +1778,8 @@ class feature_function_t:
                             yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
                                 # if numncnaive < EPupperfreq and numncnaiveop < EPupperfreq: # filter out EP feature of freq > EPupperfreq
                                 #     yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
-                        if "google" in fk:
-                                yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
+                        # if "google" in fk:
+                        #         yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
                         if "gglloged" in fk:
                                 yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
                                 
@@ -1723,15 +1792,15 @@ class feature_function_t:
                         #         # _target(fk)[can.attrib["id"]] = 1
                             
 			if "R1" == r:
-				# if "google" in fk:
-                                #         # min(fr[1][1], fr[0][1]) > 0 and
-				# 	if max(fr[1][1], fr[0][1]) > 0 and \
-				# 				 float(abs(fr[1][1] - fr[0][1])) / max(fr[1][1], fr[0][1]) > 0.2:
+				if "google" in fk:
+                                        # min(fr[1][1], fr[0][1]) > 0 and
+					if max(fr[1][1], fr[0][1]) > 0 and \
+								 float(abs(fr[1][1] - fr[0][1])) / max(fr[1][1], fr[0][1]) > 0.2:
                                 #         # if max(fr[1][1], fr[0][1]) > 0 and \
                                 #         #    float(min(fr[1][1], fr[0][1])) / max(fr[1][1], fr[0][1]) < 0.8:
                                 #             # _target(fk)[can.attrib["id"]] = 1
                                             
-                                #             yield "%s_Rank_%s_%s" % ("x", fk, r), 1
+                                            yield "%s_Rank_%s_%s" % ("x", fk, r), 1
 						
 				if "NCCJ08" == fk:
 					if 2 > fr[0][1] + fr[1][1]:
@@ -1808,13 +1877,6 @@ class feature_function_t:
                 # print >>sys.stderr, "### gvCan1 = %s, gvCan2 = %s, gvAna = %s" % (gvCan1, gvCan2, gvAna)
 		if None == gvAna or None == gvCan1 or None == gvCan2: return
 
-                # if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
-                # else: gvanalemmas = gvAna.lemma[0].split("_")[:1] + gvAna.lemma[1:]
-                # if not isinstance(gvCan1.lemma, list): gvcan1lemmas = [gvCan1.lemma]
-                # else: gvcan1lemmas = gvCan1.lemma[0].split("_")[:1] + gvCan1.lemma[1:]
-                # if not isinstance(gvCan2.lemma, list): gvcan2lemmas = [gvCan2.lemma]
-                # else: gvcan2lemmas = gvCan2.lemma[0].split("_")[:1] + gvCan2.lemma[1:]
-
                 if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
                 else: gvanalemmas = [x[1] for x in gvAna.lemma]
                 if not isinstance(gvCan1.lemma, list): gvcan1lemmas = [gvCan1.lemma]
@@ -1825,47 +1887,62 @@ class feature_function_t:
                 
                 for gvanalemma in gvanalemmas:
                 
-                    for (gvcan1lemma, gvcan2lemma) in itertools.product(gvcan1lemmas, gvcan2lemmas):
-                        
+                    for (gvcan1lemma, gvcan2lemma) in itertools.product(gvcan1lemmas, gvcan2lemmas):                        
+                        # if None != gvAna:
+                        #     if gvAna.rel == "nsubj" or scn.getDeepSubject(sent, gvAna.token) == ana.attrib["id"]:
+                        #         polAna = self.sentpol.getPolarity(gvanalemma)
+                        #     if "obj" in gvAna.rel or gvAna.rel == "nsubj_pass":
+                        #         polAna = None if self.sentpol.getPolarity(gvanalemma) == None else self.sentpol.getPolarity(gvanalemma) * -1
+                        #     else:
+                        #         polAna = None
+                        #     # polAna = self.sentpol.getPolarity(gvanalemma) if gvAna.rel == "nsubj" or scn.getDeepSubject(sent, gvAna.token) == ana.attrib["id"] else None
+                        #     # FLIPPING
+                        #     if None != polAna and (scn.getNeg(sent, gvAna.token) or (None != conn and scn.getLemma(conn) in "but although though however".split())): polAna *= -1
+
+                                
+                        # if None != gvCan1:
+                        #     if gvCan1.rel == "nsubj" or scn.getDeepSubject(sent, gvCan1.token) == candidates[0].attrib["id"]:
+                        #         polCan1 = self.sentpol.getPolarity(gvcan1lemma)
+                        #     elif "obj" in gvCan1.rel or gvCan1.rel == "nsubj_pass":
+                        #         polCan1 = None if self.sentpol.getPolarity(gvcan1lemma) == None else self.sentpol.getPolarity(gvcan1lemma) * -1
+                        #     else:
+                        #         polCan1 = None                            
+                        #     # polCan1 = self.sentpol.getPolarity(gvcan1lemma) if gvCan1.rel == "nsubj" or scn.getDeepSubject(sent, gvCan1.token) == candidates[0].attrib["id"] else None
+                        #     # FLIPPING
+                        #     if None != polCan1 and scn.getNeg(sent, gvCan1.token): polCan1 *= -1
+			
+                        # if None != gvCan2:
+                        #     if gvCan2.rel == "nsubj" or scn.getDeepSubject(sent, gvCan2.token) == candidates[0].attrib["id"]:
+                        #         polCan2 = self.sentpol.getPolarity(gvcan2lemma)
+                        #     elif "obj" in gvCan2.rel or gvCan2.rel == "nsubj_pass":
+                        #         polCan2 = None if self.sentpol.getPolarity(gvcan2lemma) == None else self.sentpol.getPolarity(gvcan2lemma) * -1
+                        #     else:
+                        #         polCan2 = None
+                        #     # polCan2 = self.sentpol.getPolarity(gvcan2lemma) if gvCan2.rel == "nsubj" or scn.getDeepSubject(sent, gvCan2.token) == candidates[1].attrib["id"] else None
+                        #     # FLIPPING
+                        #     if None != polCan2 and scn.getNeg(sent, gvCan2.token): polCan2 *= -1
+
+                            
                         if None != gvAna:
-                            if gvAna.rel == "nsubj" or scn.getDeepSubject(sent, gvAna.token) == ana.attrib["id"]:
-                                polAna = self.sentpol.getPolarity(gvanalemma)
-                            if "obj" in gvAna.rel or gvAna.rel == "nsubj_pass":
-                                polAna = None if self.sentpol.getPolarity(gvanalemma) == None else self.sentpol.getPolarity(gvanalemma) * -1
-                            else:
-                                polAna = None
-                            # polAna = self.sentpol.getPolarity(gvanalemma) if gvAna.rel == "nsubj" or scn.getDeepSubject(sent, gvAna.token) == ana.attrib["id"] else None
+                            polAna = self.sentpol.getPolarity(gvanalemma) if gvAna.rel == "nsubj" or scn.getDeepSubject(sent, gvAna.token) == ana.attrib["id"] else None
                             # FLIPPING
                             if None != polAna and (scn.getNeg(sent, gvAna.token) or (None != conn and scn.getLemma(conn) in "but although though however".split())): polAna *= -1
 
-                                
                         if None != gvCan1:
-                            if gvCan1.rel == "nsubj" or scn.getDeepSubject(sent, gvCan1.token) == candidates[0].attrib["id"]:
-                                polCan1 = self.sentpol.getPolarity(gvcan1lemma)
-                            elif "obj" in gvCan1.rel or gvCan1.rel == "nsubj_pass":
-                                polCan1 = None if self.sentpol.getPolarity(gvcan1lemma) == None else self.sentpol.getPolarity(gvcan1lemma) * -1
-                            else:
-                                polCan1 = None                            
-                            # polCan1 = self.sentpol.getPolarity(gvcan1lemma) if gvCan1.rel == "nsubj" or scn.getDeepSubject(sent, gvCan1.token) == candidates[0].attrib["id"] else None
+                            polCan1 = self.sentpol.getPolarity(gvcan1lemma) if gvCan1.rel == "nsubj" or scn.getDeepSubject(sent, gvCan1.token) == candidates[0].attrib["id"] else None
                             # FLIPPING
                             if None != polCan1 and scn.getNeg(sent, gvCan1.token): polCan1 *= -1
 			
                         if None != gvCan2:
-                            if gvCan2.rel == "nsubj" or scn.getDeepSubject(sent, gvCan2.token) == candidates[0].attrib["id"]:
-                                polCan2 = self.sentpol.getPolarity(gvcan2lemma)
-                            elif "obj" in gvCan2.rel or gvCan2.rel == "nsubj_pass":
-                                polCan2 = None if self.sentpol.getPolarity(gvcan2lemma) == None else self.sentpol.getPolarity(gvcan2lemma) * -1
-                            else:
-                                polCan2 = None
-                            # polCan2 = self.sentpol.getPolarity(gvcan2lemma) if gvCan2.rel == "nsubj" or scn.getDeepSubject(sent, gvCan2.token) == candidates[1].attrib["id"] else None
+                            polCan2 = self.sentpol.getPolarity(gvcan2lemma) if gvCan2.rel == "nsubj" or scn.getDeepSubject(sent, gvCan2.token) == candidates[1].attrib["id"] else None
                             # FLIPPING
                             if None != polCan2 and scn.getNeg(sent, gvCan2.token): polCan2 *= -1
-
-                        # # INFERENCE.
-                        # if 1 == polCan1 and None == polCan2: polCan2 = -1
-                        # if -1 == polCan1 and None == polCan2: polCan2 = 1
-                        # if None == polCan1 and 1 == polCan2: polCan1 = -1
-                        # if None == polCan1 and -1 == polCan2: polCan1 = 1
+                            
+                        # INFERENCE.
+                        if 1 == polCan1 and None == polCan2: polCan2 = -1
+                        if -1 == polCan1 and None == polCan2: polCan2 = 1
+                        if None == polCan1 and 1 == polCan2: polCan1 = -1
+                        if None == polCan1 and -1 == polCan2: polCan1 = 1
 
                         def _L(_x):
                             if None == _x: return None
@@ -1876,32 +1953,32 @@ class feature_function_t:
                         ranker.statistics["POL"] += [(candidates[0].attrib["id"], "%s,%s" % (polAna, polCan1))]
                         ranker.statistics["POL"] += [(candidates[1].attrib["id"], "%s,%s" % (polAna, polCan2))]
 
-                        # if None != polAna and None != polCan1 and None != polCan2 and 0 != polAna*polCan1*polCan2:
+                        if None != polAna and None != polCan1 and None != polCan2 and 0 != polAna*polCan1*polCan2:
 
-                        # HPOL ACCORDING TO RAHMAN
-                        # HPOL1
-                        if can == candidates[0] and polCan1 == polAna: yield "%s_HPOL_MATCH" % position, 1
-                        if can == candidates[1] and polCan2 == polAna: yield "%s_HPOL_MATCH" % position, 1
+                            # HPOL ACCORDING TO RAHMAN
+                            # HPOL1
+                            if can == candidates[0] and polCan1 == polAna: yield "%s_HPOL_MATCH" % position, 1
+                            if can == candidates[1] and polCan2 == polAna: yield "%s_HPOL_MATCH" % position, 1
 
-                        # HPOL2
-                        if can == candidates[0]: yield "%s_HPOL_%s-%s" % (position, polAna, polCan1), 1
-                        if can == candidates[1]: yield "%s_HPOL_%s-%s" % (position, polAna, polCan2), 1
+                            # HPOL2
+                            if can == candidates[0]: yield "%s_HPOL_%s-%s" % (position, polAna, polCan1), 1
+                            if can == candidates[1]: yield "%s_HPOL_%s-%s" % (position, polAna, polCan2), 1
 
-                        # HPOL3
-                        if None != conn:
-                            if can == candidates[0]: yield "%s_HPOL_%s-%s-%s" % (position, polAna, scn.getLemma(conn), polCan1), 1
-                            if can == candidates[1]: yield "%s_HPOL_%s-%s-%s" % (position, polAna, scn.getLemma(conn), polCan2), 1
+                            # HPOL3
+                            if None != conn:
+                                if can == candidates[0]: yield "%s_HPOL_%s-%s-%s" % (position, polAna, scn.getLemma(conn), polCan1), 1
+                                if can == candidates[1]: yield "%s_HPOL_%s-%s-%s" % (position, polAna, scn.getLemma(conn), polCan2), 1
 
-                        # # HPOL ACCORDING TO PENG
-                        # if None != polAna and None != polCan1 and 0 != polAna*polCan1:
-                        #     if can == candidates[0] and polCan1 == polAna: yield "%s_HPOL_MATCH" % position, 1
-                        #     if can == candidates[0] and polCan1 == polAna == 1: yield "%s_HPOL_POSMATCH" % position, 1
-                        #     if can == candidates[0] and polCan1 == polAna == -1: yield "%s_HPOL_NEGMATCH" % position, 1
+                            # # HPOL ACCORDING TO PENG
+                            # if None != polAna and None != polCan1 and 0 != polAna*polCan1:
+                            #     if can == candidates[0] and polCan1 == polAna: yield "%s_HPOL_MATCH" % position, 1
+                            #     if can == candidates[0] and polCan1 == polAna == 1: yield "%s_HPOL_POSMATCH" % position, 1
+                            #     if can == candidates[0] and polCan1 == polAna == -1: yield "%s_HPOL_NEGMATCH" % position, 1
 
-                        # if None != polAna and None != polCan2 and 0 != polAna*polCan2:
-                        #     if can == candidates[1] and polCan2 == polAna: yield "%s_HPOL_MATCH" % position, 1
-                        #     if can == candidates[1] and polCan2 == polAna == 1: yield "%s_HPOL_POSMATCH" % position, 1
-                        #     if can == candidates[1] and polCan2 == polAna == -1: yield "%s_HPOL_NEGMATCH" % position, 1
+                            # if None != polAna and None != polCan2 and 0 != polAna*polCan2:
+                            #     if can == candidates[1] and polCan2 == polAna: yield "%s_HPOL_MATCH" % position, 1
+                            #     if can == candidates[1] and polCan2 == polAna == 1: yield "%s_HPOL_POSMATCH" % position, 1
+                            #     if can == candidates[1] and polCan2 == polAna == -1: yield "%s_HPOL_NEGMATCH" % position, 1
 
                                 
 	def iriEnumerate(self, outExamples, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2):
@@ -1931,7 +2008,13 @@ class feature_function_t:
                 print >>sys.stderr, p1, c1, a1, r1
                 print >>sys.stderr, p2, c2, a2, r2
                 print >>sys.stderr, lmvcan
-                
+
+                # if pa.nph == True:
+                #     nphrasal1 = _getnphrasal(p1, r1, c1)
+                #     nphrasal2 = _getnphrasal(p2, r2, c2)
+                #     print >>sys.stderr, nphrasal1, nphrasal2
+                #     return
+
                 # if trade == True: # anaphor = 2
                 #     la2 = a2
                 #     la1 = lmvcan
@@ -2361,23 +2444,14 @@ class feature_function_t:
                         # print >>sys.stderr, "bit == %s == %s" % (penalty_bit, flag_continue_bit)
                         # print >>sys.stderr, "ph == %s == %s" % (penalty_ph, flag_continue_ph)
 
-                        # for settingname in "OFF bitON phON pengON ON".split():
-                        for settingname in "OFF bitON pengON ON".split():
+                        for settingname in "OFF bitON phON pengON ON".split():
+                        # for settingname in "OFF bitON pengON ON".split():
                             sp = sp_original
                             spa = spa_original
                             spc = spc_original
                             spac = spac_original
                             penaltyscore = 1.0
                             
-                            # if pa.bitsim == True and settingname in ("bitON", "ON"):                                
-                            #     sp = sp_original * penalty_bit
-                            #     if flag_continue_bit == 1:
-                            #         continue
-                            # if pa.ph == True and settingname in ("phON", "ON"):
-                            #     sp = sp_original * penalty_ph
-                            #     if flag_continue_ph == 1:
-                            #         continue
-                                    
                             if pa.bitsim == True and settingname == "bitON":                                
                                 sp = sp_original * penalty_bit
                                 spa = sp * ret.sPredictedArg
@@ -2387,40 +2461,40 @@ class feature_function_t:
                                 penaltyscore = penalty_bit
                                 if flag_continue_bit == 1:
                                     continue
-                            if pa.peng == True and settingname == "pengON":
-                                sp = sp_original * penalty_peng
-                                spa = sp * ret.sPredictedArg
-                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-                                penaltyscore = penalty_peng
-
-                            if pa.bitsim == True and pa.peng == True and settingname == "ON":                                
-                                sp = sp_original * penalty_bit * penalty_peng
-                                spa = sp * ret.sPredictedArg
-                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-                                penaltyscore = penalty_bit * penalty_peng
-                                if flag_continue_bit == 1:
-                                    continue
-
-                            # if pa.ph == True and settingname == "phON":
-                            #     sp = sp_original * penalty_ph
+                            # if pa.peng == True and settingname == "pengON":
+                            #     sp = sp_original * penalty_peng
                             #     spa = sp * ret.sPredictedArg
                             #     spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
                             #     spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                            #     penaltyscore = penalty_peng
 
-                            #     penaltyscore = penalty_ph
-                            #     if flag_continue_ph == 1:
-                            #         continue                                
-                            # if pa.bitsim == True and pa.ph == True and settingname == "ON":                                
-                            #     sp = sp_original * penalty_bit * penalty_ph
+                            # if pa.bitsim == True and pa.peng == True and settingname == "ON":                                
+                            #     sp = sp_original * penalty_bit * penalty_peng
                             #     spa = sp * ret.sPredictedArg
                             #     spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
                             #     spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                            #     penaltyscore = penalty_bit * penalty_peng
+                            #     if flag_continue_bit == 1:
+                            #         continue
 
-                            #     penaltyscore = penalty_bit * penalty_ph
-                            #     if flag_continue_bit == 1 or flag_continue_ph == 1:
-                            #         continue                                    
+                            if pa.ph == True and settingname == "phON":
+                                sp = sp_original * penalty_ph
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+
+                                penaltyscore = penalty_ph
+                                if flag_continue_ph == 1:
+                                    continue                                
+                            if pa.bitsim == True and pa.ph == True and settingname == "ON":                                
+                                sp = sp_original * penalty_bit * penalty_ph
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+
+                                penaltyscore = penalty_bit * penalty_ph
+                                if flag_continue_bit == 1 or flag_continue_ph == 1:
+                                    continue                                    
                                     
                             # if None != cached: cached += [(NNvoted, nret)]
                             # if None != cached: cached += [(NNvoted, ret)]
@@ -2531,36 +2605,36 @@ class feature_function_t:
                             # deptypedic["Min+xcomp"] = ["xcomp", "obj", "prep_"]
                             # deptypedic["Min+xcomp+nsubj"] = ["nsubj", "xcomp", "obj", "prep_"]
                             
-                            # for typename, typelist in deptypedic.items():
-			    #     # funcWeight = lambda x: 100.0 if None != re.match("^%s$" % weightedType, x) else 1.0
-			    #     # funcWeight = lambda x: 100.0 if weightedType in x else 1.0
-			    #     # funcWeight = lambda x: 0.1 if weightedType in x else 1.0
+                            for typename, typelist in deptypedic.items():
+			        # funcWeight = lambda x: 100.0 if None != re.match("^%s$" % weightedType, x) else 1.0
+			        # funcWeight = lambda x: 100.0 if weightedType in x else 1.0
+			        # funcWeight = lambda x: 0.1 if weightedType in x else 1.0
 
-			    #     try:
-			    #     	sc_iw, sc_id = _calcConSim(vec[ret.iIndexed], typelist)
-                            #             sc_pw, sc_pd = _calcConSim(vec[2], typelist)
-			    #     except IndexError:
-			    #     	continue
+			        try:
+			        	sc_iw, sc_id = _calcConSim(vec[ret.iIndexed], typelist)
+                                        sc_pw, sc_pd = _calcConSim(vec[2], typelist)
+			        except IndexError:
+			        	continue
 
 
 
-                            #     # print >>sys.stderr, sc_id, sc_pd
+                                # print >>sys.stderr, sc_id, sc_pd
                                 
-			    #     outNN["iriPredArgConW_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_iw * sc_pw, bittype)]
-                            #     # outNN["iriPredArgConD_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_id * sc_pd, bittype)]
-                            #     outNN["iriPredConW_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_iw * sc_pw, bittype)]
-                            #     # outNN["iriPredConD_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_id * sc_pd, bittype)]
-                            #     outNN["iriConW_%s_%s" %(typename, settingname)] += [(NNvoted, sc_iw * sc_pw *penaltyscore, bittype)]
-                            #     # outNN["iriConD_%s_%s" %(typename, settingname)] += [(NNvoted, sc_id * sc_pd *penaltyscore, bittype)]
-                            #     outNN["iriArgConW_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_iw * sc_pw *penaltyscore, bittype)]
+			        outNN["iriPredArgConW_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_iw * sc_pw, bittype)]
+                                # outNN["iriPredArgConD_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_id * sc_pd, bittype)]
+                                outNN["iriPredConW_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_iw * sc_pw, bittype)]
+                                # outNN["iriPredConD_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_id * sc_pd, bittype)]
+                                outNN["iriConW_%s_%s" %(typename, settingname)] += [(NNvoted, sc_iw * sc_pw *penaltyscore, bittype)]
+                                # outNN["iriConD_%s_%s" %(typename, settingname)] += [(NNvoted, sc_id * sc_pd *penaltyscore, bittype)]
+                                outNN["iriArgConW_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_iw * sc_pw *penaltyscore, bittype)]
                             #     # outNN["iriArgConD_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_id * sc_pd *penaltyscore, bittype)]
 
-                            #     if typename == "Min+subj" and settingname == "OFF":
-                            #         sfinal["iriPredArgConW_%s_%s" % (typename, settingname)] =  spa * sc_iw * sc_pw
-                            #         sfinal["iriPredArgConW_%s_%s.scIndexed" % (typename, settingname)] = sc_iw
-                            #         sfinal["iriPredArgConW_%s_%s.scPredicted" % (typename, settingname)] = sc_pw
-                            #         sfinal["iriPredArgConW_%s_%s.bit" % (typename, settingname)] = ibit
-                            #         nret = ret._replace(s_final = sfinal)
+                                if typename == "Min+subj" and settingname == "bitON":
+                                    sfinal["iriPredArgConW_%s_%s" % (typename, settingname)] =  spa * sc_iw * sc_pw
+                                    sfinal["iriPredArgConW_%s_%s.scIndexed" % (typename, settingname)] = sc_iw
+                                    sfinal["iriPredArgConW_%s_%s.scPredicted" % (typename, settingname)] = sc_pw
+                                    sfinal["iriPredArgConW_%s_%s.bit" % (typename, settingname)] = ibit
+                                    nret = ret._replace(s_final = sfinal)
                                     
                             #         # print >>sys.stderr, sc_iw, sc_pw, raw
                             #         # print >>sys.stderr, vec[ret.iIndexed], "\n", vec[2]

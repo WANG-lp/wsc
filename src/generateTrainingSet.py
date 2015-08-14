@@ -59,6 +59,7 @@ def main(options, args):
         print >>sys.stderr, "Using path group similarity = %s" % (options.pathgroup)
         print >>sys.stderr, "Calculate generality of instance = %s" % (options.gensent)
         print >>sys.stderr, "Skip Duplicate instances = %s" % (options.nodupli)
+        print >>sys.stderr, "Problem fileter = %s" % (options.pfilter)
         
 	# EXTRACT COREFERENCE RELATIONS IDENTIFIED BY CORE NLP
 	coref				= xmlText.xpath("/root/document/coreference/coreference")
@@ -78,11 +79,12 @@ def main(options, args):
             print >>sys.stderr, "open error: " + str(db.error())
         if not pairdb.open("/work/jun-s/kb/svosvocount.0613.vp.kch", DB.OREADER):
             print >>sys.stderr, "open error: " + str(pairdb.error())
-        
-        # if options.input.endswith("test.tuples"):
-        #     parseerrlist = open(os.path.join(options.extkb, "parseerrno.txt")).read().strip().split(' ')
-        # elif options.input.endswith("train.tuples"):
-        #     parseerrlist = open(os.path.join(options.extkb, "parseerrno.train.txt")).read().strip().split(' ')
+
+        if options.pfilter:
+            if options.input.endswith("test.tuples"):
+                parseerrlist = open(os.path.join(options.extkb, "parseerrno.txt")).read().strip().split(' ')
+            elif options.input.endswith("train.tuples"):
+                parseerrlist = open(os.path.join(options.extkb, "parseerrno.train.txt")).read().strip().split(' ')
 
         # parseerrlist = []
         # parseerrlist = open("./data/parseerrno.txt").read().strip().split(' ')
@@ -100,10 +102,11 @@ def main(options, args):
                     sys.stderr.write("Processing No. %d\t" % (i))
                 else:
                     print >>sys.stderr, "Processing No. %d..." % (i)
-                
-                # if str(i) in parseerrlist:
-                #     print >>sys.stderr, "No. %d has Parse Errors" % (i)
-                #     continue
+
+                if options.pfilter:
+                    if str(i) in parseerrlist:
+                        print >>sys.stderr, "No. %d has Parse Errors" % (i)
+                        continue
 
 		# PARSE THE INPUT TUPLE.
 		ti = eval(ln)
@@ -156,9 +159,9 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options, db, pairdb):
         anaphor_full = tupleInstance[2]
         antecedent_full = tupleInstance[4]
         antecedent_false_full = tupleInstance[3].split(",")[0] if tupleInstance[3].split(",")[0] != tupleInstance[4] else tupleInstance[3].split(",")[1]
-        # print >>sys.stderr, anaphor_full, antecedent_full, antecedent_false_full
-        # print >>sys.stderr, "TESTS"
-	# print >>sys.stderr, anaphor, antecedent, antecedent_false
+        print >>sys.stderr, anaphor_full, antecedent_full, antecedent_false_full
+        print >>sys.stderr, "TESTS"
+	print >>sys.stderr, anaphor, antecedent, antecedent_false
 	if None == anaphor or None == antecedent or None == antecedent_false:
 		return
         # print >>sys.stderr, "OK?"
@@ -342,8 +345,9 @@ if "__main__" == __name__:
 	cmdparser.add_option("--simwn", help	= "Turn on WordNet-based predicate similarity search.", action="store_true", default=False)
         cmdparser.add_option("--simpred1", help	= "Set predicate similarity = 1", action="store_true", default=False)
 	cmdparser.add_option("--cat", help	= "Catenative ON", action="store_true", default=False)
-        cmdparser.add_option("--ph", help	= "Phrasal ON", action="store_true", default=False)
+        cmdparser.add_option("--ph", help	= "Phrasal ON", action="store_true", default=False)        
         cmdparser.add_option("--reqph", help	= "Use instances with required phrasal", action="store_true", default=False)
+        cmdparser.add_option("--nph", help	= "New Phrasal ON", action="store_true", default=False)
         cmdparser.add_option("--phpeng", help	= "Phrasal ON with Peng style", action="store_true", default=False)
         cmdparser.add_option("--newpol", help	= "Use new polarity dictionaly ON", action="store_true", default=False)
         cmdparser.add_option("--insent", help	= "Using instances from inter-sentential coreference", action="store_true", default=False)
@@ -360,6 +364,7 @@ if "__main__" == __name__:
         cmdparser.add_option("--kb100", help	= "Using 1/100 kb", default=False)
         cmdparser.add_option("--kb10", help	= "Using 1/10 kb",  default=False)
         cmdparser.add_option("--oldkb", help	= "Using old kb", action="store_true", default=False)
+        cmdparser.add_option("--kb0909", help	= "Using 0909 kb", action="store_true", default=False)
         cmdparser.add_option("--pathsim1", help	= "Path similarity (conective match: 1 or 0.5 )", action="store_true", default=False)
         cmdparser.add_option("--pathsim2", help	= "Path similarity (conective match: 1 or 0 )", action="store_true", default=False)
         cmdparser.add_option("--pathgroup", help	= "Using path similarity (conective group)", action="store_true", default=False)
@@ -368,6 +373,7 @@ if "__main__" == __name__:
         cmdparser.add_option("--sknn", help	= "Using scoreKNN", action="store_true", default=False)
         cmdparser.add_option("--onlybit", help	= "Using scoreKNN", action="store_true", default=False)
         cmdparser.add_option("--nodupli", help	= "No Duplication", action="store_true", default=False)
-        cmdparser.add_option("--peng", help	= "Using Peng style instances (control penalty)", action="store_true", default=False)        
+        cmdparser.add_option("--peng", help	= "Using Peng style instances (control penalty)", action="store_true", default=False)
+        cmdparser.add_option("--pfilter", help	= "problem filter ON", action="store_true", default=False)
 
 	main(*cmdparser.parse_args())
