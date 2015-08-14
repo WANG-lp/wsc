@@ -122,30 +122,44 @@ def getToken(sent, x, conn = None):
         # print >>sys.stderr,  "%s %s" % (tk.getprevious().xpath("word/text()")[0], tk.xpath("word/text()")[0])
         
 	# DISAMBIGUATE
-        if 2 < len(x.split(" ")) and 1 < len(r):
+        if 3 < len(x.split(" ")) and 1 < len(r):
 		new_r = []
 		
 		for tk in r:
-			tk_prev = tk.getprevious()
-                        tk_prev2 = tk_prev.getprevious()
+			tk_prev, txt_prev = getPrevTkTxt(tk)
+                        tk_prev2, txt_prev2 = getPrevTkTxt(tk_prev)                        
+                        if tk_prev2 == None:
+                            continue
+                        tk_prev3, txt_prev3 = getPrevTkTxt(tk_prev2)
+                        if tk_prev3 == None:
+                            continue
+                        if "%s %s %s %s" % (txt_prev3, txt_prev2, txt_prev, tk.xpath("word/text()")[0]) == " ".join(x.split(" ")[-4:]):
+                            new_r += [tk]
+		r = new_r
+        
+        elif 2 < len(x.split(" ")) and 1 < len(r):
+		new_r = []
+		
+		for tk in r:
+			tk_prev, txt_prev = getPrevTkTxt(tk)
+                        tk_prev2, txt_prev2 = getPrevTkTxt(tk_prev)                        
                         if tk_prev2 == None:
                             continue
                         print >>sys.stderr, "%s %s %s" % (tk_prev2.xpath("word/text()")[0], tk_prev.xpath("word/text()")[0], tk.xpath("word/text()")[0])
                         print >>sys.stderr, " ".join(x.split(" ")[-3:])
 
-                        if "%s %s %s" % (tk_prev2.xpath("word/text()")[0], tk_prev.xpath("word/text()")[0], tk.xpath("word/text()")[0]) == " ".join(x.split(" ")[-3:]):
-				new_r += [tk]
+                        if "%s %s %s %s" % (txt_prev2, txt_prev, tk.xpath("word/text()")[0]) == " ".join(x.split(" ")[-3:]):
+                            new_r += [tk]
 
 		r = new_r
 	elif 1 < len(x.split(" ")) and 1 < len(r):
 		new_r = []
 		
 		for tk in r:
-			tk_prev = tk.getprevious()
-			print >>sys.stderr,  "%s %s" % (tk_prev.xpath("word/text()")[0], tk.xpath("word/text()")[0])
-			if "%s %s" % (tk_prev.xpath("word/text()")[0], tk.xpath("word/text()")[0]) == " ".join(x.split(" ")[-2:]):
+                        tk_prev, txt_prev = getPrevTkTxt(tk)
+			print >>sys.stderr,  "%s %s" % (txt_prev, tk.xpath("word/text()")[0])
+			if "%s %s" % (txt_prev, tk.xpath("word/text()")[0]) == " ".join(x.split(" ")[-2:]):
 				new_r += [tk]
-
 		r = new_r
 
 	if 1 < len(r):
@@ -184,7 +198,21 @@ def getPreviousToken(sent, x):
         if None == x:
                 return None
 	return getTokenById(sent, int(x.attrib["id"])-1)
-	
+
+def getPrevTkTxt(tk):
+    tk_prev = tk.getprevious()
+    if tk_prev == None:
+        return None, None
+    prevtxt = tk_prev.xpath("word/text()")[0]
+
+    if prevtxt == "'s":
+        tk_prev2 = tk_prev.getprevious()
+        prev2txt = tk_prev2.xpath("word/text()")[0]
+        rettxt = "%s%s" %(prev2txt, prevtxt)
+        return tk_prev2, rettxt
+    
+    return tk_prev, prevtxt
+        
 def getConn(sent):
 	for tk in sent.xpath("./tokens/token/POS[contains(text(),'VB') or contains(text(),'JJ')]/.."):
 		id_cnj_mk = sent.xpath("./dependencies[@type='basic-dependencies']/dep[@type='mark']/governor[@idx='%s']/../dependent/@idx" % (tk.attrib["id"]))
