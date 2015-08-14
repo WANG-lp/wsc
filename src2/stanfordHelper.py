@@ -148,7 +148,7 @@ def getToken(sent, x, conn = None):
                         print >>sys.stderr, "%s %s %s" % (tk_prev2.xpath("word/text()")[0], tk_prev.xpath("word/text()")[0], tk.xpath("word/text()")[0])
                         print >>sys.stderr, " ".join(x.split(" ")[-3:])
 
-                        if "%s %s %s %s" % (txt_prev2, txt_prev, tk.xpath("word/text()")[0]) == " ".join(x.split(" ")[-3:]):
+                        if "%s %s %s" % (txt_prev2, txt_prev, tk.xpath("word/text()")[0]) == " ".join(x.split(" ")[-3:]):
                             new_r += [tk]
 
 		r = new_r
