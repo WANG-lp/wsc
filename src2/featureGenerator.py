@@ -239,7 +239,9 @@ def _getnphrasal(gv, sent):
             prtret = [gv.lemma] + lm
 
     dicret = None
+    
     if gv.lemma in phrasedict:
+        # print >>sys.stderr, gv.lemma
         maxlen = 0
         for phkey in phrasedict[gv.lemma].keys():
             if maxlen < len(phkey.split("_")):
@@ -801,11 +803,11 @@ class ranker_t:
 
                 # for gvanalemma in gvanalemmas:
                 
-                    # # SELECTIONAL PREFERENCE
-                    # if "O" == scn.getNEtype(can):
-                    #     ret = ff.sp.calc("%s-%s" % (gvanalemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
-                    #     self.rankingsRv["selpref"] += [(vCan, ret[0])]
-                    #     self.rankingsRv["selprefCnt"] += [(vCan, ret[1])]
+                #     # SELECTIONAL PREFERENCE
+                #     if "O" == scn.getNEtype(can):
+                #         ret = ff.sp.calc("%s-%s" % (gvanalemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
+                #         self.rankingsRv["selpref"] += [(vCan, ret[0])]
+                #         self.rankingsRv["selprefCnt"] += [(vCan, ret[1])]
 
                 # GOOGLE HIT COUNT
 
@@ -1802,7 +1804,7 @@ class feature_function_t:
                                             
                                             yield "%s_Rank_%s_%s" % ("x", fk, r), 1
 						
-				if "NCCJ08" == fk:
+				elif "NCCJ08" == fk:
 					if 2 > fr[0][1] + fr[1][1]:
 						yield "%s_Rank_%s_%s" % ("x", fk, r), 1
 						
@@ -1810,9 +1812,8 @@ class feature_function_t:
 					if abs(fr[0][1] - fr[1][1])>25:
 						yield "%s_Rank_%s_%s" % ("x", fk, r), 1
 						
-				# else:
-                                #         print >>sys.stderr, "AAAA = %s" % fk
-				# 	yield "%s_Rank_%s_%s" % ("x", fk, r), 1
+				else:
+					yield "%s_Rank_%s_%s" % ("x", fk, r), 1
 
                 # c1n, c2n = can.attrib["id"], candidates[0] if candidates[1] == can.attrib["id"] else candidates[1]
 
