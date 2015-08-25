@@ -23,6 +23,11 @@ import glob
 from kyotocabinet import *
 
 
+sys.path += ["/home/naoya-i/work/clone/knowledgeacquisition/bin"]
+import flagging
+import sdreader
+import karesource
+
 import classify_gen.classify_gensent as CG
 
 catenativelist = ['love', 'help', 'forbid', 'consent', 'move',
@@ -42,7 +47,7 @@ catenativelist = ['love', 'help', 'forbid', 'consent', 'move',
                   'remember', 'disdain', 'try', 'request', 'keep', 'admit', 'swear',
                   'stand', 'allow', 'permit', 'strive', 'neglect', 'struggle', 'manage']
 negcatenativelist = "forbit miss quit dislike stop deny forget resist escape fail hesitate avoid detest refuse neglect unable".split()
-    
+
 
 
 #
@@ -58,7 +63,7 @@ def _cdbdefget(f, key, de):
 
 def _npmi(_xy, _x, _y):
 	if 0 == _x*_y or 0 == _xy: return 0
-	
+
 	#return _xy/(_x*_y)
 	return math.log(1.0 * _xy / (_x * _y), 2)
 	return 0.5*(1+(math.log(1.0 * _xy / (_x * _y), 2) / -math.log(_xy, 2)))
@@ -72,7 +77,7 @@ def _catenativeget(gv, sent):
     # catenativelistObj = ['ask', 'beg', 'allow', 'forbid', 'permit', 'request', 'require', 'admit', 'advise', 'imagine', 'need', 'recommend', 'suggest', 'tolerate', 'want', 'help', 'let', 'tell', 'make']
     # catenativelist = list(set(catenativelistA)|set(catenativelistB)|set(catenativelistC)|set(catenativelistD)|set(catenativelistObj))
 
-    
+
     if gv.lemma in catenativelist:
         # print gv.lemma
         newgv = scn.getCatenativeDependent(sent, gv)
@@ -94,7 +99,7 @@ def get_conjbit(pathline, negconjcol1):
     # print >>sys.stderr, pathline
     for pathe in pathline.replace("|", " ").split(" "):
         # print >>sys.stderr, pathe
-        
+
         if pathe == "":
             continue
         if pathe.find(":") == -1:
@@ -119,8 +124,8 @@ def calc_bitsim(pbit, ibit):
         elif abs(psum - isum) % 2 == 1:
             return 0.8, -1
     return 0, 0
-        
-        
+
+
 def _getpathsim(kbpaths, paths, simscore, pa):
     requiredlist = ["d:conj_", "g:conj_", "d:mark:", "g:mark:"]
     if kbpaths == [''] or paths == ['']:
@@ -183,7 +188,7 @@ def _setphrel(rel, ph):
         if rel.startswith("prep_"):
             if rel.split("_")[1] in ph[2].split("_")[1:]:
                 return "dobj"
-    
+
 def _calphpenalty(ph, ctxline, rel, penaltyscore, pa):
     if ph[0] == 0:
         return penaltyscore * 1.0
@@ -212,7 +217,7 @@ def _calphpenalty(ph, ctxline, rel, penaltyscore, pa):
         for reqctx in reqctxl:
             if reqctx not in tarctxl:
                 return penaltyscore * 0.2
-        # print >>sys.stderr, "reqctxl, tarctxl = %s, %s" %(reqctxl, tarctxl)                
+        # print >>sys.stderr, "reqctxl, tarctxl = %s, %s" %(reqctxl, tarctxl)
         return penaltyscore * 1.0
 
 def _getnphrasal(gv, sent):
@@ -222,7 +227,7 @@ def _getnphrasal(gv, sent):
     ret += [gv.lemma]
     phrasedict = marshal.load( open("/home/jun-s/work/wsc/data/phrasedict.msl") )
 
-    prepret = None    
+    prepret = None
     if gv.rel.startswith("prep_"):
         prepret = [gv.lemma, gv.rel.replace("prep_", "")]
 
@@ -233,13 +238,13 @@ def _getnphrasal(gv, sent):
     for depitem in dependent_items:
         idx = depitem.xpath("../dependent")[0].attrib["idx"]
         tp  = depitem.xpath("..")[0].attrib["type"]
-        lm = sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)        
+        lm = sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)
         if 0 == len(lm): lm = ["?"]
         if tp in ["prt"]:
             prtret = [gv.lemma] + lm
 
     dicret = None
-    
+
     if gv.lemma in phrasedict:
         # print >>sys.stderr, gv.lemma
         maxlen = 0
@@ -279,7 +284,7 @@ def _getnphrasal(gv, sent):
     prtret = "-"  if prtret == None else "_".join(prtret)
     dicret = "-" if dicret == None else "_".join(dicret)
     return prepret, prtret, dicret
-    
+
 def _phrasalget(gv, sent, dirPhDic="/home/jun-s/work/wsc/data/phrasedict.msl"):
     phrasedict = marshal.load( open(os.path.join(dirPhDic, "phrasedict.msl")) )
     # dirPhDic = "/home/jun-s/work/wsc/data"
@@ -294,13 +299,13 @@ def _phrasalget(gv, sent, dirPhDic="/home/jun-s/work/wsc/data/phrasedict.msl"):
         idx = depitem.xpath("../dependent")[0].attrib["idx"]
         tp  = depitem.xpath("..")[0].attrib["type"]
         lm = sent.xpath("./tokens/token[@id='%s']/lemma/text()" % idx)
-        
+
         if 0 == len(lm): lm = ["?"]
         if tp in phrasedeplist:
             prttpl = (0, "_".join([gv.lemma, lm[0]]))    # datatype = PRT
             ret.append(prttpl)
     ###
-    
+
     if gv.lemma in phrasedict:
         maxlen = 0
         for phkey in phrasedict[gv.lemma].keys():
@@ -367,7 +372,7 @@ def _phrasalget(gv, sent, dirPhDic="/home/jun-s/work/wsc/data/phrasedict.msl"):
         else:
             # print >>sys.stderr, "ret = %s" % (ret)
             return gv
-            
+
         # newgv = scn.getPhrasal(sent, gv, phrasedict[gv.lemma])
         # return newgv
     else:
@@ -397,7 +402,7 @@ def calcnewConsimthre(csim, freq, thresh):
     if freq > thresh:
         return b*csim
     else:
-        return c*csim    
+        return c*csim
 
 def _isPronoun(x):
     return x in "I|we|you|he|she|it|they".split("|")
@@ -416,18 +421,18 @@ POS_PREDICATE = "VB VBD VBG VBN VBP VBZ JJ JJR JJS".split()
 POS_VB = "VB VBD VBG VBN VBP VBZ".split()
 POS_NOUN = "NN NNS NNP NNPS PRP PRPS".split()
 POS_ADJ = "JJ JJR JJS".split()
-    
+
 def get_VPpengfromctx(v, rel, ctx, ps):
     ret = [v]
     nrel = rel
     tctx = []
     if "::" in ctx or "--" in ctx:
         return ret, nrel
-        
+
     for x in ctx.strip().split(" "):
         if x.startswith("d:"):
             tctx += [x]
-    
+
     if ps == "j":
         if "cop" in [x.split(":")[1] for x in tctx]:
             ret = ["be"] + ret
@@ -450,11 +455,11 @@ def get_VPpengfromctx(v, rel, ctx, ps):
                     ret += [tlm]
 
     return ret, nrel
-            
+
 def get_VPpeng(sent, tk, rel):
     ret = [scn.getLemma(tk)]
     retsurf = [scn.getSurf(tk)]
-    
+
     vptype = None
     nrel = rel
     tkprev = scn.getPreviousToken(sent, tk)
@@ -464,14 +469,14 @@ def get_VPpeng(sent, tk, rel):
 
     # print >>sys.stderr, "BBBBB"
     # print >>sys.stderr, scn.getLemma(tkprev), scn.getLemma(tk), scn.getLemma(tknext), scn.getLemma(tknext2),
-    # print >>sys.stderr, scn.getPOS(tkprev), scn.getPOS(tk), scn.getPOS(tknext), scn.getPOS(tknext2), 
-    
+    # print >>sys.stderr, scn.getPOS(tkprev), scn.getPOS(tk), scn.getPOS(tknext), scn.getPOS(tknext2),
+
     if scn.getPOS(tk) in POS_VB and scn.getPOS(tknext)[0] in ("TO") and scn.getPOS(tknext2) in POS_VB:
         for tpx, tkx in scn.getGovernors(sent, tknext2):
             if "g:cop:" in tpx[:6]:
                 return get_VPpeng(sent, tkx, rel)
         return get_VPpeng(sent, tknext2, rel)
-    
+
     if scn.getPOS(tk) in POS_ADJ:
         # print >>sys.stderr, [x[0] for x in scn.getDependents(sent, tk)]
         # print >>sys.stderr, rel
@@ -481,7 +486,7 @@ def get_VPpeng(sent, tk, rel):
                 ret = ["be"] + ret
                 retsurf = [scn.getSurf(deptk)] + retsurf
                 vptype = ["BE", "ADJ"]
-                
+
                 if rel.startswith("prep_"):
                     ret += [rel.split("_")[1]]
                     retsurf += [rel.split("_")[1]]
@@ -510,7 +515,7 @@ def get_VPpeng(sent, tk, rel):
             retsurf += [scn.getSurf(tknext)]
             vptype = ["VB", "VB"]
     return ret, retsurf, vptype, nrel
-                
+
 def getsowdet(sent, tk):
     s1 = ""
     o1 = ""
@@ -544,7 +549,7 @@ def getsowdet(sent, tk):
                         depdeplst.append(scn.getLemma(tkdepdep))
                 if depdeplst != []:
                     o1 = "%s %s" %(" ".join(depdeplst), o1)
-                
+
     return s1, o1
 
 def getsowdet4google(sent, tk):
@@ -580,7 +585,7 @@ def getsowdet4google(sent, tk):
                         depdeplst.append(scn.getSurf(tkdepdep))
                 if depdeplst != []:
                     o1 = "%s %s" %(" ".join(depdeplst), o1)
-                
+
     return s1, o1
 
 def getsvpo(p1, c1, a1, r1, ps1, p2, c2, a2, r2, ps2):
@@ -612,7 +617,7 @@ def getsvpo(p1, c1, a1, r1, ps1, p2, c2, a2, r2, ps2):
     svo2 = [s2, "%s:%s" % ("_".join(vp2), nr2), o2]
 
     return svo1, svo2, svosvotype
-    
+
 def getsvo(p1, c1, a1, r1, p2, c2, a2, r2):
     svosvotype = None
     # svol = None
@@ -622,7 +627,7 @@ def getsvo(p1, c1, a1, r1, p2, c2, a2, r2):
 
     s1, o1 = _getsofromctx(c1)
     s2, o2 = _getsofromctx(c2)
-    
+
     # if _isPronoun(a1):
     #     if "obj" in r1 or "nsubj_pass" in r1 or "prep_" in r1:
     #        # o1 = o2 if "obj" in r2 or "nsubj_pass" in r2 or "prep_" in r2 else s2
@@ -659,7 +664,7 @@ def check_svosvomatch_giga(psvosvo, pairdb):
     # print >>sys.stderr, pairdb.get("~have:nsubj~~~land:nsubj~~0")
     # print >>sys.stderr, pairdb.get("~have:nsubj~~~land:prep_on~~0")
     # print >>sys.stderr, pairdb.get("bee~have:nsubj~~~land:nsubj~~0")
-    
+
     ret = {}
     ret["VV"] = int(pairdb.get("~%s~~~%s~~%s" %(lsvo[1], rsvo[1], str(psvosvo[2])))) if None != pairdb.get("~%s~~~%s~~%s" %(lsvo[1], rsvo[1], str(psvosvo[2]))) else 0.0
 
@@ -667,13 +672,13 @@ def check_svosvomatch_giga(psvosvo, pairdb):
     ret["VOV"] = int(pairdb.get("~%s~%s~~%s~~%s" %(lsvo[1], lsvo[2], rsvo[1], str(psvosvo[2])))) if None != pairdb.get("~%s~%s~~%s~~%s" %(lsvo[1], lsvo[2], rsvo[1], str(psvosvo[2]))) else 0.0
     ret["VSV"] = int(pairdb.get("~%s~~%s~%s~~%s" %(lsvo[1], rsvo[0], rsvo[1], str(psvosvo[2])))) if None != pairdb.get("~%s~~%s~%s~~%s" %(lsvo[1], rsvo[0], rsvo[1], str(psvosvo[2]))) else 0.0
     ret["VVO"] = int(pairdb.get("~%s~~~%s~%s~%s" %(lsvo[1], rsvo[1], rsvo[2], str(psvosvo[2])))) if None != pairdb.get("~%s~~~%s~%s~%s" %(lsvo[1], rsvo[1], rsvo[2], str(psvosvo[2]))) else 0.0
-    
+
     ret["SVOV"] = int(pairdb.get("%s~%s~%s~~%s~~%s" %(lsvo[0], lsvo[1], lsvo[2], rsvo[1], str(psvosvo[2])))) if None != pairdb.get("%s~%s~%s~~%s~~%s" %(lsvo[0], lsvo[1], lsvo[2], rsvo[1], str(psvosvo[2]))) else 0.0
     ret["SVSV"] = int(pairdb.get("%s~%s~~%s~%s~~%s" %(lsvo[0], lsvo[1], rsvo[0], rsvo[1], str(psvosvo[2])))) if None != pairdb.get("%s~%s~~%s~%s~~%s" %(lsvo[0], lsvo[1], rsvo[0], rsvo[1], str(psvosvo[2]))) else 0.0
     ret["SVVO"] = int(pairdb.get("%s~%s~~~%s~%s~%s" %(lsvo[0], lsvo[1], rsvo[1], rsvo[2], str(psvosvo[2])))) if None != pairdb.get("%s~%s~~~%s~%s~%s" %(lsvo[0], lsvo[1], rsvo[1], rsvo[2], str(psvosvo[2]))) else 0.0
-    ret["VOSV"] = int(pairdb.get("~%s~%s~%s~%s~~%s" %(lsvo[1], lsvo[2], rsvo[0], rsvo[1], str(psvosvo[2])))) if None != pairdb.get("~%s~%s~%s~%s~~%s" %(lsvo[1], lsvo[2], rsvo[0], rsvo[1], str(psvosvo[2]))) else 0.0    
+    ret["VOSV"] = int(pairdb.get("~%s~%s~%s~%s~~%s" %(lsvo[1], lsvo[2], rsvo[0], rsvo[1], str(psvosvo[2])))) if None != pairdb.get("~%s~%s~%s~%s~~%s" %(lsvo[1], lsvo[2], rsvo[0], rsvo[1], str(psvosvo[2]))) else 0.0
     ret["VOVO"] = int(pairdb.get("~%s~%s~~%s~%s~%s" %(lsvo[1], lsvo[2], rsvo[1], rsvo[2], str(psvosvo[2])))) if None != pairdb.get("~%s~%s~~%s~%s~%s" %(lsvo[1], lsvo[2], rsvo[1], rsvo[2], str(psvosvo[2]))) else 0.0
-    ret["VSVO"] = int(pairdb.get("~%s~~%s~%s~%s~%s" %(lsvo[1], rsvo[0], rsvo[1], rsvo[2], str(psvosvo[2])))) if None != pairdb.get("~%s~~%s~%s~%s~%s" %(lsvo[1], rsvo[0], rsvo[1], rsvo[2], str(psvosvo[2]))) else 0.0 
+    ret["VSVO"] = int(pairdb.get("~%s~~%s~%s~%s~%s" %(lsvo[1], rsvo[0], rsvo[1], rsvo[2], str(psvosvo[2])))) if None != pairdb.get("~%s~~%s~%s~%s~%s" %(lsvo[1], rsvo[0], rsvo[1], rsvo[2], str(psvosvo[2]))) else 0.0
 
     ret["SVOSV"] = int(pairdb.get("%s~%s~%s~%s~%s~~%s" %(lsvo[0], lsvo[1], lsvo[2], rsvo[0], rsvo[1], str(psvosvo[2])))) if None != pairdb.get("%s~%s~%s~%s~%s~~%s" %(lsvo[0], lsvo[1], lsvo[2], rsvo[0], rsvo[1], str(psvosvo[2]))) else 0.0
     ret["SVOVO"] = int(pairdb.get("%s~%s~%s~~%s~%s~%s" %(lsvo[0], lsvo[1], lsvo[2], rsvo[1], rsvo[2], str(psvosvo[2])))) if None != pairdb.get("%s~%s~%s~~%s~%s~%s" %(lsvo[0], lsvo[1], lsvo[2], rsvo[1], rsvo[2], str(psvosvo[2]))) else 0.0
@@ -683,12 +688,12 @@ def check_svosvomatch_giga(psvosvo, pairdb):
     ret["SVOSVO"] = int(pairdb.get("%s~%s~%s~%s~%s~%s~%s" %(lsvo[0], lsvo[1], lsvo[2], rsvo[0], rsvo[1], rsvo[2], str(psvosvo[2])))) if None != pairdb.get("%s~%s~%s~%s~%s~%s~%s" %(lsvo[0], lsvo[1], lsvo[2], rsvo[0], rsvo[1], rsvo[2], str(psvosvo[2]))) else 0.0
 
     # print sys.stderr, ret
-    
+
     return ret
-    
+
 def check_svosvomatch(psvosvo, isvosvo, svosvocount):
     #svosvo = [svo1, svo2, conjbit]
-    
+
     if psvosvo[2] != isvosvo[2]: # conjunction match
         return svosvocount
 
@@ -712,7 +717,7 @@ def check_svosvomatch(psvosvo, isvosvo, svosvocount):
 
     if cache <= 1:
         return svosvocount
-        
+
     # for VV+2
     if psvosvo[0][0] == isvosvo[0][0] != "" and psvosvo[0][2] == isvosvo[0][2] != "":
         svosvocount["SVOV"] += 1
@@ -731,7 +736,7 @@ def check_svosvomatch(psvosvo, isvosvo, svosvocount):
         return svosvocount
 
     # for VV+3
-    if psvosvo[0][0] != isvosvo[0][0]: 
+    if psvosvo[0][0] != isvosvo[0][0]:
         svosvocount["VOSVO"] += 1
     if psvosvo[0][2] != isvosvo[0][2]:
         svosvocount["SVSVO"] += 1
@@ -746,13 +751,16 @@ def check_svosvomatch(psvosvo, isvosvo, svosvocount):
     else:
         # for SVOSVO
         svosvocount["SVOSVO"] += 1
-    
+
     return svosvocount
-    
-    
-    
+
+
+
 class ranker_t:
     def __init__(self, ff, ana, candidates, sent, pa, mentions, db, pairdb):
+
+        ff.setProblemDoc(sdreader.createDocFromLXML(sent))
+
         self.NNexamples = []
         self.NN = collections.defaultdict(list)
         self.rankingsRv = collections.defaultdict(list)
@@ -764,11 +772,11 @@ class ranker_t:
         # if pa.simw2v: ff.libiri.setW2VSimilaritySearch(True)
         # if pa.simwn:  ff.libiri.setWNSimilaritySearch(True)
         # if pa.simwn:  ff.libiri.setWNSimilaritySearch(False)
-        
+
         negcontext = set("d:neg:not-r d:neg:no-d d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r d:advmod:less-r".split())
         negcontext2 = set("d:advmod:however-r d:advmod:nevertheless-r d:advmod:nonetheless-r d:mark:while-i d:mark:unless-i d:mark:although-i d:mark:though-i".split())
         negconjcol1 = set(["conj_but"])
-        
+
         # For REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
         # FOR EACH CANDIDATE.
         for can in candidates:
@@ -787,14 +795,14 @@ class ranker_t:
             print >>sys.stderr, "gvCanCat = %s" % repr(gvCanCat)
 
             if pa.nph == True:
-                print >>sys.stderr, "NewPhrasal Start" 
+                print >>sys.stderr, "NewPhrasal Start"
                 nphAprep, nphAprt, nphAdic = _getnphrasal(gvAna, sent)
                 nphCprep, nphCprt, nphCdic = _getnphrasal(gvCan, sent)
-                
+
                 print >>sys.stderr, "nphraseA", nphAprep, nphAprt, nphAdic
                 print >>sys.stderr, "nphraseC", nphCprep, nphCprt, nphCdic
-                print >>sys.stderr, "NewPhrasal End" 
-                
+                print >>sys.stderr, "NewPhrasal End"
+
             self.rankingsRv["position"] += [(vCan, -int(can.attrib["id"]))]
 
             if None != gvAna:
@@ -802,7 +810,7 @@ class ranker_t:
                 else: gvanalemmas = [x[1] for x in gvAna.lemma]
 
                 # for gvanalemma in gvanalemmas:
-                
+
                 #     # SELECTIONAL PREFERENCE
                 #     if "O" == scn.getNEtype(can):
                 #         ret = ff.sp.calc("%s-%s" % (gvanalemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
@@ -814,7 +822,7 @@ class ranker_t:
                 googleS, googleO = getsowdet4google(sent, gvAna.token)
                 svoV = gvAna.lemma
                 svoVPlms, svoVPsurfs, vptype, vprel = get_VPpeng(sent, gvAna.token, gvAna.rel)
-                
+
                 # Q1, 2: CV
                 # ## USING GOOGLE NGRAM
                 if "O" == scn.getNEtype(can):
@@ -864,11 +872,11 @@ class ranker_t:
 
                 #     m1, m2 = mentions[1].split(), mentions[2].split()
                 #     lenm1, lenm2 = len(m1), len(m2)
-                    
+
                 #     startid1 = int(vCan) - m1.index(qC[0])
                 #     startid2 = int(vCan) - m2.index(qC[0])
                 #     endid1 = startid1 + lenm1
-                #     endid2 = startid2 + lenm2 
+                #     endid2 = startid2 + lenm2
 
                 #     if startid1 > 0:
                 #         surfs1 = [scn.getSurf(scn.getTokenById(sent, x)) for x in range(startid1, endid1)]
@@ -886,12 +894,12 @@ class ranker_t:
                 #     else:
                 #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
                 #         qC = mentions[0].split()
-                        
-                # else:                    
+
+                # else:
                 #     if qC[0] in mentions[1].split():
                 #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[1])
                 #         qC = mentions[1].split()
-                        
+
                 #     elif qC[0] in mentions[2].split():
                 #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[2])
                 #         qC = mentions[2].split()
@@ -902,8 +910,8 @@ class ranker_t:
                 # # lmqC = [scn.getLemma(scn.getTokenById(sent, x)) for x in range(int(idqC) - len(qC)+1, int(idqC)+1)]
                 # # print >>sys.stderr, "lmqC = %s" %lmqC
                 # labelC = "+".join(qC)
-                    
-                    
+
+
                 # qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
                 # if "nsubj_pass" == gvAna.rel and "JJ" not in gvAna.POS and "NN" not in gvAna.POS:
                 #     # print >>sys.stderr, scn.getSurf(gvAna.token)
@@ -919,22 +927,22 @@ class ranker_t:
                 #     qV = [scn.getSurf(tkNextAna)]
                 #     lmqV = [scn.getLemma(tkNextAna)]
                 # labelV = "+".join(qV)
-                
+
 
                 # # ret = ff.gn.search(qC+qV)
 
                 # labelcv = "+".join([labelC, labelV])
-                # filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labelcv)) 
+                # filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labelcv))
                 # if filename == []:
                 #     ret = 0.0
                 # else:
                 #     ret = int(lSAPI.loadresult(filename[0]))
-                
+
                 # self.statistics["CV"] += [(vCan, " ".join(qC+qV))]
                 # self.statistics["governor"] += [(vCan, "%s:%s" % (" ".join(qV),gvAna.rel))]
                 # self.rankingsRv["googleCV"] += [(vCan, ret)]
                 # self.rankingsRv["ggllogedCV"] += [(vCan, math.log(1+ret))]
-                                
+
                 # # Q3, Q4: CVW
                 # tkNeighbor = scn.getNextToken(sent, tkNextAna)
                 # if None != tkNeighbor:
@@ -965,13 +973,13 @@ class ranker_t:
                 #     labelcvw = "+".join([labelC, labelV, labelW])
                 #     labelma = "+".join([labelC, labelW])
                 #     # print >>sys.stderr, "labelcvw = %s" %(labelcvw)
-                #     filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labelcvw)) 
+                #     filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labelcvw))
                 #     # print >>sys.stderr, filename
                 #     if filename == []:
                 #         ret = 0.0
                 #     else:
                 #         ret = int(lSAPI.loadresult(filename[0]))
-                    
+
                 #     # if len(qC+qV+qW) > 4:
                 #     #     ret = 0.0
                 #     # else:
@@ -981,16 +989,16 @@ class ranker_t:
                 #     self.rankingsRv["googleCVW"] += [(vCan, ret)]
                 #     self.rankingsRv["ggllogedCVW"] += [(vCan, math.log(1+ret))]
 
-                #     filename = glob.glob("/home/jun-s/work/wsc/data/google2/*_%s.json" %(labelma)) 
+                #     filename = glob.glob("/home/jun-s/work/wsc/data/google2/*_%s.json" %(labelma))
                 #     if filename == []:
                 #         ret = 0.0
                 #     else:
                 #         ret = int(lSAPI.loadresult(filename[0]))
-                    
+
                 #     self.statistics["MA"] += [(vCan, " ".join(qC+qW))]
                 #     self.rankingsRv["googleMA"] += [(vCan, ret)]
                 #     self.rankingsRv["ggllogedMA"] += [(vCan, math.log(1+ret))]
-                    
+
 
                 # if "JJ" in gvAna.POS:
                 #     # Q5, Q6: JC
@@ -1000,31 +1008,31 @@ class ranker_t:
                 #     labelJ = "+".join(qJ)
                 #     labeljc = "+".join([labelJ, labelC])
                 #     print >>sys.stderr, "labeljc = %s" %(labeljc)
-                #     filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labeljc)) 
+                #     filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labeljc))
                 #     print >>sys.stderr, filename
                 #     if filename == []:
                 #         ret = 0.0
                 #     else:
                 #         ret = int(lSAPI.loadresult(filename[0]))
-                    
+
                 #     self.statistics["JC"] += [(vCan, " ".join(qCV))]
                 #     self.statistics["adjective"] += [(vCan, " ".join(qJ))]
                 #     self.rankingsRv["googleJC"] += [(vCan, ret)]
                 #     self.rankingsRv["ggllogedJC"] += [(vCan, math.log(1+ret))]
                 # ==============
-                    
+
                 # SVO COUNT
                 # cAna = scn.getFirstOrderContext(sent, gvAna.token)
                 svoS, svoO = getsowdet(sent, gvAna.token)
                 svoV = gvAna.lemma
                 svoVPlms, svoVPsurfs, vptype, vprel = get_VPpeng(sent, gvAna.token, gvAna.rel)
                 print >>sys.stderr, svoVPlms
-                
+
                 svoVP = "_".join(svoVPlms)
                 print >>sys.stderr, "anaVP=%s" %(svoVP)
-                
+
                 svoVPrel = "%s:%s" %(svoVP, vprel)
-                
+
                 # # svoS, svoO = svoS.split("-")[0], svoO.split("-")[0]
                 if "obj" in gvAna.rel or "prep_" in gvAna.rel or "nsubj_pass" in gvAna.rel:
                     # svoO = " ".join(lmqW)
@@ -1043,20 +1051,20 @@ class ranker_t:
                 #     ret = int(db.get("%s~%s~%s" %(svoS, svoV, svoO))) if None != db.get("%s~%s~%s" %(svoS, svoV, svoO)) else 0.0
                 #     self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, svoV, svoO]))]
 
-                if svoS != "":                                        
+                if svoS != "":
                     if "NN" in gvAna.POS:
                         ret = int(db.get("%s~%s~" %(svoS, svoV))) if None != db.get("%s~%s~" %(svoS, svoV)) else 0.0
                         self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, "be", svoV]))]
                         ret = math.log(1+ret)
-                        self.rankingsRv["svocountSVO"] += [(vCan, ret)]                
-                    elif svoO != "":                        
+                        self.rankingsRv["svocountSVO"] += [(vCan, ret)]
+                    elif svoO != "":
                         ret = int(db.get("%s~%s~%s" %(svoS, svoVP, svoO))) if None != db.get("%s~%s~%s" %(svoS, svoVP, svoO)) else 0.0
                         self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, svoVP, svoO]))]
                         ret = math.log(1+ret)
-                        self.rankingsRv["svocountSVO"] += [(vCan, ret)]                
+                        self.rankingsRv["svocountSVO"] += [(vCan, ret)]
 
 
-                # print >>sys.stderr, "ret = %s" %ret                
+                # print >>sys.stderr, "ret = %s" %ret
                 # ret = db.get("%s~%s~%s" %(qC, qV, qW)) if None != db.get("%s~%s~%s" %(qC, qV, qW)) else 0.0
 
                 if "subj" in gvAna.rel and "nsubj_pass" not in gvAna.rel:
@@ -1074,7 +1082,7 @@ class ranker_t:
                 ret = math.log(1+ret)
                 self.rankingsRv["svocountSVVO"] += [(vCan, ret)]
                 # print >>sys.stderr, "ret = %s" %ret
-                
+
             if None != gvAna and None != gvCan:
                 # pathline = scn.getPath(sent, gvAna.token, gvCan.token, pa)
                 pathline = scn.getPath(sent, ana, can, pa)
@@ -1117,14 +1125,14 @@ class ranker_t:
                     self.rankingsRv["svopair%d_%s" % (svosvotype, svosvoname)] += [(vCan, svosvovalue)]
                     self.rankingsRv["svoploged%d_%s" % (svosvotype, svosvoname)] += [(vCan, math.log(1+svosvovalue))]
                 self.statistics["svopair_q"] += [(vCan, "%s==%s==%d" %("~".join(svocan), "~".join(svoana), pnegconjbit))]
-                
-                # if cansvoS != "":                                        
+
+                # if cansvoS != "":
                 #     if "JJ" in gvCan.POS or "NN" in gvCan.POS:
                 #         ret = int(db.get("%s~%s~" %(svoS, svoV))) if None != db.get("%s~%s~" %(svoS, svoV)) else 0.0
                 #         self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, "be", svoV]))]
                 #         ret = math.log(1+ret)
-                #         self.rankingsRv["svocountSVO"] += [(vCan, ret)]                
-                #     elif cansvoO != "":                        
+                #         self.rankingsRv["svocountSVO"] += [(vCan, ret)]
+                #     elif cansvoO != "":
                 #         ret = int(db.get("%s~%s~%s" %(svoS, svoV, svoO))) if None != db.get("%s~%s~%s" %(svoS, svoV, svoO)) else 0.0
                 #         self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, svoV, svoO]))]
                 #         ret = math.log(1+ret)
@@ -1136,7 +1144,7 @@ class ranker_t:
                 # else:
                 #         # matching [svoana svocan pnegconjbit] and [isvol isvor inegconjbit]
                 #         svosvocount = check_svosvomatch([svoana, svocan, pnegconjbit], [isvol, isvor, inegconjbit], svosvocount)
-            
+
                 # # for ncnaivepmi
                 # clineAna = scn.getFirstOrderContext(sent, gvAna.token).split()
                 # clineCan = scn.getFirstOrderContext(sent, gvCan.token).split()
@@ -1157,8 +1165,8 @@ class ranker_t:
                 #     pathcol1 = pathe.split(":")[1]
                 #     if pathcol1 in negconjcol1:
                 #         bit[2] += 1
-                        
-                # print >>sys.stderr, "for PMI = %s ~ %s ~ %s ~ %s" %(clineCan, clineAna, pathline, tuple(bit)) 
+
+                # print >>sys.stderr, "for PMI = %s ~ %s ~ %s ~ %s" %(clineCan, clineAna, pathline, tuple(bit))
 
                 # if not isinstance(gvAna.lemma, list): gvanalemmas = [gvAna.lemma]
                 # else: gvanalemmas = gvAna.lemma[0].split("_")[:1] + gvAna.lemma[1:]
@@ -1169,7 +1177,7 @@ class ranker_t:
                 # else: gvanalemmas = [x[1] for x in gvAna.lemma]
                 if not isinstance(gvCan.lemma, list): gvcanlemmas = [gvCan.lemma]
                 else: gvcanlemmas = [x[1] for x in gvCan.lemma]
-                
+
                 for (gvanalemma, gvcanlemma) in itertools.product(gvanalemmas, gvcanlemmas):
 
                     # SELECTIONAL PREFERENCE
@@ -1177,13 +1185,13 @@ class ranker_t:
                         ret = ff.sp.calc("%s-%s" % (gvanalemma, gvAna.POS[0].lower()), gvAna.rel, "%s-n-%s" % (wCan, scn.getNEtype(can)))
                         self.rankingsRv["selpref"] += [(vCan, ret[0])]
                         self.rankingsRv["selprefCnt"] += [(vCan, ret[1])]
-                    
+
                     # NARRATIVE CHAIN FEATURE (C&J08'S OUTPUT)
                     self.rankingsRv["NCCJ08"] += [(vCan, 1 if 1 <= len(ff.nc.getChains(
                         ff.nc.createQuery(gvanalemma, gvAna.rel),
                         ff.nc.createQuery(gvcanlemma, gvCan.rel))) else 0)]
                     self.statistics["NCCJ08"] += [(vCan, "%s ~ %s" % (ff.nc.createQuery(gvanalemma, gvAna.rel), ff.nc.createQuery(gvcanlemma, gvCan.rel)))]
-                                
+
                     # NARRATIVE CHAIN FEATURE
                     if len(ff.ncnaive) > 0:
                         # bit = tuple(bit)
@@ -1194,7 +1202,7 @@ class ranker_t:
                             self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
                             self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
                             self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
-                            
+
                 if isinstance(gvAna.lemma, list) and isinstance(gvCan.lemma, list):
                     # print >>sys.stderr, "anaphra govornor and candidate govornor are phrasal verb"
                     for anaph in gvAna.lemma:
@@ -1203,8 +1211,8 @@ class ranker_t:
                             p2 = canph[1]
                             ff.iri(self.NN,
                                    vCan, wCan,
-                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
-                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
+                                   p1, gvAna.token, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), ana, wPrn, anaph, gvAnaCat,
+                                   p2, gvCan.token, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), can, wCan, canph, gvCanCat,
                                    pathline,
                                    pa,
                                    ff,
@@ -1214,11 +1222,11 @@ class ranker_t:
                                    self.NNexamples,
                                    False
                             )
-                            if p1 == p2:                            
+                            if p1 == p2:
                                 ff.iri(self.NN,
                                        vCan, wCan,
-                                       p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
-                                       p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
+                                       p2, gvAna.token, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), can, wCan, canph, gvCanCat,
+                                       p1, gvCan.token, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), ana, wPrn, anaph, gvAnaCat,
                                        pathline,
                                        pa,
                                        ff,
@@ -1229,7 +1237,7 @@ class ranker_t:
                                        True
                                    )
 
-                    
+
                     # p1 = gvAna.lemma[0].split("_")[0]
                     # p2 = gvCan.lemma[0].split("_")[0]
                     # ff.iri(self.NN,
@@ -1241,12 +1249,12 @@ class ranker_t:
                     #        self.statistics["iriInstances"],
                     #        self.NNexamples,
                     #    )
-                    
+
                     # if "nsubj" == gvAna.rel: gvanarel = "nsubj"
                     # else: gvanarel = "dobj"
                     # if "nsubj" == gvCan.rel: gvcanrel = "nsubj"
                     # else: gvcanrel = "dobj"
-                                    
+
                     # for p1 in gvAna.lemma[1:]:
                     #     for p2 in gvCan.lemma[1:]:
                     #         ff.iri(self.NN,
@@ -1258,16 +1266,16 @@ class ranker_t:
                     #                self.statistics["iriInstances"],
                     #                self.NNexamples,
                     #            )
-                    
+
                 elif isinstance(gvAna.lemma, list):
                     # print >>sys.stderr, "anaphra govornor is phrasal verb"
                     canph = None
                     for anaph in gvAna.lemma:
-                        p1 = anaph[1]                            
+                        p1 = anaph[1]
                         ff.iri(self.NN,
                             vCan, wCan,
-                            p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
-                            gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
+                            p1, gvAna.token, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), ana, wPrn, anaph, gvAnaCat,
+                            gvCan.lemma, gvCan.token, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), can, wCan, canph, gvCanCat,
                             pathline,
                             pa,
                             ff,
@@ -1277,12 +1285,12 @@ class ranker_t:
                             self.NNexamples,
                             False
                         )
-                        
+
                         if p1 == gvCan.lemma:
                             ff.iri(self.NN,
                                    vCan, wCan,
-                                   gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
-                                   p1, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
+                                   gvCan.lemma, gvCan.token, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), can, wCan, canph, gvCanCat,
+                                   p1, gvAna.token, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), ana, wPrn, anaph, gvAnaCat,
                                    pathline,
                                    pa,
                                    ff,
@@ -1292,7 +1300,7 @@ class ranker_t:
                                    self.NNexamples,
                                    True
                                )
-                            
+
 
 
                 elif isinstance(gvCan.lemma, list):
@@ -1302,8 +1310,8 @@ class ranker_t:
                         p2 = canph[1]
                         ff.iri(self.NN,
                             vCan, wCan,
-                            gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
-                            p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
+                            gvAna.lemma, gvAna.token, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), ana, wPrn, anaph, gvAnaCat,
+                            p2, gvCan.token, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), can, wCan, canph, gvCanCat,
                             pathline,
                             pa,
                             ff,
@@ -1317,8 +1325,8 @@ class ranker_t:
                         if p2 == gvAna.lemma:
                             ff.iri(self.NN,
                                    vCan, wCan,
-                                   p2, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan, canph, gvCanCat,
-                                   gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
+                                   p2, gvCan.token, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), can, wCan, canph, gvCanCat,
+                                   gvAna.lemma, gvAna.token, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), ana, wPrn, anaph, gvAnaCat,
                                    pathline,
                                    pa,
                                    ff,
@@ -1328,16 +1336,16 @@ class ranker_t:
                                    self.NNexamples,
                                    True
                                )
-                                        
+
                 else:
                     anaph = None
                     canph = None
-                    
+
 
                     ff.iri(self.NN,
                            vCan, wCan,
-                           gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
-                           gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph, gvCanCat,
+                           gvAna.lemma, gvAna.token, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), ana, wPrn, anaph, gvAnaCat,
+                           gvCan.lemma, gvCan.token, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), can, wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph, gvCanCat,
                            pathline,
                            pa,
                            ff,
@@ -1350,8 +1358,8 @@ class ranker_t:
                     if gvAna.lemma == gvCan.lemma:
                         ff.iri(self.NN,
                                vCan, wCan,
-                               gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph, gvCanCat,
-                               gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn, anaph, gvAnaCat,
+                               gvCan.lemma, gvCan.token, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), can, wCan if "O" == scn.getNEtype(can) else scn.getNEtype(can).lower(), canph, gvCanCat,
+                               gvAna.lemma, gvAna.token, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), ana, wPrn, anaph, gvAnaCat,
                                pathline,
                                pa,
                                ff,
@@ -1386,13 +1394,13 @@ class ranker_t:
                     #            self.statistics["iriInstances"],
                     #            self.NNexamples,
                     #        )
-                        
+
                     # ff.iriEnumerate(self.NNexamples,
                     #        vCan,
                     #        gvAna.lemma, gvAna.rel, gvAna.POS, scn.getFirstOrderContext(sent, gvAna.token), wPrn,
                     #        gvCan.lemma, gvCan.rel, gvCan.POS, scn.getFirstOrderContext(sent, gvCan.token), wCan,
                     # )
-                        
+
 
         for rank in self.rankingsRv.values():
             rank.sort(key=lambda x: x[1], reverse=True)
@@ -1401,16 +1409,16 @@ class ranker_t:
         for xc in src[t] if None != src else self.numsvosvo[t]:
             # print >>sys.stderr, xc
             if x == xc[0]: return xc[1]
-			
+
         return de
-            
+
     def getRankValue(self, x, t, de = 0.0, src = None):
         for xc in src[t] if None != src else self.rankingsRv[t]:
             # print >>sys.stderr, xc
             if x == xc[0]: return xc[1]
-			
+
         return de
-		
+
     def getRank(self, x, t):
         if 1 >= len(self.rankingsRv[t]) or self.rankingsRv[t][0][1] == self.rankingsRv[t][1][1]:
             return None
@@ -1421,7 +1429,7 @@ class ranker_t:
     def sort(self):
         for fk in self.NN.keys():
             random.shuffle(self.NN[fk])
-			
+
             self.NN[fk].sort(key=lambda y: y[1], reverse=True)
 
     # def getSumVScores(self, x, t, V):
@@ -1443,7 +1451,7 @@ class ranker_t:
 
     #     for i, xc in enumerate(votes.iteritems()):
     #         if x == xc[0]: return xc[1], tmp
-            
+
     #     return 0
 
     def getSumVScores(self, x, t, candidates, V, revote=False ):
@@ -1461,7 +1469,7 @@ class ranker_t:
         cand1, cand2 = candidates
         id1 = cand1.attrib["id"]
         id2 = cand2.attrib["id"]
-            
+
         for votedCan, votedScore, bittype in tmpNNt:
 
             if revote == False:
@@ -1470,7 +1478,7 @@ class ranker_t:
                 voteid = id2 if votedCan == id1 else id1
             else:
                 voteid = id1 if votedCan == id1 else id2
-            
+
             if votesnum[voteid] == V:
             # if votesnum[votedCan] == 5:
                 continue
@@ -1482,12 +1490,12 @@ class ranker_t:
             if x == xcn[0]:
                 num = xcn[1]
                 if num == 0: num = 1
-            
+
         for i, xc in enumerate(votes.iteritems()):
             if x == xc[0]: return (1.0 * xc[1] / num), tmp
-            
+
         return 0, tmp
-        
+
     def getKNNRank(self, x, t, K=20):
         votes = collections.defaultdict(int)
 
@@ -1512,7 +1520,7 @@ class ranker_t:
             if x == xc[0]: return i
 
         return len(votes)
-	
+
     def getKNNRankValue(self, x, t, K=20, score=False, de=0):
         votes = collections.defaultdict(int)
         if 100 < len(self.NN[t]):
@@ -1522,19 +1530,19 @@ class ranker_t:
         if K < len(self.NN[t]):
             if len(set([v[0] for v in tmpNNt if v[1] == tmpNNt[K-1][1]])) >= 2 and tmpNNt[K-1][1] == tmpNNt[K][1]:
                 return 0
-        
+
         for votedCan, votedScore, bittype in self.NN[t][:K]:
             votes[votedCan] += 1 if not score else votedScore
-            
+
         for i, xc in enumerate(votes.iteritems()):
             if x == xc[0]: return xc[1]
 
         return de
 
     def getKNNRankValue4bit(self, x, t, candidates, K=20, score=False, de=0):
-        
+
         votes = collections.defaultdict(int)
-        
+
         if 100 < len(self.NN[t]):
             tmpNNt = self.NN[t][:100]
         else:
@@ -1545,8 +1553,8 @@ class ranker_t:
 
         cand1, cand2 = candidates
         id1 = cand1.attrib["id"]
-        id2 = cand2.attrib["id"]        
-                
+        id2 = cand2.attrib["id"]
+
         for votedCan, votedScore, bittype in self.NN[t][:K]:
             # print >>sys.stderr, "AAA = %s %s" % (votedCan, bittype)
             if bittype == -1:
@@ -1555,7 +1563,7 @@ class ranker_t:
                 voteid = id1 if votedCan == id1 else id2
 
             votes[voteid] += 1 if not score else votedScore
-                
+
         for i, xc in enumerate(votes.iteritems()):
             if x == xc[0]: return xc[1]
 
@@ -1565,6 +1573,18 @@ class ranker_t:
 class feature_function_t:
 	def __init__(self, pa, dirExtKb):
 		self.pa							 = pa
+
+		dbbase = "/home/naoya-i/work/clone/knowledgeacquisition"
+
+		opt = karesource.option_t(
+            os.path.join(dbbase, "./data/catenative-verbs.tsv"),
+            os.path.join(dbbase, "./data/phrases.ec+wn.txt"),
+            os.path.join(dbbase, "./data/ergative-verbs.tsv"),
+            os.path.join(dbbase, "./data/linking-verbs.tsv"),
+            )
+
+		self.res = karesource.res_t(opt)
+		self.ann = flagging.annotator_t()
 
 		self.libiri = None
 
@@ -1632,7 +1652,7 @@ class feature_function_t:
                         self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), ncnaivecdb), os.path.join(_getPathKB(), tuplescdb))
                     # else:
                     #     self.ncnaive[i] = ncnaive.ncnaive_t(os.path.join(_getPathKB(), ncnaivecdbbit), os.path.join(_getPathKB(), tuplescdbbit))
-                        
+
 		self.nc        = nccj08.nccj08_t(os.path.join(_getPathKB(), "schemas-size12"), os.path.join(_getPathKB(), "verb-pair-orders"))
 		self.sp        = selpref.selpref_t(pathKB=_getPathKB())
                 if pa.newpol:
@@ -1641,7 +1661,7 @@ class feature_function_t:
                 else:
                     self.sentpol   = sentimentpolarity.sentimentpolarity_t(os.path.join(_getPathKB(), "wilson05_subj/subjclueslen1-HLTEMNLP05.tff"))
 
-                    
+
 		# GOOGLE NGRAMS
 		self.gn        = googlengram.googlengram_t(os.path.join(_getPathKB(), "ngrams"))
 		# self.deptypes  = map(lambda x: "d:%s" % x.strip(), open(os.path.join(dirExtKb, "stanfordDepTypes.txt"))) +\
@@ -1649,11 +1669,14 @@ class feature_function_t:
 		# 								 ["UNIFORM"]
 		self.deptypes = ["UNIFORM"]
 
+	def setProblemDoc(self, doc):
+		self.doc = doc
+
 	def generateFeatureSet(self, ana, can, sent, ranker, candidates, pa):
-		vCan = can.attrib["id"]		
+		vCan = can.attrib["id"]
 		basicFeature = map(None, self.generateFeature(ana, can, sent, ranker, candidates, pa))
 		numVectors = 0
-		
+
 		for vote, vector in ranker.NNexamples:
 			if vote == vCan:
 				numVectors += 1
@@ -1680,7 +1703,7 @@ class feature_function_t:
                 # print >>sys.stderr, can.attrib["id"]
                 # print >>sys.stderr, numncnaive
 
-                
+
 		# kNN FEATURES.
 		ranker.sort()
                 flag_ScoreKnn = pa.sknn
@@ -1749,10 +1772,10 @@ class feature_function_t:
                 #     if "svoploged" in fk:
                 #         yield "%s_Rank_%s" % ("x", fk), ranker.getSVOpairRankValue(can.attrib["id"], fk)
 
-                
+
 		for fk, fr in ranker.rankingsRv.iteritems():
 			if "position" == fk: continue
-			
+
 			r	=ranker.getRank(can.attrib["id"], fk)
 
 			if "selpref" == fk:
@@ -1784,15 +1807,15 @@ class feature_function_t:
                         #         yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
                         if "gglloged" in fk:
                                 yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
-                                
+
                         # if "google" in fk:
                         #     # min(fr[1][1], fr[0][1]) > 0 and
                         #     if max(fr[1][1], fr[0][1]) > 0 and \
                         #        float(abs(fr[1][1] - fr[0][1])) / max(fr[1][1], fr[0][1]) > 0.2:
 
-                        #         if ranker.getRank(can.attrib["id"], fk) == 
+                        #         if ranker.getRank(can.attrib["id"], fk) ==
                         #         # _target(fk)[can.attrib["id"]] = 1
-                            
+
 			if "R1" == r:
 				if "google" in fk:
                                         # min(fr[1][1], fr[0][1]) > 0 and
@@ -1801,17 +1824,17 @@ class feature_function_t:
                                 #         # if max(fr[1][1], fr[0][1]) > 0 and \
                                 #         #    float(min(fr[1][1], fr[0][1])) / max(fr[1][1], fr[0][1]) < 0.8:
                                 #             # _target(fk)[can.attrib["id"]] = 1
-                                            
+
                                             yield "%s_Rank_%s_%s" % ("x", fk, r), 1
-						
+
 				elif "NCCJ08" == fk:
 					if 2 > fr[0][1] + fr[1][1]:
 						yield "%s_Rank_%s_%s" % ("x", fk, r), 1
-						
+
 				elif "NCCJ08_VO" == fk:
 					if abs(fr[0][1] - fr[1][1])>25:
 						yield "%s_Rank_%s_%s" % ("x", fk, r), 1
-						
+
 				else:
 					yield "%s_Rank_%s_%s" % ("x", fk, r), 1
 
@@ -1819,12 +1842,12 @@ class feature_function_t:
 
                 # if G1[c1n] == 1 or G1[c2n] == 1: yield "G4", G1[c1n]
                 # elif G2[c1n] == 1 or G2[c2n] == 1: yield "G4", G2[c1n]
-                # elif G3[c1n] == 1 or G3[c2n] == 1: yield "G4", G3[c1n]                
-                
+                # elif G3[c1n] == 1 or G3[c2n] == 1: yield "G4", G3[c1n]
+
 		#
 		# LEXICAL FEATURES.
 		yield "%s_LEX_AD_%s,%s" % (position, scn.getLemma(ana), scn.getLemma(can)), 1
-		
+
 		# ANTECEDENT-INDEPENDENT.
 		for tk in sent.xpath("./tokens/token"):
 			yield "%s_LEX_AI1_%s" % (position, scn.getLemma(tk)), 1
@@ -1849,7 +1872,7 @@ class feature_function_t:
 				yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma[0][1]), 1
 			else:
 				yield "%s_LEX_ADHC1VC1_%s,%s" % (position, scn.getLemma(can), gvCan.lemma), 1
-				
+
 		# HEURISTIC POLARITY.
                 fhpoldic = collections.defaultdict(int)
 		for fHPOL in self.heuristicPolarity(ana, can, sent, ranker, candidates, pa):
@@ -1864,7 +1887,7 @@ class feature_function_t:
 		# NC VERB ORDER.
 		# if None != gvAna and None != gvCan:
 		# 	diff = self.nc.getVerbPairOrder(gvCan.lemma, gvAna.lemma) - self.nc.getVerbPairOrder(gvAna.lemma, gvCan.lemma)
-			
+
 		# 	if diff > 25: yield "NCCJ08_VO_SAME_ORDER", 1
 		# 	elif diff < -25: yield "NCCJ08_VO_REVERSE_ORDER", 1
 
@@ -1885,10 +1908,10 @@ class feature_function_t:
                 if not isinstance(gvCan2.lemma, list): gvcan2lemmas = [gvCan2.lemma]
                 else: gvcan2lemmas = [x[1] for x in gvCan2.lemma]
 
-                
+
                 for gvanalemma in gvanalemmas:
-                
-                    for (gvcan1lemma, gvcan2lemma) in itertools.product(gvcan1lemmas, gvcan2lemmas):                        
+
+                    for (gvcan1lemma, gvcan2lemma) in itertools.product(gvcan1lemmas, gvcan2lemmas):
                         # if None != gvAna:
                         #     if gvAna.rel == "nsubj" or scn.getDeepSubject(sent, gvAna.token) == ana.attrib["id"]:
                         #         polAna = self.sentpol.getPolarity(gvanalemma)
@@ -1900,18 +1923,18 @@ class feature_function_t:
                         #     # FLIPPING
                         #     if None != polAna and (scn.getNeg(sent, gvAna.token) or (None != conn and scn.getLemma(conn) in "but although though however".split())): polAna *= -1
 
-                                
+
                         # if None != gvCan1:
                         #     if gvCan1.rel == "nsubj" or scn.getDeepSubject(sent, gvCan1.token) == candidates[0].attrib["id"]:
                         #         polCan1 = self.sentpol.getPolarity(gvcan1lemma)
                         #     elif "obj" in gvCan1.rel or gvCan1.rel == "nsubj_pass":
                         #         polCan1 = None if self.sentpol.getPolarity(gvcan1lemma) == None else self.sentpol.getPolarity(gvcan1lemma) * -1
                         #     else:
-                        #         polCan1 = None                            
+                        #         polCan1 = None
                         #     # polCan1 = self.sentpol.getPolarity(gvcan1lemma) if gvCan1.rel == "nsubj" or scn.getDeepSubject(sent, gvCan1.token) == candidates[0].attrib["id"] else None
                         #     # FLIPPING
                         #     if None != polCan1 and scn.getNeg(sent, gvCan1.token): polCan1 *= -1
-			
+
                         # if None != gvCan2:
                         #     if gvCan2.rel == "nsubj" or scn.getDeepSubject(sent, gvCan2.token) == candidates[0].attrib["id"]:
                         #         polCan2 = self.sentpol.getPolarity(gvcan2lemma)
@@ -1923,7 +1946,7 @@ class feature_function_t:
                         #     # FLIPPING
                         #     if None != polCan2 and scn.getNeg(sent, gvCan2.token): polCan2 *= -1
 
-                            
+
                         if None != gvAna:
                             polAna = self.sentpol.getPolarity(gvanalemma) if gvAna.rel == "nsubj" or scn.getDeepSubject(sent, gvAna.token) == ana.attrib["id"] else None
                             # FLIPPING
@@ -1933,12 +1956,12 @@ class feature_function_t:
                             polCan1 = self.sentpol.getPolarity(gvcan1lemma) if gvCan1.rel == "nsubj" or scn.getDeepSubject(sent, gvCan1.token) == candidates[0].attrib["id"] else None
                             # FLIPPING
                             if None != polCan1 and scn.getNeg(sent, gvCan1.token): polCan1 *= -1
-			
+
                         if None != gvCan2:
                             polCan2 = self.sentpol.getPolarity(gvcan2lemma) if gvCan2.rel == "nsubj" or scn.getDeepSubject(sent, gvCan2.token) == candidates[1].attrib["id"] else None
                             # FLIPPING
                             if None != polCan2 and scn.getNeg(sent, gvCan2.token): polCan2 *= -1
-                            
+
                         # INFERENCE.
                         if 1 == polCan1 and None == polCan2: polCan2 = -1
                         if -1 == polCan1 and None == polCan2: polCan2 = 1
@@ -1948,7 +1971,7 @@ class feature_function_t:
                         def _L(_x):
                             if None == _x: return None
                             return scn.getLemma(scn.getTokenById(sent, _x))
-			
+
                         ranker.statistics["POLDS"] += [(candidates[0].attrib["id"], "%s,%s" % (_L(scn.getDeepSubject(sent, gvAna.token)) if None != gvAna else None, _L(scn.getDeepSubject(sent, gvCan1.token)) if None != gvCan1 else None))]
                         ranker.statistics["POLDS"] += [(candidates[1].attrib["id"], "%s,%s" % (_L(scn.getDeepSubject(sent, gvAna.token)) if None != gvAna else None, _L(scn.getDeepSubject(sent, gvCan2.token)) if None != gvCan2 else None))]
                         ranker.statistics["POL"] += [(candidates[0].attrib["id"], "%s,%s" % (polAna, polCan1))]
@@ -1981,19 +2004,32 @@ class feature_function_t:
                             #     if can == candidates[1] and polCan2 == polAna == 1: yield "%s_HPOL_POSMATCH" % position, 1
                             #     if can == candidates[1] and polCan2 == polAna == -1: yield "%s_HPOL_NEGMATCH" % position, 1
 
-                                
+
 	def iriEnumerate(self, outExamples, NNvoted, p1, r1, ps1, c1, a1, p2, r2, ps2, c2, a2):
 		if None == self.libiri: return 0
 
 		for vector in self.libiri.predict(
 				"%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2,
 				threshold = 1, pos1=ps1, pos2=ps2, limit=1000, fVectorMode=True):
-			
+
 			outExamples += [(NNvoted, vector)]
 
-                        
-	def iri(self, outNN, NNvoted, lmvcan, p1, r1, ps1, c1, a1, ph1, cat1, p2, r2, ps2, c2, a2, ph2, cat2, pathline, pa, ff, svoplst, statistics, cached = None, outExamples = None, trade = False):
+
+	def iri(self, outNN, NNvoted, lmvcan, p1, tp1, r1, ps1, c1, ta1, a1, ph1, cat1, p2, tp2, r2, ps2, c2, ta2, a2, ph2, cat2, pathline, pa, ff, svoplst, statistics, cached = None, outExamples = None, trade = False):
                 if None == self.libiri: return 0
+
+                # How to use annotator_t.
+                print >>sys.stderr, self.ann.annotate(
+                sdreader.createTokenFromLXML(tp1),
+                sdreader.createTokenFromLXML(ta1),
+                sdreader.rel_t(r1, -1, -1),
+                sdreader.createTokenFromLXML(tp2),
+                sdreader.createTokenFromLXML(ta2),
+                sdreader.rel_t(r2, -1, -1),
+                self.doc,
+                self.res
+                )
+
                 if pa.noknn == True: return 0
                 phnopara = False
 
@@ -2023,9 +2059,9 @@ class feature_function_t:
                 # else: # anaphor = 1
                 #     la2 = lmvcan
                 #     la1 = a1
-                #     svocan, svoana, svosvotype = getsvo(p2, c2, la2, r2, p1, c1, la1, r1)                   
+                #     svocan, svoana, svosvotype = getsvo(p2, c2, la2, r2, p1, c1, la1, r1)
                 # print >>sys.stderr, p1, c1, la1, r1
-                # print >>sys.stderr, p2, c2, la2, r2                
+                # print >>sys.stderr, p2, c2, la2, r2
 
                 # print >>sys.stderr, svocan, svoana, svosvotype
                 # statistics["svopair_q"] += [(NNvoted, "%s==%s" %("~".join(svocan), "~".join(svoana)))]
@@ -2038,9 +2074,9 @@ class feature_function_t:
                 # elif svosvotype == "mvomvo":
                 #     print >>sys.stderr, svosvotype
 
-                    
+
                 # svosvodic = {"mvomvo":0, "mvomv-":0, "mv-mvo":0, "svosvo":0, "sv-svo":0, "sv-svo":0, "sv-svo":0, "sv-svo":0, "sv-svo":0, }
-                
+
                 if pa.ph and ph2:
                     if ph2[0] == 0:
                         c2 = _rmphrasalctx(c2, ph2)
@@ -2048,13 +2084,13 @@ class feature_function_t:
                         if phnopara == True: return 0
                         c2 = _rmphrasalctx(c2, ph2)
                         r2 = _setphrel(r2, ph2)
-                
-                
+
+
                 # freq_evp = ff.ncnaive[0].getFreq("%s-%s:%s" % (p1, ps1[0].lower(), r1), "%s-%s:%s" % (p2, ps2[0].lower(), r2))
                 freq_p1 = ff.ncnaive[0].getFreqPred("%s-%s:%s" % (p1, ps1[0].lower(), r1))
                 freq_p2 = ff.ncnaive[0].getFreqPred("%s-%s:%s" % (p2, ps2[0].lower(), r2))
 		# ELIMINATE THE ELEMENT WITH THE SAME ROLE AS ROLE.
-                
+
 		c1 = " ".join(filter(lambda x: x.split(":")[1] != r1, c1.strip().split(" "))) if "" != c1.strip() else c1
 		c2 = " ".join(filter(lambda x: x.split(":")[1] != r2, c2.strip().split(" "))) if "" != c2.strip() else c2
 
@@ -2069,7 +2105,7 @@ class feature_function_t:
 
                 # if pa.bitsim == True:
                 pbit = [0,0,0]
-                paths = pathline.split("|")                
+                paths = pathline.split("|")
                 negcontext = set("d:neg:not-r d:neg:never-r d:advmod:seldom-r d:advmod:rarely-r d:advmod:hardly-r d:advmod:scarcely-r d:advmod:less-r d:amod:less-j".split())
                 # "d:advmod:less-r d:amod:less-j"
                 negcontext2 = set("d:advmod:however-r d:advmod:nevertheless-r d:advmod:nonetheless-r d:mark:unless-i d:mark:although-i d:mark:though-i".split())
@@ -2082,7 +2118,7 @@ class feature_function_t:
                 if cat2[1] == True:
                         pbit[1] += 1
                 if cat1[2] == True or cat2[2] == True:
-                        pbit[2] += 1    
+                        pbit[2] += 1
                 for c1e in c1.split(" "):
                         if c1e in negcontext|negcatenative:
                                 pbit[0] += 1
@@ -2102,9 +2138,9 @@ class feature_function_t:
                 if pa.onlybit:
                         sys.stderr.write("problembit=\t%s\t" % pbit)
                         return
-                pbit = tuple(pbit)                
+                pbit = tuple(pbit)
 
-                
+
 		nnVectors = []
                 requiredlist = ["d:conj_", "g:conj_", "d:mark:"]
 
@@ -2125,7 +2161,7 @@ class feature_function_t:
 
                 instancecache = []
                 svosvocount = collections.defaultdict(int)
-                
+
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, simretry, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
 
                         if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
@@ -2136,11 +2172,11 @@ class feature_function_t:
                             # print >>sys.stderr, "raw[:-2] = %s" % str(raw[:-2])
 
                         # print >>sys.stderr, "rew = %s" % repr(raw)
-                            
+
                         psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
                         psr2 = "%s-%s:%s" %(p2, ps2[0].lower(), r2)
 
-                        icl, icr, ipath = raw[4], raw[5], raw[6]                        
+                        icl, icr, ipath = raw[4], raw[5], raw[6]
                         imention = "-".join(raw[2].split("-")[:2])
                         irl = raw[0].split(":")[-1]
                         irr = raw[1].split(":")[-1]
@@ -2160,7 +2196,7 @@ class feature_function_t:
 
                         isvol = [s1l, ipl, o1l]
                         isvor = [s2r, ipr, o2r]
-                        
+
                         isvpol, isvpor, isvosvotype = getsvpo(ipl, addicl, imention, irl, ipsl,  ipr, addicr, imention, irr, ipsr)
                         # print >>sys.stderr, "isvpol, isvpor = %s, %s" % (repr(isvpol), repr(isvpor))
                         # print >>sys.stderr, "psvoplist = %s\n" % (repr(svoplst))
@@ -2171,8 +2207,8 @@ class feature_function_t:
                         # print >>sys.stderr, "pph, iph = %s, %s\n" % (repr(pphs), repr(iphs))
                         if pa.phpeng == True and pphs != iphs:
                                 continue
-                                
-                        if psr1 == raw[0] or psr2 == raw[1]: 
+
+                        if psr1 == raw[0] or psr2 == raw[1]:
                             ic1, ic2, isvpo1, isvpo2 = icl, icr, isvpol, isvpor
                         else:
                             ic1, ic2, isvpo1, isvpo2 = icr, icl, isvpor, isvpol
@@ -2206,20 +2242,20 @@ class feature_function_t:
 
                         # pargs = set([svoplst[0][0], svoplst[0][2], svoplst[1][0], svoplst[1][2]])
                         # iargs = set([isvpol[0], isvpol[2], isvpor[0], isvpor[2]])
-                        
-                        
+
+
                         # svoS, svoO = getsowdet(sent, gvAna.token)
                         # svoV = gvAna.lemma
                         # svoVPlms, svoVPsurfs, vptype, vprel =
                         # get_VPpengfromctx(gvAna.token, gvAna.rel)
-                        
+
                         # print >>sys.stderr, svoVPlms
-                        
+
                         # svoVP = "_".join(svoVPlms)
                         # print >>sys.stderr, "anaVP=%s" %(svoVP)
-                        
+
                         # svoVPrel = "%s:%s" %(svoVP, vprel)
-                        
+
                         # # # svoS, svoO = svoS.split("-")[0], svoO.split("-")[0]
                         # if "obj" in gvAna.rel or "prep_" in gvAna.rel or "nsubj_pass" in gvAna.rel:
                         #     # svoO = " ".join(lmqW)
@@ -2228,14 +2264,14 @@ class feature_function_t:
                         #     # svoS = " ".join(lmqC)
                         #     svoS = wCan
 
-                            
-                        
+
+
                         # # SVO-SVO-CONJ MATCH
                         # if psr1 == raw[0] or psr2 == raw[1]:
                         #     # matching [svocan svoana pnegconjbit] and [isvol isvor inegconjbit]
-                        #     svosvocount = check_svosvomatch([svocan, svoana, pnegconjbit], [isvol, isvor, inegconjbit], svosvocount)                            
+                        #     svosvocount = check_svosvomatch([svocan, svoana, pnegconjbit], [isvol, isvor, inegconjbit], svosvocount)
                         # else:
-                        #     # matching [svoana svocan pnegconjbit] and [isvol isvor inegconjbit]                                
+                        #     # matching [svoana svocan pnegconjbit] and [isvol isvor inegconjbit]
                         #     svosvocount = check_svosvomatch([svoana, svocan, pnegconjbit], [isvol, isvor, inegconjbit], svosvocount)
 
                         # if svosvotype == "svmsvm":
@@ -2250,7 +2286,7 @@ class feature_function_t:
                         #     print >>sys.stderr, svosvotype
 
                         # print >>sys.stderr, raw
-                            
+
                         ibit = [None]
                         penalty_ph = 1.0
                         penalty_bit = 1.0
@@ -2258,11 +2294,11 @@ class feature_function_t:
                         penaltyscore = 1.0
                         flag_continue_bit = 0
                         flag_continue_ph = 0
-                        # print >>sys.stderr, "ph1 = %s" %(repr(ph1))                        
+                        # print >>sys.stderr, "ph1 = %s" %(repr(ph1))
                         # print >>sys.stderr, "ph2 = %s" %(repr(ph2))
-                        
+
                         if pa.bitsim == True:
-                            icl, icr, ipath = raw[4], raw[5], raw[6]                        
+                            icl, icr, ipath = raw[4], raw[5], raw[6]
                             ibit = [0,0,0]
                             match = []
 
@@ -2272,14 +2308,14 @@ class feature_function_t:
 
                             # psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
                             # psr2 = "%s-%s:%s" %(p2, ps2[0].lower(), r2)
-                            
+
                             if psr1 == raw[0] or psr2 == raw[1]:
                                 ic1 = icl
                                 ic2 = icr
                             else:
                                 ic1 = icr
                                 ic2 = icl
-                                
+
                             for ic1e in ic1.split(" "):
                                 if ic1e in negcontext|negcatenative:
                                     ibit[0] += 1
@@ -2299,7 +2335,7 @@ class feature_function_t:
 
                             penalty_bit, bittype = calc_bitsim(pbit, ibit)
                             # if bittype == 0 or bittype == -1:
-                            
+
                             if bittype == 0:
                                 flag_continue_bit = 1
                             # else:
@@ -2308,7 +2344,7 @@ class feature_function_t:
                             bittype = None
 
                         # print >>sys.stderr, pbit, ibit, bittype
-                            
+
                         if ph1 != None or ph2 != None:
                             ctxlinel = raw[4].strip()
                             ctxliner = raw[5].strip()
@@ -2329,7 +2365,7 @@ class feature_function_t:
                                 ctxline2 = ctxlinel
                                 rel1 = relr
                                 rel2 = rell
-                                
+
                             if ph1 != None:
                                 penalty_ph = _calphpenalty(ph1, ctxline1, rel1, penalty_ph, pa)
                                 if pa.reqph == True:
@@ -2344,7 +2380,7 @@ class feature_function_t:
                             # print >>sys.stderr, "raw = %s" %(raw)
 
                         kbpaths = raw[6].split("|")
-                        
+
                         if pa.insent == True: # USE INSTANCES FROM INTER-SENTENTIAL COREFERENCE
                             if "1" == raw[3]:
                                 continue
@@ -2369,7 +2405,7 @@ class feature_function_t:
                         #         assert(raw[1].startswith(p2))
                         #         if reqc1 != []:
                         #             if set(reqc1) != set(reqc1) & set(raw[4].strip().split(" ")):
-                        #                 continue                                
+                        #                 continue
                         #         if reqc2 != []:
                         #             if set(reqc2) != set(reqc2) & set(raw[5].strip().split(" ")):
                         #                 continue
@@ -2378,7 +2414,7 @@ class feature_function_t:
                         #         assert(raw[1].startswith(p1))
                         #         if reqc1 != []:
                         #             if set(reqc1) != set(reqc1) & set(raw[5].strip().split(" ")):
-                        #                 continue                                
+                        #                 continue
                         #         if reqc2 != []:
                         #             if set(reqc2) != set(reqc2) & set(raw[4].strip().split(" ")):
                         #                 continue
@@ -2390,8 +2426,8 @@ class feature_function_t:
                         #     pathsimilarity = _getpathsim(kbpaths, paths, pathsimilarity, pa)
                         #     if pathsimilarity == 0: continue
                             # print "path similarity = %s" % (pathsimilarity)
-                                
-                        if pa.simpred1 == True: # SET PRED SIMILARITY = 1 
+
+                        if pa.simpred1 == True: # SET PRED SIMILARITY = 1
                             sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sRuleAssoc # * penaltyscore
                         else:
                             sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred*ret.sRuleAssoc # * penaltyscore
@@ -2407,7 +2443,7 @@ class feature_function_t:
 
                         psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
                         psr2 = "%s-%s:%s" %(p2, ps2[0].lower(), r2)
-                        
+
                         if psr1 == raw[0] or psr2 == raw[1]:
                             freq_pi = freq_p1
                             freq_pp = freq_p2
@@ -2425,7 +2461,7 @@ class feature_function_t:
                             newCsimt[thresh] = [newCsim1t, newCsim2t]
 
                         # print >>sys.stderr, ret.sIndexContext[ret.iIndexed], newCsim1,freq_p1 , ret.sPredictedContext, newCsim2, freq_p2, newCsim
-                        
+
                         # if pa.pathsim1 == True:
                         #     sp = sp * pathsimilarity
                         # bitcached += [bittype]
@@ -2452,13 +2488,13 @@ class feature_function_t:
                             spc = spc_original
                             spac = spac_original
                             penaltyscore = 1.0
-                            
-                            if pa.bitsim == True and settingname == "bitON":                                
+
+                            if pa.bitsim == True and settingname == "bitON":
                                 sp = sp_original * penalty_bit
                                 spa = sp * ret.sPredictedArg
                                 spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
                                 spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-                                
+
                                 penaltyscore = penalty_bit
                                 if flag_continue_bit == 1:
                                     continue
@@ -2469,7 +2505,7 @@ class feature_function_t:
                             #     spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
                             #     penaltyscore = penalty_peng
 
-                            # if pa.bitsim == True and pa.peng == True and settingname == "ON":                                
+                            # if pa.bitsim == True and pa.peng == True and settingname == "ON":
                             #     sp = sp_original * penalty_bit * penalty_peng
                             #     spa = sp * ret.sPredictedArg
                             #     spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
@@ -2486,8 +2522,8 @@ class feature_function_t:
 
                                 penaltyscore = penalty_ph
                                 if flag_continue_ph == 1:
-                                    continue                                
-                            if pa.bitsim == True and pa.ph == True and settingname == "ON":                                
+                                    continue
+                            if pa.bitsim == True and pa.ph == True and settingname == "ON":
                                 sp = sp_original * penalty_bit * penalty_ph
                                 spa = sp * ret.sPredictedArg
                                 spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
@@ -2495,8 +2531,8 @@ class feature_function_t:
 
                                 penaltyscore = penalty_bit * penalty_ph
                                 if flag_continue_bit == 1 or flag_continue_ph == 1:
-                                    continue                                    
-                                    
+                                    continue
+
                             # if None != cached: cached += [(NNvoted, nret)]
                             # if None != cached: cached += [(NNvoted, ret)]
 
@@ -2505,7 +2541,7 @@ class feature_function_t:
                                     assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/bitsim - ret.score) < 0.1)
                                 else:
                                     assert(abs(spac/penaltyscore - ret.score) < 0.1)
-                        
+
                             # if pa.simpred1 == True and pa.pathsim1 == True and pa.bitsim == True:
                             #     assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore * pathsimilarity * bitsim) - ret.score) < 0.1)
                             # elif pa.simpred1 == True and pa.bitsim == True:
@@ -2522,7 +2558,7 @@ class feature_function_t:
                             #     assert(abs(spac*ret.sIndexPred[ret.iIndexed]*ret.sPredictedPred/(penaltyscore * bitsim) - ret.score) < 0.1)
                             # else:
                             #     assert(abs(spac/penaltyscore - ret.score) < 0.1)
-                            
+
                             outNN["iriPred%s" %(settingname)] += [(NNvoted, sp, bittype)]
                             outNN["iriPredArg%s" %(settingname)] += [(NNvoted, spa, bittype)]
                             outNN["iriPredCon%s" %(settingname)] += [(NNvoted, spc, bittype)]
@@ -2535,10 +2571,10 @@ class feature_function_t:
                                 sfinal["iriPred%s" % (settingname)] =  sp
                                 sfinal["iriPredArg%s" % (settingname)] =  spa
                                 sfinal["iriPredCon%s" % (settingname)] =  spc
-                                sfinal["iriPredArgCon%s" % (settingname)] =  spac                            
+                                sfinal["iriPredArgCon%s" % (settingname)] =  spac
                                 sfinal["iriPredArgCon%s.bit" % (settingname)] = ibit
                                 nret = ret._replace(s_final = sfinal)
-                            
+
                             # for settingnameNCon, newCsim in newCsimc.items():
                             #     outNN["iriPredNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
                             #     outNN["iriPredArgNCon_center%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
@@ -2552,7 +2588,7 @@ class feature_function_t:
                                 #     sfinal["iriPredArgNCon_center%s_%s.bit" % (settingnameNCon, settingname)] = ibit
                                 #     nret = ret._replace(s_final = sfinal)
 
-                                
+
                             # for settingnameNCon, newCsim in newCsimt.items():
                             #     outNN["iriPredNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
                             #     outNN["iriPredArgNCon_thresh%s_%s" %(settingnameNCon, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
@@ -2562,10 +2598,10 @@ class feature_function_t:
                             # outNN["iriAddPredCon%s" %(settingname)] += [(NNvoted, sp + 0.5*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
                             # outNN["iriAddPredArgCon%s" %(settingname)] += [(NNvoted, sp + 0.2*ret.sPredictedArg + 0.5*ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext)]
                             # outNN["iriAddPredArg%s" %(settingname)] += [(NNvoted, sp + 0.2*ret.sPredictedArg)]
-                            
+
 
                             # print >>sys.stderr, bitcached
-                            nnVectors += [(spac, vec)]                            
+                            nnVectors += [(spac, vec)]
                             # CONTEX TYPE-WISE EVAL.
                             def _calcConSim(_c, typelist):
 				scw, scZw = 0.0, 0.0
@@ -2605,7 +2641,7 @@ class feature_function_t:
                             deptypedic["Min+subj"] = ["nsubj", "obj", "prep_"]
                             # deptypedic["Min+xcomp"] = ["xcomp", "obj", "prep_"]
                             # deptypedic["Min+xcomp+nsubj"] = ["nsubj", "xcomp", "obj", "prep_"]
-                            
+
                             for typename, typelist in deptypedic.items():
 			        # funcWeight = lambda x: 100.0 if None != re.match("^%s$" % weightedType, x) else 1.0
 			        # funcWeight = lambda x: 100.0 if weightedType in x else 1.0
@@ -2620,7 +2656,7 @@ class feature_function_t:
 
 
                                 # print >>sys.stderr, sc_id, sc_pd
-                                
+
 			        outNN["iriPredArgConW_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_iw * sc_pw, bittype)]
                                 # outNN["iriPredArgConD_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_id * sc_pd, bittype)]
                                 outNN["iriPredConW_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_iw * sc_pw, bittype)]
@@ -2636,11 +2672,11 @@ class feature_function_t:
                                     sfinal["iriPredArgConW_%s_%s.scPredicted" % (typename, settingname)] = sc_pw
                                     sfinal["iriPredArgConW_%s_%s.bit" % (typename, settingname)] = ibit
                                     nret = ret._replace(s_final = sfinal)
-                                    
+
                             #         # print >>sys.stderr, sc_iw, sc_pw, raw
                             #         # print >>sys.stderr, vec[ret.iIndexed], "\n", vec[2]
 
-                                
+
                             #     newCsimcw = {}
                             #     newCsimcd = {}
                             #     newCsimtw = {}
@@ -2662,7 +2698,7 @@ class feature_function_t:
                             #         newCsim2td = calcnewConsimthre(sc_pd, freq_pp, thresh)
                             #         newCsimtd[thresh] = [newCsim1td, newCsim2td]
 
-                                    
+
                             #     # newCsimiw = calcnewConsim(sc_iw, freq_p1)
                             #     # newCsimpw = calcnewConsim(sc_pw, freq_p2)
                             #     # newCsimw = newCsimiw * newCsimpw
@@ -2715,17 +2751,17 @@ class feature_function_t:
                         if None != cached: cached += [(NNvoted, nret)]
                         if pa.nodupli == True:
                             instancecache += [str(raw[:-2])]
-                                
+
                                 # print >>sys.stderr, "*****"
                                 # print >>sys.stderr, raw
                                 # print >>sys.stderr, freq_pi, freq_pp
                                 # # print >>sys.stderr, calcnewConsim(0.9, freq_p1), calcnewConsim(0.9, freq_p2)
-                                
+
                                 # print >>sys.stderr, calcnewConsim(0.8, freq_pi, 0.7), calcnewConsim(0.8, freq_pp, 0.7)
                                 # print >>sys.stderr, calcnewConsim(0.5, freq_pi, 0.7), calcnewConsim(0.5, freq_pp, 0.7)
                                 # print >>sys.stderr, calcnewConsimthre(0.8, freq_pi, 500000), calcnewConsimthre(0.8, freq_pp, 500000)
                                 # print >>sys.stderr, calcnewConsimthre(0.5, freq_pi, 500000), calcnewConsimthre(0.5, freq_pp, 500000)
-                                                                
+
                                 # print >>sys.stderr, newCsimiw, newCsimpw
                                 # print >>sys.stderr, newCsimid, newCsimpd
                 # for score, goodVec in sorted(nnVectors, key=lambda x: x[0], reverse=True)[:5]:
@@ -2733,10 +2769,10 @@ class feature_function_t:
 
                 # print >>sys.stderr, "svosvocount"
                 # print >>sys.stderr, svosvocount
-                
+
                 # for svosvoname, svosvovalue in svosvocount.iteritems():
                 #     numsvosvo["svopair_%s" % (svosvoname)] += [(NNvoted, svosvovalue)]
                 #     numsvosvo["svoploged_%s" % (svosvoname)] += [(NNvoted, math.log(1+svosvovalue))]
-                    
-                
+
+
 		return 0
