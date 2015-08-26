@@ -51,6 +51,7 @@ def main(options, args):
         print >>sys.stderr, "Using 400M KB = %s" % (options.kb4)
         print >>sys.stderr, "Using 400M exact KB = %s" % (options.kb4e)
         print >>sys.stderr, "Using 400M exact with cat KB = %s" % (options.kb4e2)
+        print >>sys.stderr, "Using KB with flags = %s" % (options.kbflag)
         print >>sys.stderr, "Using 400M * 1 / %s" % (options.kb4e2down)
         print >>sys.stderr, "Using 87M exact inter-sentential KB = %s" % (options.kb87ei)
         print >>sys.stderr, "Using old KB = %s" % (options.oldkb)
@@ -358,7 +359,9 @@ if "__main__" == __name__:
         cmdparser.add_option("--kbsmall", help	= "Using small kb", action="store_true", default=False)
         cmdparser.add_option("--kb4", help	= "Using 400M kb", action="store_true", default=False)
         cmdparser.add_option("--kb4e", help	= "Using 400M exact kb", action="store_true", default=False)
-        cmdparser.add_option("--kb4e2", help	= "Using 400M exact with cat kb ", action="store_true", default=False)        
+        cmdparser.add_option("--kb4e2", help	= "Using 400M exact with cat kb ", action="store_true", default=False)
+        cmdparser.add_option("--kbflag", help	= "Using kb with flags ", action="store_true", default=False)
+        cmdparser.add_option("--kbflagsmall", help	= "Using kb with flags ", action="store_true", default=False)        
         cmdparser.add_option("--kb4e2down", help	= "Using down kb", default=False)
         cmdparser.add_option("--kb87ei", help	= "Using 87M exact kb", action="store_true", default=False)
         cmdparser.add_option("--kb100", help	= "Using 1/100 kb", default=False)
@@ -376,4 +379,6 @@ if "__main__" == __name__:
         cmdparser.add_option("--peng", help	= "Using Peng style instances (control penalty)", action="store_true", default=False)
         cmdparser.add_option("--pfilter", help	= "problem filter ON", action="store_true", default=False)
 
+        cmdparser.add_option("--verbose", action="store_true", default=False, help="Turn on verbose mode.")
+        
 	main(*cmdparser.parse_args())
