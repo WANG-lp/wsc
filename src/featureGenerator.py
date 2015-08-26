@@ -22,8 +22,7 @@ import marshal
 import glob
 from kyotocabinet import *
 
-
-sys.path += ["/home/naoya-i/work/clone/knowledgeacquisition/bin"]
+sys.path += ["./subrepo/knowledgeacquisition/bin"]
 import flagging
 import sdreader
 import karesource
@@ -1412,9 +1411,15 @@ class ranker_t:
 
         return de
 
+    def getRankValueOrigin(self, x, t, de = 0.0, src = None):
+        for xc in src[t] if None != src else self.rankingsRv[t]:
+            if x == xc[0]: return xc[1]
+
+        return de
+
     def getRankValue(self, x, t, de = 0.0, src = None):
         for xc in src[t] if None != src else self.rankingsRv[t]:
-            # print >>sys.stderr, xc
+            if (t == "NCNAIVE0NPMI" or t == "selpref") and  1 >= len(self.rankingsRv[t]): return 0.0
             if x == xc[0]: return xc[1]
 
         return de
@@ -1424,7 +1429,8 @@ class ranker_t:
             return None
 
         for i, xc in enumerate(self.rankingsRv[t]):
-            if x == xc[0]: return "R1" if 0 == i else "R2"
+            if x == xc[0]:
+                return "R1" if 0 == i else "R2"
 
     def sort(self):
         for fk in self.NN.keys():
@@ -1577,6 +1583,7 @@ class feature_function_t:
 		dbbase = "/home/naoya-i/work/clone/knowledgeacquisition"
 
 		opt = karesource.option_t(
+                    pa.verbose,
             os.path.join(dbbase, "./data/catenative-verbs.tsv"),
             os.path.join(dbbase, "./data/phrases.ec+wn.txt"),
             os.path.join(dbbase, "./data/ergative-verbs.tsv"),
@@ -1602,8 +1609,14 @@ class feature_function_t:
                     coreftsv = "corefevents.0218e2.tsv"
                     ncnaivecdb = "corefevents.0218e2.cdblist.ncnaive.0.cdb"
                     tuplescdb = "corefevents.0218e2.cdblist.tuples.cdb"
-                    # ncnaivecdbbit = "corefevents.0218e2bit.cdblist.ncnaive.0.cdb"
-                    # tuplescdbbit = "corefevents.0218e2bit.cdblist.tuples.cdb"
+                elif pa.kbflag:
+                    coreftsv = "corefevents.0826.tsv"
+                    ncnaivecdb = "corefevents.0826.cdblist.ncnaive.0.cdb"
+                    tuplescdb = "corefevents.0826.cdblist.tuples.cdb"
+                elif pa.kbflagsmall:
+                    coreftsv = "corefevents.0826small.fixed.tsv"
+                    ncnaivecdb = "corefevents.0826small.fixed.cdblist.ncnaive.0.cdb"
+                    tuplescdb = "corefevents.0826small.fixed.cdblist.tuples.cdb"
                 elif pa.kb4e2down:
                     coreftsv = "corefevents.0218e2down%s.tsv" % pa.kb4e2down
                     ncnaivecdb = "corefevents.0218e2down%s.cdblist.ncnaive.0.cdb" % pa.kb4e2down
@@ -1779,7 +1792,8 @@ class feature_function_t:
 			r	=ranker.getRank(can.attrib["id"], fk)
 
 			if "selpref" == fk:
-				yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
+				yield "%s_Rank_%sVN" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
+                                yield "%s_Rank_%sVO" % ("x", fk), ranker.getRankValueOrigin(can.attrib["id"], fk)
 
                         if "svocount" in fk:
                                 yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
@@ -1800,7 +1814,8 @@ class feature_function_t:
 
 
                         if "NCNAIVE0NPMI" == fk:
-                            yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
+                            yield "%s_Rank_%sVN" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
+                            yield "%s_Rank_%sVO" % ("x", fk), ranker.getRankValueOrigin(can.attrib["id"], fk)
                                 # if numncnaive < EPupperfreq and numncnaiveop < EPupperfreq: # filter out EP feature of freq > EPupperfreq
                                 #     yield "%s_Rank_%s" % ("x", fk), ranker.getRankValue(can.attrib["id"], fk)
                         # if "google" in fk:
@@ -1834,7 +1849,10 @@ class feature_function_t:
 				elif "NCCJ08_VO" == fk:
 					if abs(fr[0][1] - fr[1][1])>25:
 						yield "%s_Rank_%s_%s" % ("x", fk, r), 1
-
+				elif "NCNAIVE0NPMI" == fk:
+                                        yield "%s_Rank_%s1_%s" % ("x", fk, r), 1
+                                elif "selpref" == fk:
+                                        yield "%s_Rank_%s1_%s" % ("x", fk, r), 1
 				else:
 					yield "%s_Rank_%s_%s" % ("x", fk, r), 1
 
@@ -2017,6 +2035,20 @@ class feature_function_t:
 
 	def iri(self, outNN, NNvoted, lmvcan, p1, tp1, r1, ps1, c1, ta1, a1, ph1, cat1, p2, tp2, r2, ps2, c2, ta2, a2, ph2, cat2, pathline, pa, ff, svoplst, statistics, cached = None, outExamples = None, trade = False):
                 if None == self.libiri: return 0
+
+                # How to use annotator_t.
+                pflags = self.ann.annotate(
+                sdreader.createTokenFromLXML(tp1),
+                sdreader.createTokenFromLXML(ta1),
+                sdreader.rel_t(r1, -1, -1),
+                sdreader.createTokenFromLXML(tp2),
+                sdreader.createTokenFromLXML(ta2),
+                sdreader.rel_t(r2, -1, -1),
+                self.doc,
+                self.res
+                ).split(",")
+                print >>sys.stderr, pflags
+
                 if pa.noknn == True: return 0
                 phnopara = False
 
@@ -2032,6 +2064,12 @@ class feature_function_t:
                 print >>sys.stderr, p1, c1, a1, r1
                 print >>sys.stderr, p2, c2, a2, r2
                 print >>sys.stderr, lmvcan
+
+                if pa.verbose == True:
+                    print >>sys.stderr, "Verbose Start"
+                    self.res.opt_a = True
+                    print >>sys.stderr, list(self.res.comp.prt(self.doc, self.res))
+                    print >>sys.stderr, "Verbose End"
 
                 # if pa.nph == True:
                 #     nphrasal1 = _getnphrasal(p1, r1, c1)
@@ -2151,14 +2189,17 @@ class feature_function_t:
 
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, simretry, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
 
+                        # print >>sys.stderr, "raw = "
+                        # print >>sys.stderr, raw
+
                         if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
-                            if str(raw[:-2]) in set(instancecache): # SAME without IDs
+                            if str(raw[:-7]) in set(instancecache): # SAME without IDs
                                 # print >>sys.stderr, "is Duplication"
                                 continue
                             # print >>sys.stderr, "ret = %s" % repr(ret)
                             # print >>sys.stderr, "raw[:-2] = %s" % str(raw[:-2])
 
-                        # print >>sys.stderr, "rew = %s" % repr(raw)
+
 
                         psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
                         psr2 = "%s-%s:%s" %(p2, ps2[0].lower(), r2)

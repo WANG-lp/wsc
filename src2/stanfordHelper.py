@@ -9,6 +9,7 @@ import featureGenerator as fgn
 def _isPredicativeGovernorRel(x): return x in "nsubjpass nsubj dobj iobj".split() or x.startswith("prep")
 
 governor_t = collections.namedtuple("governor_t", "rel token lemma POS")
+token_t = collections.namedtuple("token_t", "id surf pos lemma ne")
 
 def getFirstOrderContext(sent, tk):
         # print getGovernors(sent, tk)
@@ -102,7 +103,17 @@ def getPath(xmlSent, p1, p2, pa):
     # print >>sys.stderr, ret 
     
     return ret
-    
+
+def getTokens(sent):
+    # token_t = collections.namedtuple("token_t", "id surf pos lemma ne")
+    for id, tk in enumerate(sent.xpath("./tokens/token")):
+        sf = getSurf(tk)
+        ps = getPOS(tk)
+        lm = getLemma(tk)
+        ne = getNEtype(tk)        
+        yield token_t(id, sf, ps, lm, ne)
+
+        
 def getToken(sent, x, conn = None):
         # print >>sys.stderr, x
         # print >>sys.stderr, sent

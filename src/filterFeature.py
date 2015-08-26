@@ -15,7 +15,7 @@ for ln in sys.stdin:
 		f_print = True if "exc" == sys.argv[1] else False
 		
 		for c in sys.argv[2:]:
-			if None != re.search(c, e[0]):
+                        if None != re.search(c, e[0]):
 				if "inc" == sys.argv[1]:
 					f_print = True
 				elif "exc" == sys.argv[1]:

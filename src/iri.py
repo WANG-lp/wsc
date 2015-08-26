@@ -44,56 +44,62 @@ class iri_t:
 		opts = []
 
 		if fUseMemoryMap: opts += ["-q"]
+                if pa.kbsmall:
+                    opts += ["-c /work/jun-s/kb/corefevents.0909small.cdblist/"]
+                elif pa.kb4:
+                    tuplescdb = "corefevents.0126.1.cdblist.tuples.cdb"
+                    totalfreq = "corefevents.0126.1.cdblist.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0126.1.cdblist/"]
+                elif pa.kb4e:
+                    tuplescdb = "corefevents.0212.cdblist.tuples.cdb"
+                    totalfreq = "corefevents.0212.cdblist.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0212.cdblist/"]
+                elif pa.kb4e2:
+                    tuplescdb = "corefevents.0218e2.cdblist.tuples.cdb"
+                    totalfreq = "corefevents.0218e2.cdblist.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0218e2.cdblist/"]
+                elif pa.kbflag:
+                    tuplescdb = "corefevents.0826.cdblist.tuples.cdb"
+                    totalfreq = "corefevents.0826.cdblist.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0826.cdblist/"]
+                elif pa.kbflagsmall:
+                    tuplescdb = "corefevents.0826small.fixed.cdblist.tuples.cdb"
+                    totalfreq = "corefevents.0826small.fixed.cdblist.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0826small.fixed.cdblist/"]
+                elif pa.kb4e2down:
+                    print >>sys.stderr, "Down sampling KB 1/%s" % pa.kb4e2down
+                    tuplescdb = "corefevents.0218e2down%s.cdblist.tuples.cdb" % pa.kb4e2down
+                    totalfreq = "corefevents.0218e2down%s.cdblist.totalfreq.txt" % pa.kb4e2down
+                    opts += ["-c /work/jun-s/kb/corefevents.0218e2down%s.cdblist/" % pa.kb4e2down]
+                elif pa.kb87ei:
+                    tuplescdb = "corefevents.0909inter.cdblist.tuples.cdb"
+                    totalfreq = "corefevents.0909inter.cdblist.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0909inter.cdblist/"]
+                elif pa.kb100:
+                    tuplescdb = "corefevents.100.%s.cdblist.tuples.cdb" % pa.kb100
+                    totalfreq = "corefevents.100.%s.cdblist.totalfreq.txt" % pa.kb100
+                    opts += ["-c /work/jun-s/kb/corefevents.100.%s.cdblist/" % pa.kb100]
+                elif pa.kb10:
+                    tuplescdb = "corefevents.10.%s.cdblist.tuples.cdb" % pa.kb10
+                    # print >>sys.stderr, "+++ tuplescdb = %s  +++" % tuplescdb
+                    totalfreq = "corefevents.10.%s.cdblist.totalfreq.txt" % pa.kb10
+                    opts += ["-c /work/jun-s/kb/corefevents.10.%s.cdblist/" % pa.kb10]
+                elif pa.oldkb:
+                    tuplescdb = "tuples.cdb"
+                    totalfreq = "tuples.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.cdblist/"]
+                else:
+                    tuplescdb = "tuples.0909.cdb"
+                    totalfreq = "tuples.0909.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0909.cdblist/"]
+                # else:
+                #     if pa.oldkb == True:
+                #         opts += ["-c /work/jun-s/kb/corefevents.cdblist/"]
+                #     else:
+                #         opts += ["-c /work/jun-s/kb/corefevents.0909.cdblist/"]
 
-		if None != pa:
-			if pa.kbsmall:
-			    opts += ["-c /work/jun-s/kb/corefevents.0909small.cdblist/"]
-			elif pa.kb4:
-			    tuplescdb = "corefevents.0126.1.cdblist.tuples.cdb"
-			    totalfreq = "corefevents.0126.1.cdblist.totalfreq.txt"
-			    opts += ["-c /work/jun-s/kb/corefevents.0126.1.cdblist/"]
-			elif pa.kb4e:
-			    tuplescdb = "corefevents.0212.cdblist.tuples.cdb"
-			    totalfreq = "corefevents.0212.cdblist.totalfreq.txt"
-			    opts += ["-c /work/jun-s/kb/corefevents.0212.cdblist/"]
-			elif pa.kb4e2:
-			    tuplescdb = "corefevents.0218e2.cdblist.tuples.cdb"
-			    totalfreq = "corefevents.0218e2.cdblist.totalfreq.txt"
-			    opts += ["-c /work/jun-s/kb/corefevents.0218e2.cdblist/"]
-			elif pa.kb4e2down:
-			    print >>sys.stderr, "Down sampling KB 1/%s" % pa.kb4e2down
-			    tuplescdb = "corefevents.0218e2down%s.cdblist.tuples.cdb" % pa.kb4e2down
-			    totalfreq = "corefevents.0218e2down%s.cdblist.totalfreq.txt" % pa.kb4e2down
-			    opts += ["-c /work/jun-s/kb/corefevents.0218e2down%s.cdblist/" % pa.kb4e2down]
-			elif pa.kb87ei:
-			    tuplescdb = "corefevents.0909inter.cdblist.tuples.cdb"
-			    totalfreq = "corefevents.0909inter.cdblist.totalfreq.txt"
-			    opts += ["-c /work/jun-s/kb/corefevents.0909inter.cdblist/"]
-			elif pa.kb100:
-			    tuplescdb = "corefevents.100.%s.cdblist.tuples.cdb" % pa.kb100
-			    totalfreq = "corefevents.100.%s.cdblist.totalfreq.txt" % pa.kb100
-			    opts += ["-c /work/jun-s/kb/corefevents.100.%s.cdblist/" % pa.kb100]
-			elif pa.kb10:
-			    tuplescdb = "corefevents.10.%s.cdblist.tuples.cdb" % pa.kb10
-			    # print >>sys.stderr, "+++ tuplescdb = %s  +++" % tuplescdb
-			    totalfreq = "corefevents.10.%s.cdblist.totalfreq.txt" % pa.kb10
-			    opts += ["-c /work/jun-s/kb/corefevents.10.%s.cdblist/" % pa.kb10]
-			elif pa.oldkb:
-			    tuplescdb = "tuples.cdb"
-			    totalfreq = "tuples.totalfreq.txt"
-			    opts += ["-c /work/jun-s/kb/corefevents.cdblist/"]
-			else:
-			    tuplescdb = "tuples.0909.cdb"
-			    totalfreq = "tuples.0909.totalfreq.txt"
-			    opts += ["-c /work/jun-s/kb/corefevents.0909.cdblist/"]
-			# else:
-			#     if pa.oldkb == True:
-			#         opts += ["-c /work/jun-s/kb/corefevents.cdblist/"]
-			#     else:
-			#         opts += ["-c /work/jun-s/kb/corefevents.0909.cdblist/"]
-
-			print >>sys.stderr, "OPTS = %s" % (" ".join(opts))
-
+                print >>sys.stderr, "OPTS = %s" % (" ".join(opts))
+		
 		self.procSearchServer = subprocess.Popen(
 			"%s -k %s -d %s -m %d -w %s %s" % (
 				os.path.join(pathServer, "similaritySearch"), dirKb,
@@ -230,8 +236,14 @@ class iri_t:
 			try:
 				line   = self.procSearchServer.stdout.readline().strip().split("\t")
 				vector = map(lambda y: map(lambda x: tuple(x.rsplit(":", 1)), y.split(" ")), self.procSearchServer.stdout.readline().strip().split("\t"))
+<<<<<<< HEAD
 
 
+=======
+                                # print >>sys.stderr, "LINE ="
+                                # print >>sys.stderr, line
+
+>>>>>>> fc910e3acf1be57cda90fcfb92b172adb1ea2474
 			except ValueError:
 				raise "Protocol Error"
 				continue
