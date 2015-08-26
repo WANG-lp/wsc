@@ -99,7 +99,7 @@ class iri_t:
                 #         opts += ["-c /work/jun-s/kb/corefevents.0909.cdblist/"]
 
                 print >>sys.stderr, "OPTS = %s" % (" ".join(opts))
-		
+
 		self.procSearchServer = subprocess.Popen(
 			"%s -k %s -d %s -m %d -w %s %s" % (
 				os.path.join(pathServer, "similaritySearch"), dirKb,
@@ -236,14 +236,7 @@ class iri_t:
 			try:
 				line   = self.procSearchServer.stdout.readline().strip().split("\t")
 				vector = map(lambda y: map(lambda x: tuple(x.rsplit(":", 1)), y.split(" ")), self.procSearchServer.stdout.readline().strip().split("\t"))
-<<<<<<< HEAD
 
-
-=======
-                                # print >>sys.stderr, "LINE ="
-                                # print >>sys.stderr, line
-
->>>>>>> fc910e3acf1be57cda90fcfb92b172adb1ea2474
 			except ValueError:
 				raise "Protocol Error"
 				continue
