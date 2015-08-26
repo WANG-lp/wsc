@@ -2017,19 +2017,6 @@ class feature_function_t:
 
 	def iri(self, outNN, NNvoted, lmvcan, p1, tp1, r1, ps1, c1, ta1, a1, ph1, cat1, p2, tp2, r2, ps2, c2, ta2, a2, ph2, cat2, pathline, pa, ff, svoplst, statistics, cached = None, outExamples = None, trade = False):
                 if None == self.libiri: return 0
-
-                # How to use annotator_t.
-                print >>sys.stderr, self.ann.annotate(
-                sdreader.createTokenFromLXML(tp1),
-                sdreader.createTokenFromLXML(ta1),
-                sdreader.rel_t(r1, -1, -1),
-                sdreader.createTokenFromLXML(tp2),
-                sdreader.createTokenFromLXML(ta2),
-                sdreader.rel_t(r2, -1, -1),
-                self.doc,
-                self.res
-                )
-
                 if pa.noknn == True: return 0
                 phnopara = False
 
