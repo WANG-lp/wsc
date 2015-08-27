@@ -368,7 +368,7 @@ def checkCatenativeNeg(sent, x, gvx, pa, negcontext, negcontext2, catenativelist
                 
     return (isCatenative, isNegCatenative, isNegCatenativeConj)
                 
-def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
+def getPrimaryPredicativeGovernor(sent, x, pa, doc, contentGovernor = True):
 	if contentGovernor:
 		cg = getContentPredicativeGovernor(sent, x)
 
@@ -376,8 +376,11 @@ def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
 			ps = getPOS(cg[-1][2])
 			
 			if "VB" in ps or "JJ" in ps:
-				# return governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
-				tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
+
+				tmp1 = governor_t(fgn.getRelI(cg[-1][0], fgn.sdreader.createTokenFromLXML(cg[-1][2]), doc),
+                                                  cg[-1][2],
+                                                  cg[-1][1],
+                                                  getPOS(cg[-1][2]))
                                 if pa.cat:
                                     tmp1 = fgn._catenativeget(tmp1, sent)
                                 if pa.ph:
@@ -391,7 +394,10 @@ def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
                                 for dep in dependencies:
                                     dependents += ["d:%s:" %(dep[0])]
                                 if "d:cop:" in dependents:
-                                    tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
+                                    tmp1 = governor_t(fgn.getRelI(cg[-1][0], fgn.sdreader.createTokenFromLXML(cg[-1][2]), doc),
+                                                      cg[-1][2],
+                                                      cg[-1][1],
+                                                      getPOS(cg[-1][2]))
                                     return tmp1
                                 
         for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/dependent[@idx='%s']/.." % x.attrib["id"]):

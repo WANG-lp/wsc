@@ -26,6 +26,7 @@ sys.path += ["./subrepo/knowledgeacquisition/bin"]
 import flagging
 import sdreader
 import karesource
+from  extractEventPairs import _getRelationIndex as getRelI
 
 import classify_gen.classify_gensent as CG
 
@@ -776,13 +777,15 @@ class ranker_t:
         negcontext2 = set("d:advmod:however-r d:advmod:nevertheless-r d:advmod:nonetheless-r d:mark:while-i d:mark:unless-i d:mark:although-i d:mark:though-i".split())
         negconjcol1 = set(["conj_but"])
 
+
+        
         # For REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
         # FOR EACH CANDIDATE.
         for can in candidates:
             wPrn, wCan	 = scn.getLemma(ana), scn.getLemma(can)
             # print >>sys.stderr, wPrn, wCan
             vCan				 = can.attrib["id"]
-            gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
+            gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa, ff.doc), scn.getPrimaryPredicativeGovernor(sent, can, pa, ff.doc)
 
             gvAnaCat = scn.checkCatenativeNeg(sent, ana, gvAna, pa, negcontext, negcontext2, catenativelist)
             gvCanCat = scn.checkCatenativeNeg(sent, can, gvCan, pa, negcontext, negcontext2, catenativelist)
@@ -1701,7 +1704,7 @@ class feature_function_t:
 	def generateFeature(self, ana, can, sent, ranker, candidates, pa):
 		conn				 = scn.getConn(sent)
 		position		 = "left" if "R1" == ranker.getRank(can.attrib["id"], "position") else "right"
-		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
+		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa, self.doc), scn.getPrimaryPredicativeGovernor(sent, can, pa, self.doc)
 
                 EPupperfreq = 2000
                 numncnaive = 0
@@ -1911,8 +1914,8 @@ class feature_function_t:
 
 	def heuristicPolarity(self, ana, can, sent, ranker, candidates, pa):
 		conn				 = scn.getConn(sent)
-		gvCan1, gvCan2 = scn.getPrimaryPredicativeGovernor(sent, candidates[0], pa), scn.getPrimaryPredicativeGovernor(sent, candidates[1], pa)
-		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
+		gvCan1, gvCan2 = scn.getPrimaryPredicativeGovernor(sent, candidates[0], pa, self.doc), scn.getPrimaryPredicativeGovernor(sent, candidates[1], pa, self.doc)
+		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa, self.doc), scn.getPrimaryPredicativeGovernor(sent, can, pa, self.doc)
 		polAna, polCan1, polCan2 = 0, 0, 0
 		position		 = "left" if "R1" == ranker.getRank(can.attrib["id"], "position") else "right"
 
@@ -2068,7 +2071,7 @@ class feature_function_t:
                 if pa.verbose == True:
                     print >>sys.stderr, "Verbose Start"
                     self.res.opt_a = True
-                    print >>sys.stderr, list(self.res.comp.prt(self.doc, self.res))
+                    print >>sys.stderr, list(self.res.comp.getPhraseTokens(self.doc, self.res))
                     print >>sys.stderr, "Verbose End"
                 
                 # if pa.nph == True:
@@ -2125,8 +2128,6 @@ class feature_function_t:
                 if "agent" == r2:
                     print >>sys.stderr, "replace agent2nsubj r2"
                     r2 = "nsubj"
-
-                # print "c1 = %s, c2 = %s" %(c1, c2)
 
                 # if pa.bitsim == True:
                 pbit = [0,0,0]

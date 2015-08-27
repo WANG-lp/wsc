@@ -130,8 +130,8 @@ def _getBrothers(sent, x):
 	return scn.getToken(sent, x[2]), scn.getToken(sent, x[4]), scn.getToken(sent, x[3].split(",")[0] if x[3].split(",")[0] != x[4] else x[3].split(",")[1])
 
 def _printContextualInfo(sent, anaphor, antecedent, antecedent_false, options):
-	gvAna, gvAnte, gvFalseAnte = scn.getPrimaryPredicativeGovernor(sent, anaphor, options), scn.getPrimaryPredicativeGovernor(sent, antecedent, options), \
-			scn.getPrimaryPredicativeGovernor(sent, antecedent_false, options)
+	gvAna, gvAnte, gvFalseAnte = scn.getPrimaryPredicativeGovernor(sent, anaphor, options, featureGenerator.sdreader.createDocFromLXML(sent)), scn.getPrimaryPredicativeGovernor(sent, antecedent, options, featureGenerator.sdreader.createDocFromLXML(sent)), \
+			scn.getPrimaryPredicativeGovernor(sent, antecedent_false, options, featureGenerator.sdreader.createDocFromLXML(sent))
 	
 	print "<governors anaphor=\"%s-%s:%s\" antecedent=\"%s-%s:%s\" falseAntecedent=\"%s-%s:%s\" />" % (
 		gvAna.lemma if None != gvAna else None,
