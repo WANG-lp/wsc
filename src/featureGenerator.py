@@ -1585,14 +1585,13 @@ class feature_function_t:
 
 		dbbase = "/home/naoya-i/work/clone/knowledgeacquisition"
 
-		opt = karesource.option_t(
+                opt = karesource.option_t(
                     pa.verbose,
-            os.path.join(dbbase, "./data/catenative-verbs.tsv"),
-            os.path.join(dbbase, "./data/phrases.ec+wn.txt"),
-            os.path.join(dbbase, "./data/ergative-verbs.tsv"),
-            os.path.join(dbbase, "./data/linking-verbs.tsv"),
-            )
-
+                    os.path.join(dbbase, "./data/catenative-verbs.tsv"),
+                    os.path.join(dbbase, "./data/ergative-verbs.tsv"),
+                    os.path.join(dbbase, "./data/linking-verbs.tsv"),
+                    os.path.join(dbbase, "./data/phrases.ec+wn.txt"),
+                )
 		self.res = karesource.res_t(opt)
 		self.ann = flagging.annotator_t()
 
@@ -2070,7 +2069,6 @@ class feature_function_t:
 
                 if pa.verbose == True:
                     print >>sys.stderr, "Verbose Start"
-                    print >>sys.stderr, list(self.res.comp.prt(self.doc, self.res))
                     print >>sys.stderr, list(self.res.comp.getPhraseTokens(self.doc, self.res))
                     print >>sys.stderr, "Verbose End"
 
