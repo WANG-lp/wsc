@@ -1419,7 +1419,7 @@ class ranker_t:
             if x == xc[0]: return xc[1]
 
         return de
-        
+
     def getRankValue(self, x, t, de = 0.0, src = None):
         for xc in src[t] if None != src else self.rankingsRv[t]:
             if (t == "NCNAIVE0NPMI" or t == "selpref") and  1 >= len(self.rankingsRv[t]): return 0.0
@@ -2074,9 +2074,12 @@ class feature_function_t:
                     print >>sys.stderr, list(self.res.comp.getPhraseTokens(self.doc, self.res))
                     print >>sys.stderr, "Verbose End"
 
+<<<<<<< HEAD
                 if pa.noknn == True: return 0
 
                     
+=======
+>>>>>>> 5a927cd95f0d7bb62d9a7c74e3fedfd644ec3681
                 # if pa.nph == True:
                 #     nphrasal1 = _getnphrasal(p1, r1, c1)
                 #     nphrasal2 = _getnphrasal(p2, r2, c2)
@@ -2195,7 +2198,7 @@ class feature_function_t:
 
                         # print >>sys.stderr, "raw = "
                         # print >>sys.stderr, raw
-                        
+
                         if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
                             if str(raw[:-7]) in set(instancecache): # SAME without IDs
                                 # print >>sys.stderr, "is Duplication"
@@ -2204,7 +2207,7 @@ class feature_function_t:
                             # print >>sys.stderr, "raw[:-2] = %s" % str(raw[:-2])
 
 
-                            
+
                         psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
                         psr2 = "%s-%s:%s" %(p2, ps2[0].lower(), r2)
 

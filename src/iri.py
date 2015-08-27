@@ -65,12 +65,12 @@ class iri_t:
                 elif pa.kbflagsmall:
                     tuplescdb = "corefevents.0826small.fixed.cdblist.tuples.cdb"
                     totalfreq = "corefevents.0826small.fixed.cdblist.totalfreq.txt"
-                    opts += ["-c /work/jun-s/kb/corefevents.0826small.fixed.cdblist/"]                    
+                    opts += ["-c /work/jun-s/kb/corefevents.0826small.fixed.cdblist/"]
                 elif pa.kb4e2down:
                     print >>sys.stderr, "Down sampling KB 1/%s" % pa.kb4e2down
                     tuplescdb = "corefevents.0218e2down%s.cdblist.tuples.cdb" % pa.kb4e2down
                     totalfreq = "corefevents.0218e2down%s.cdblist.totalfreq.txt" % pa.kb4e2down
-                    opts += ["-c /work/jun-s/kb/corefevents.0218e2down%s.cdblist/" % pa.kb4e2down] 
+                    opts += ["-c /work/jun-s/kb/corefevents.0218e2down%s.cdblist/" % pa.kb4e2down]
                 elif pa.kb87ei:
                     tuplescdb = "corefevents.0909inter.cdblist.tuples.cdb"
                     totalfreq = "corefevents.0909inter.cdblist.totalfreq.txt"
@@ -97,22 +97,22 @@ class iri_t:
                 #         opts += ["-c /work/jun-s/kb/corefevents.cdblist/"]
                 #     else:
                 #         opts += ["-c /work/jun-s/kb/corefevents.0909.cdblist/"]
-                        
+
                 print >>sys.stderr, "OPTS = %s" % (" ".join(opts))
-		
+
 		self.procSearchServer = subprocess.Popen(
 			"%s -k %s -d %s -m %d -w %s %s" % (
 				os.path.join(pathServer, "similaritySearch"), dirKb,
 				fnCorefEventsTsv, numPara, fnWeightMap, " ".join(opts)),
 			shell = True,
 			stdin = subprocess.PIPE, stdout = subprocess.PIPE, )#stderr = subprocess.PIPE)
-		
+
 		# FOR PMI
                 print >>sys.stderr, "+++ tuplescdb = %s  +++" % tuplescdb
-                
+
                 self.cdbPreds = cdb.init(os.path.join(dirKb, tuplescdb))
                 self.totalFreqPreds = int(open(os.path.join(dirKb, totalfreq)).read())
-                
+
                 # if pa.oldkb == True:
                 #     self.cdbPreds = cdb.init(os.path.join(dirKb, "tuples.cdb"))
                 #     self.totalFreqPreds = int(open(os.path.join(dirKb, "tuples.totalfreq.txt")).read())
@@ -126,19 +126,19 @@ class iri_t:
 
 		self.fnWeightMap = fnWeightMap
 		self.fEnumMode    = False
-		
+
 		assert("200 OK" == self.procSearchServer.stdout.readline().strip())
 
 	def setWNSimilaritySearch(self, flag):
 		print >>self.procSearchServer.stdin, "w", "y" if flag else "n"
-        
+
 	def setW2VSimilaritySearch(self, flag):
 		print >>self.procSearchServer.stdin, "+", "y" if flag else "n"
 
 	def setEnumMode(self, flag):
 		self.fEnumMode = flag
 		print >>self.procSearchServer.stdin, "e", "y" if flag else "n"
-                
+
         # def getNumRules(self, predicate, context, slot, focusedArgument,
 	# 						predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None,
 	# 						threshold = 0, limit = 10000, pos1 = '', pos2 = '', fVectorMode = False):
@@ -146,7 +146,7 @@ class iri_t:
 
         #         if "" != pos1: pos1 = pos1.lower()[0]
 	# 	if "" != pos2: pos2 = pos2.lower()[0]
-		
+
 	# 	print >>self.procSearchServer.stdin, "p", predicate
 	# 	print >>self.procSearchServer.stdin, "c", context
 	# 	print >>self.procSearchServer.stdin, "s", slot
@@ -163,19 +163,19 @@ class iri_t:
 	# 	print >>self.procSearchServer.stdin, "m", limit
 	# 	print >>self.procSearchServer.stdin, "v", "y" if fVectorMode else "n"
 	# 	print >>self.procSearchServer.stdin, ""
-                
+
         #         numExactMatchIRIs = int(self.procSearchServer.stdout.readline())
 	# 	numIRIs = int(self.procSearchServer.stdout.readline())
         #         return numIRIs
-            
+
 	def predict(self, predicate, context, slot, focusedArgument, simretry,
-                    predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None,  
+                    predictedPredicate = None, predictedContext = None, predictedSlot = None, predictedFocusedArgument = None,
                     threshold = 0, limit = 10000, pos1 = '', pos2 = '', fVectorMode = False):
 		keyCache = predicate + context + str(threshold)
 
 		if "" != pos1: pos1 = pos1.lower()[0]
 		if "" != pos2: pos2 = pos2.lower()[0]
-		
+
 		print >>self.procSearchServer.stdin, "p", predicate
 		print >>self.procSearchServer.stdin, "c", context
 		print >>self.procSearchServer.stdin, "s", slot
@@ -196,18 +196,18 @@ class iri_t:
 		# READ THE NUMBER OF IRIs.
 		numExactMatchIRIs = int(self.procSearchServer.stdout.readline())
 		numIRIs = int(self.procSearchServer.stdout.readline())
-                
+
 		ret     = []
 
                 if numIRIs == 0 and simretry == True:
-                    print >>sys.stderr, "CHANGE SIMWN ON"    
+                    print >>sys.stderr, "CHANGE SIMWN ON"
                     self.setWNSimilaritySearch(True)
                     simretry = False
                     # print >>sys.stderr, predicate, context, slot, focusedArgument, simretry, ff, predictedPredicate, predictedContext, predictedSlot, predictedFocusedArgument, threshold, limit, pos1, pos2, fVectorMode
                     for retx, rawx, vecx in self.predict(predicate, context, slot, focusedArgument, simretry, predictedPredicate, predictedContext, predictedSlot, predictedFocusedArgument, threshold, limit, pos1, pos2, fVectorMode):
                         yield retx, rawx, vecx
                     return
-                
+
 		# CALCULATE PMI
 		pr1, pr2 = "%s:%s" % (predicate, slot), "%s:%s" % (predictedPredicate, predictedSlot)
 		if pr1 > pr2: pr1, pr2 = pr2, pr1
@@ -221,11 +221,11 @@ class iri_t:
 			if self.fEnumMode:
 				yield self.procSearchServer.stdout.readline().strip().split("\t")
 				continue
-				
+
 			if fVectorMode:
 				yield map(lambda x: tuple(x.rsplit(":", 1)), self.procSearchServer.stdout.readline().strip().split(" "))
 				continue
-				
+
 			iIndexed, iPredicted, offset, length, \
 					score, \
 			 		spm1, scm1, sm1, sam1, \
@@ -236,9 +236,7 @@ class iri_t:
 			try:
 				line   = self.procSearchServer.stdout.readline().strip().split("\t")
 				vector = map(lambda y: map(lambda x: tuple(x.rsplit(":", 1)), y.split(" ")), self.procSearchServer.stdout.readline().strip().split("\t"))
-                                # print >>sys.stderr, "LINE ="
-                                # print >>sys.stderr, line
-                                
+
 			except ValueError:
 				raise "Protocol Error"
 				continue
@@ -250,10 +248,10 @@ class iri_t:
                             spassoc = _npmi(1.0*numIRIs / self.totalFreqPreds,
                                         1.0*int(_cdbdefget(self.cdbPreds, npr1, 1)) / self.totalFreqPreds,
                                         1.0*int(_cdbdefget(self.cdbPreds, npr2, 1)) / self.totalFreqPreds)
-                        
+
 			score *= spassoc
 			f_score = score
-                                
+
                         # result_t = collections.namedtuple(
                         #     "result_t",
                         #     "score iPredicted iIndexed sRuleAssoc" +\
@@ -263,7 +261,7 @@ class iri_t:
                         # )
                         # print >>sys.stderr, iPredicted, iIndexed, line, numExactMatchIRIs, numIRIs, spassoc, score
 
-                        
+
                         # print >>sys.stderr, (scm1, scm2), scm
 
 			yield result_t(score, iPredicted, iIndexed, spassoc,
@@ -276,16 +274,17 @@ if "__main__" == __name__:
 	# UNIT TEST.
 	iri = iri_t(
 		"/work/jun-s/kb/corefevents.tsv",
-		"/home/napya-i/work/wsc/bin",
+		"/home/naoya-i/work/wsc/bin",
 		"/work/jun-s/kb",
-		fUseMemoryMap=True
+		None,
+		fUseMemoryMap=True,
 	)
 
 	try:
 		threshold = 0
 		limit     = 1000
 		vectorMode = False
-		
+
 		while True:
 			x					 = raw_input("? ")
 			numResults = 0
@@ -297,11 +296,11 @@ if "__main__" == __name__:
 			if x.startswith("w "):
 				iri.setWNSimilaritySearch("w y" == x.strip())
 				continue
-				
+
 			if x.startswith("s "):
 				iri.setW2VSimilaritySearch("s y" == x.strip())
 				continue
-				
+
 			if x.startswith("t "):
 				threshold = int(x[2:])
 				print "Threshold =", threshold
@@ -311,7 +310,7 @@ if "__main__" == __name__:
 				limit = int(x[2:])
 				print "Limit =", limit
 				continue
-			
+
 			if len(re.split("[,\t]", x.strip())) != 4 and len(re.split("[,\t]", x.strip())) != 8:
 				print "Format: predicate[TAB]context[TAB]slot[TAB]focused argument", "or"
 				print "Format: predicate[TAB]context[TAB]slot[TAB]focused argument[TAB]predicate[TAB]context[TAB]slot[TAB]focused argument", "or"
@@ -319,12 +318,14 @@ if "__main__" == __name__:
 
 			try:
 				ip1, ic1, is1, ia1, ip2, ic2, is2, ia2 = re.split("[,\t]", x.strip())
-				ret = iri.predict(*re.split("[,\t]", x.strip()), threshold=threshold, limit=limit, fVectorMode=vectorMode)
-									
+				args = re.split("[,\t]", x.strip())
+				args = args[:4] + [False] + args[4:]
+				ret = iri.predict(*args, threshold=threshold, limit=limit, fVectorMode=vectorMode)
+
 				if vectorMode:
 					for vector in ret:
 						print vector
-						
+
 				else:
 					iris = sorted(ret,
 												key=lambda x:
@@ -340,9 +341,9 @@ if "__main__" == __name__:
 
 			if vectorMode:
 				continue
-			
+
 			try:
-				f = open("/home/naoya-i/work/wsc/local/webint/kbsearch-%s.html" % sys.argv[1], "w")
+				f = open("/home/naoya-i/public_html/kbsearch-%s.html" % sys.argv[1], "w")
 
 				print >>f, """<html><head>
 <link href="./bootstrap-3.0.3/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -356,11 +357,13 @@ if "__main__" == __name__:
 				print >>f, """<p>%d entries found. </p>
 <table class="table table-striped">
 """ % len(iris)
-				
+
 				for ir, raw, vec in iris:
 					raw = iri.corefeventsMmap[ir.offset:ir.offset+ir.length].split("\t")
 					raw[-1] = raw[-1][2:]
-					
+
+					if len(raw) != 12: continue
+
 					numResults += 1
 					#print ir, raw
 					print >>f, "<tr><td>%s</td></tr>" % "</td><td>".join(
@@ -377,7 +380,7 @@ if "__main__" == __name__:
 							 raw[1] + ("<br />(indexed)" if 1 == ir.iIndexed else ""),
 							 "<br />".join(raw[2].split(",")),
 							 "<br />".join(raw[4].split(" ")),
-							 "<br />".join(raw[5].split(" ")), 
+							 "<br />".join(raw[5].split(" ")),
 							 "<a target=\"_blank\" href=\"http://www.cl.ecei.tohoku.ac.jp/henry/cgi-bin/viewText.py?file=%s&docid=%s&s1=%s&s2=%s\">T</a>" % (
 								raw[-1][:9], raw[-1][10:],
 								urllib2.quote(raw[0].split(":")[0][:-2]), urllib2.quote(raw[1].split(":")[0][:-2]),
@@ -406,7 +409,7 @@ if "__main__" == __name__:
 <script src="./bootstrap-3.0.3/dist/js/bootstrap.min.js"></script>
 </body></html>
 """
-				
+
 				f.close()
 
 			except KeyboardInterrupt:
@@ -415,4 +418,3 @@ if "__main__" == __name__:
 	except EOFError:
 		print "^D"
 		print "I'm leaving! Have a nice day!"
-		
