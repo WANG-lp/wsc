@@ -295,8 +295,8 @@ def getDependents4phrasal(sent, x, ph, phtype):
 	
         
 def convRel(r, tk, sent):
-	# if "agent" == r:
-	# 	return "nsubj"
+	if "agent" == r:
+		return "nsubj"
 	
 	if "nsubjpass" == r:
 		return "nsubj_pass"
