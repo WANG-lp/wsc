@@ -2074,12 +2074,9 @@ class feature_function_t:
                     print >>sys.stderr, list(self.res.comp.getPhraseTokens(self.doc, self.res))
                     print >>sys.stderr, "Verbose End"
 
-<<<<<<< HEAD
                 if pa.noknn == True: return 0
 
                     
-=======
->>>>>>> 5a927cd95f0d7bb62d9a7c74e3fedfd644ec3681
                 # if pa.nph == True:
                 #     nphrasal1 = _getnphrasal(p1, r1, c1)
                 #     nphrasal2 = _getnphrasal(p2, r2, c2)
