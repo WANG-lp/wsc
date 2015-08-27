@@ -2051,8 +2051,8 @@ class feature_function_t:
                 self.res
                 ).split(",")
                 print >>sys.stderr, pflags
-
-                if pa.noknn == True: return 0
+                
+                # if pa.noknn == True: return 0
                 phnopara = False
 
                 if pa.ph and ph1:
@@ -2070,10 +2070,13 @@ class feature_function_t:
 
                 if pa.verbose == True:
                     print >>sys.stderr, "Verbose Start"
-                    self.res.opt_a = True
+                    print >>sys.stderr, list(self.res.comp.prt(self.doc, self.res))
                     print >>sys.stderr, list(self.res.comp.getPhraseTokens(self.doc, self.res))
                     print >>sys.stderr, "Verbose End"
-                
+
+                if pa.noknn == True: return 0
+
+                    
                 # if pa.nph == True:
                 #     nphrasal1 = _getnphrasal(p1, r1, c1)
                 #     nphrasal2 = _getnphrasal(p2, r2, c2)
