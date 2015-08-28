@@ -66,6 +66,10 @@ class iri_t:
                     tuplescdb = "corefevents.0826small.fixed.cdblist.tuples.cdb"
                     totalfreq = "corefevents.0826small.fixed.cdblist.totalfreq.txt"
                     opts += ["-c /work/jun-s/kb/corefevents.0826small.fixed.cdblist/"]
+                elif pa.kbflagnoph:
+                    tuplescdb = "corefevents.0826.fixed.filtered.noph.cdblist.tuples.cdb"
+                    totalfreq = "corefevents.0826.fixed.filtered.noph.cdblist.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0826.fixed.filtered.noph.cdblist/"]
                 elif pa.kb4e2down:
                     print >>sys.stderr, "Down sampling KB 1/%s" % pa.kb4e2down
                     tuplescdb = "corefevents.0218e2down%s.cdblist.tuples.cdb" % pa.kb4e2down

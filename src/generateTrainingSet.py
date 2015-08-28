@@ -361,7 +361,8 @@ if "__main__" == __name__:
         cmdparser.add_option("--kb4e", help	= "Using 400M exact kb", action="store_true", default=False)
         cmdparser.add_option("--kb4e2", help	= "Using 400M exact with cat kb ", action="store_true", default=False)
         cmdparser.add_option("--kbflag", help	= "Using kb with flags ", action="store_true", default=False)
-        cmdparser.add_option("--kbflagsmall", help	= "Using kb with flags ", action="store_true", default=False)        
+        cmdparser.add_option("--kbflagsmall", help	= "Using kb with flags ", action="store_true", default=False)
+        cmdparser.add_option("--kbflagnoph", help	= "Using kb with noph flags ", action="store_true", default=False)        
         cmdparser.add_option("--kb4e2down", help	= "Using down kb", default=False)
         cmdparser.add_option("--kb87ei", help	= "Using 87M exact kb", action="store_true", default=False)
         cmdparser.add_option("--kb100", help	= "Using 1/100 kb", default=False)
@@ -378,7 +379,7 @@ if "__main__" == __name__:
         cmdparser.add_option("--nodupli", help	= "No Duplication", action="store_true", default=False)
         cmdparser.add_option("--peng", help	= "Using Peng style instances (control penalty)", action="store_true", default=False)
         cmdparser.add_option("--pfilter", help	= "problem filter ON", action="store_true", default=False)
-
+        cmdparser.add_option("--oldrel", help	= "Using old ConvRel", action="store_true", default=False)
         cmdparser.add_option("--verbose", action="store_true", default=False, help="Turn on verbose mode.")
         
 	main(*cmdparser.parse_args())

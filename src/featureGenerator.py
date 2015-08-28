@@ -1619,6 +1619,10 @@ class feature_function_t:
                     coreftsv = "corefevents.0826small.fixed.tsv"
                     ncnaivecdb = "corefevents.0826small.fixed.cdblist.ncnaive.0.cdb"
                     tuplescdb = "corefevents.0826small.fixed.cdblist.tuples.cdb"
+                elif pa.kbflagnoph:
+                    coreftsv = "corefevents.0826.fixed.filtered.noph.tsv"
+                    ncnaivecdb = "corefevents.0826.fixed.filtered.noph.cdblist.ncnaive.0.cdb"
+                    tuplescdb = "corefevents.0826.fixed.filtered.noph.cdblist.tuples.cdb"
                 elif pa.kb4e2down:
                     coreftsv = "corefevents.0218e2down%s.tsv" % pa.kb4e2down
                     ncnaivecdb = "corefevents.0218e2down%s.cdblist.ncnaive.0.cdb" % pa.kb4e2down
