@@ -1028,11 +1028,7 @@ class ranker_t:
                 svoS, svoO = getsowdet(sent, gvAna.token)
                 svoV = gvAna.lemma
                 svoVPlms, svoVPsurfs, vptype, vprel = get_VPpeng(sent, gvAna.token, gvAna.rel)
-                print >>sys.stderr, svoVPlms
-
                 svoVP = "_".join(svoVPlms)
-                print >>sys.stderr, "anaVP=%s" %(svoVP)
-
                 svoVPrel = "%s:%s" %(svoVP, vprel)
 
                 # # svoS, svoO = svoS.split("-")[0], svoO.split("-")[0]
@@ -1205,6 +1201,11 @@ class ranker_t:
                             self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
                             self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
 
+                            print >>sys.stderr, "rankingsRv NCNAIVE = "
+                            print >>sys.stderr, [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                            print >>sys.stderr, [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]                         
+                            print >>sys.stderr, [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
+                            
                 if isinstance(gvAna.lemma, list) and isinstance(gvCan.lemma, list):
                     # print >>sys.stderr, "anaphra govornor and candidate govornor are phrasal verb"
                     for anaph in gvAna.lemma:
@@ -1620,9 +1621,13 @@ class feature_function_t:
                     ncnaivecdb = "corefevents.0826small.fixed.cdblist.ncnaive.0.cdb"
                     tuplescdb = "corefevents.0826small.fixed.cdblist.tuples.cdb"
                 elif pa.kbflagnoph:
-                    coreftsv = "corefevents.0826.fixed.filtered.noph.tsv"
-                    ncnaivecdb = "corefevents.0826.fixed.filtered.noph.cdblist.ncnaive.0.cdb"
-                    tuplescdb = "corefevents.0826.fixed.filtered.noph.cdblist.tuples.cdb"
+                    coreftsv = "corefevents.0826.fixed.noph.exact.tsv"
+                    ncnaivecdb = "corefevents.0826.fixed.noph.exact.cdblist.ncnaive.0.cdb"
+                    tuplescdb = "corefevents.0826.fixed.noph.exact.cdblist.tuples.cdb"
+                # elif pa.kbflagnoph:
+                #     coreftsv = "corefevents.0826.fixed.filtered.noph.tsv"
+                #     ncnaivecdb = "corefevents.0826.fixed.filtered.noph.cdblist.ncnaive.0.cdb"
+                #     tuplescdb = "corefevents.0826.fixed.filtered.noph.cdblist.tuples.cdb"
                 elif pa.kb4e2down:
                     coreftsv = "corefevents.0218e2down%s.tsv" % pa.kb4e2down
                     ncnaivecdb = "corefevents.0218e2down%s.cdblist.ncnaive.0.cdb" % pa.kb4e2down

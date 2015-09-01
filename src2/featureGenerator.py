@@ -2188,8 +2188,8 @@ class feature_function_t:
 
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, simretry, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
 
-                        print >>sys.stderr, "raw = "
-                        print >>sys.stderr, raw
+                        # print >>sys.stderr, "raw = "
+                        # print >>sys.stderr, raw
                         
                         if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
                             if str(raw[:-7]) in set(instancecache): # SAME without IDs

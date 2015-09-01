@@ -161,7 +161,6 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options, db, pairdb):
         antecedent_full = tupleInstance[4]
         antecedent_false_full = tupleInstance[3].split(",")[0] if tupleInstance[3].split(",")[0] != tupleInstance[4] else tupleInstance[3].split(",")[1]
         print >>sys.stderr, anaphor_full, antecedent_full, antecedent_false_full
-        print >>sys.stderr, "TESTS"
 	print >>sys.stderr, anaphor, antecedent, antecedent_false
 	if None == anaphor or None == antecedent or None == antecedent_false:
 		return

@@ -46,8 +46,8 @@ class ncnaive_t:
 	def getNPMI(self, pr1, pr2, discount=1.0):
 		x, y = float(_cdbdefget(self.cdbPreds, pr1, 0)), float(_cdbdefget(self.cdbPreds, pr2, 0))
 		xy   = float(_cdbdefget(self.cdb, "%s ~ %s" % ((pr1, pr2) if pr1 < pr2 else (pr2, pr1)), 0))
-		
-		return _npmi(xy/(self.totalFreqPreds * discount), x/self.totalFreqPreds, y/self.totalFreqPreds)
+
+                return _npmi(xy/(self.totalFreqPreds * discount), x/self.totalFreqPreds, y/self.totalFreqPreds)
 
 	# def getFreqbit(self, pr1, pr2, bit):
 	# 	f = self.cdb.get("%s ~ %s ~ %s" % ((pr1, pr2, bit) if pr1 < pr2 else (pr2, pr1, bit)))

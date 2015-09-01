@@ -3,7 +3,7 @@
 # ARGS: /work/naoya-i/kb/corefevents.0909.predicate-pairs.sorteduniqc.tsv /work/naoya-i/kb/ncnaive0909.0.cdb
 
 awk '$1 > 0' $argv[1] | \
-    awk '{print $2 " ~ " $3 " ~ " $4 "\t" $1}' | cdbsrc | \
+    awk '{print $2 " ~ " $3 "\t" $1}' | cdbsrc | \
     cdbmake $argv[2] $argv[2].tmp
 
 # awk '$1 > 5' /work/naoya-i/kb/corefevents.predicate-pairs.sorteduniqc.tsv | \
