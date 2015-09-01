@@ -130,8 +130,8 @@ def _getBrothers(sent, x):
 	return scn.getToken(sent, x[2]), scn.getToken(sent, x[4]), scn.getToken(sent, x[3].split(",")[0] if x[3].split(",")[0] != x[4] else x[3].split(",")[1])
 
 def _printContextualInfo(sent, anaphor, antecedent, antecedent_false, options):
-	gvAna, gvAnte, gvFalseAnte = scn.getPrimaryPredicativeGovernor(sent, anaphor, options), scn.getPrimaryPredicativeGovernor(sent, antecedent, options), \
-			scn.getPrimaryPredicativeGovernor(sent, antecedent_false, options)
+	gvAna, gvAnte, gvFalseAnte = scn.getPrimaryPredicativeGovernor(sent, anaphor, options, featureGenerator.sdreader.createDocFromLXML(sent)), scn.getPrimaryPredicativeGovernor(sent, antecedent, options, featureGenerator.sdreader.createDocFromLXML(sent)), \
+			scn.getPrimaryPredicativeGovernor(sent, antecedent_false, options, featureGenerator.sdreader.createDocFromLXML(sent))
 	
 	print "<governors anaphor=\"%s-%s:%s\" antecedent=\"%s-%s:%s\" falseAntecedent=\"%s-%s:%s\" />" % (
 		gvAna.lemma if None != gvAna else None,
@@ -161,7 +161,6 @@ def _writeFeatures(ff, i, tupleInstance, bypass, options, db, pairdb):
         antecedent_full = tupleInstance[4]
         antecedent_false_full = tupleInstance[3].split(",")[0] if tupleInstance[3].split(",")[0] != tupleInstance[4] else tupleInstance[3].split(",")[1]
         print >>sys.stderr, anaphor_full, antecedent_full, antecedent_false_full
-        print >>sys.stderr, "TESTS"
 	print >>sys.stderr, anaphor, antecedent, antecedent_false
 	if None == anaphor or None == antecedent or None == antecedent_false:
 		return
@@ -361,7 +360,8 @@ if "__main__" == __name__:
         cmdparser.add_option("--kb4e", help	= "Using 400M exact kb", action="store_true", default=False)
         cmdparser.add_option("--kb4e2", help	= "Using 400M exact with cat kb ", action="store_true", default=False)
         cmdparser.add_option("--kbflag", help	= "Using kb with flags ", action="store_true", default=False)
-        cmdparser.add_option("--kbflagsmall", help	= "Using kb with flags ", action="store_true", default=False)        
+        cmdparser.add_option("--kbflagsmall", help	= "Using kb with flags ", action="store_true", default=False)
+        cmdparser.add_option("--kbflagnoph", help	= "Using kb with noph flags ", action="store_true", default=False)        
         cmdparser.add_option("--kb4e2down", help	= "Using down kb", default=False)
         cmdparser.add_option("--kb87ei", help	= "Using 87M exact kb", action="store_true", default=False)
         cmdparser.add_option("--kb100", help	= "Using 1/100 kb", default=False)
@@ -378,7 +378,7 @@ if "__main__" == __name__:
         cmdparser.add_option("--nodupli", help	= "No Duplication", action="store_true", default=False)
         cmdparser.add_option("--peng", help	= "Using Peng style instances (control penalty)", action="store_true", default=False)
         cmdparser.add_option("--pfilter", help	= "problem filter ON", action="store_true", default=False)
-
+        cmdparser.add_option("--oldrel", help	= "Using old ConvRel", action="store_true", default=False)
         cmdparser.add_option("--verbose", action="store_true", default=False, help="Turn on verbose mode.")
         
 	main(*cmdparser.parse_args())

@@ -26,7 +26,6 @@ sys.path += ["./subrepo/knowledgeacquisition/bin"]
 import flagging
 import sdreader
 import karesource
-from  extractEventPairs import _getRelationIndex as getRelI
 
 import classify_gen.classify_gensent as CG
 
@@ -759,7 +758,20 @@ def check_svosvomatch(psvosvo, isvosvo, svosvocount):
 class ranker_t:
     def __init__(self, ff, ana, candidates, sent, pa, mentions, db, pairdb):
 
-        ff.setProblemDoc(sdreader.createDocFromLXML(sent))
+        self.doc = sdreader.createDocFromLXML(sent)
+        dbbase = "/home/naoya-i/work/clone/knowledgeacquisition"
+
+        opt = karesource.option_t(
+            pa.verbose,
+            os.path.join(dbbase, "./data/catenative-verbs.tsv"),
+            os.path.join(dbbase, "./data/ergative-verbs.tsv"),
+            os.path.join(dbbase, "./data/linking-verbs.tsv"),
+            os.path.join(dbbase, "./data/phrases.ec+wn.txt"),
+        )
+        self.res = karesource.res_t(opt)        
+        
+        self.doc.rels += list(self.res.comp.prt(self.doc, self.res))
+        ff.setProblemDoc(self.doc, self.res)
 
         self.NNexamples = []
         self.NN = collections.defaultdict(list)
@@ -1583,17 +1595,6 @@ class ranker_t:
 class feature_function_t:
 	def __init__(self, pa, dirExtKb):
 		self.pa							 = pa
-
-		dbbase = "/home/naoya-i/work/clone/knowledgeacquisition"
-
-                opt = karesource.option_t(
-                    pa.verbose,
-                    os.path.join(dbbase, "./data/catenative-verbs.tsv"),
-                    os.path.join(dbbase, "./data/ergative-verbs.tsv"),
-                    os.path.join(dbbase, "./data/linking-verbs.tsv"),
-                    os.path.join(dbbase, "./data/phrases.ec+wn.txt"),
-                )
-		self.res = karesource.res_t(opt)
 		self.ann = flagging.annotator_t()
 
 		self.libiri = None
@@ -1693,8 +1694,9 @@ class feature_function_t:
 		# 								 ["UNIFORM"]
 		self.deptypes = ["UNIFORM"]
 
-	def setProblemDoc(self, doc):
+	def setProblemDoc(self, doc, res):
 		self.doc = doc
+                self.res = res
 
 	def generateFeatureSet(self, ana, can, sent, ranker, candidates, pa):
 		vCan = can.attrib["id"]
@@ -2078,7 +2080,10 @@ class feature_function_t:
 
                 if pa.verbose == True:
                     print >>sys.stderr, "Verbose Start"
+                    print >>sys.stderr, list(self.res.comp.prtFor(sdreader.createTokenFromLXML(tp1), self.doc, self.res))
+                    print >>sys.stderr, list(self.res.comp.prtFor(sdreader.createTokenFromLXML(tp2), self.doc, self.res))
                     print >>sys.stderr, list(self.res.comp.getPhraseTokens(self.doc, self.res))
+                    print >>sys.stderr, list(self.res.comp.prt(self.doc, self.res))
                     print >>sys.stderr, "Verbose End"
 
                 if pa.noknn == True: return 0

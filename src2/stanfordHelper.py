@@ -9,7 +9,6 @@ import featureGenerator as fgn
 def _isPredicativeGovernorRel(x): return x in "nsubjpass nsubj dobj iobj".split() or x.startswith("prep")
 
 governor_t = collections.namedtuple("governor_t", "rel token lemma POS")
-token_t = collections.namedtuple("token_t", "id surf pos lemma ne")
 
 def getFirstOrderContext(sent, tk):
         # print getGovernors(sent, tk)
@@ -103,17 +102,7 @@ def getPath(xmlSent, p1, p2, pa):
     # print >>sys.stderr, ret 
     
     return ret
-
-def getTokens(sent):
-    # token_t = collections.namedtuple("token_t", "id surf pos lemma ne")
-    for id, tk in enumerate(sent.xpath("./tokens/token")):
-        sf = getSurf(tk)
-        ps = getPOS(tk)
-        lm = getLemma(tk)
-        ne = getNEtype(tk)        
-        yield token_t(id, sf, ps, lm, ne)
-
-        
+    
 def getToken(sent, x, conn = None):
         # print >>sys.stderr, x
         # print >>sys.stderr, sent
@@ -306,8 +295,8 @@ def getDependents4phrasal(sent, x, ph, phtype):
 	
         
 def convRel(r, tk, sent):
-	# if "agent" == r:
-	# 	return "nsubj"
+	if "agent" == r:
+		return "nsubj"
 	
 	if "nsubjpass" == r:
 		return "nsubj_pass"
@@ -379,7 +368,7 @@ def checkCatenativeNeg(sent, x, gvx, pa, negcontext, negcontext2, catenativelist
                 
     return (isCatenative, isNegCatenative, isNegCatenativeConj)
                 
-def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
+def getPrimaryPredicativeGovernor(sent, x, pa, doc, contentGovernor = True):
 	if contentGovernor:
 		cg = getContentPredicativeGovernor(sent, x)
 
@@ -387,8 +376,13 @@ def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
 			ps = getPOS(cg[-1][2])
 			
 			if "VB" in ps or "JJ" in ps:
-				# return governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
-				tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
+                                if pa.oldrel:
+                                    tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
+                                else:
+                                    tmp1 = governor_t(fgn.getRelI(cg[-1][0], fgn.sdreader.createTokenFromLXML(cg[-1][2]), doc),
+                                                      cg[-1][2],
+                                                      cg[-1][1],
+                                                      getPOS(cg[-1][2]))
                                 if pa.cat:
                                     tmp1 = fgn._catenativeget(tmp1, sent)
                                 if pa.ph:
@@ -402,7 +396,13 @@ def getPrimaryPredicativeGovernor(sent, x, pa, contentGovernor = True):
                                 for dep in dependencies:
                                     dependents += ["d:%s:" %(dep[0])]
                                 if "d:cop:" in dependents:
-                                    tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
+                                    if pa.oldrel:
+                                        tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
+                                    else:
+                                        tmp1 = governor_t(fgn.getRelI(cg[-1][0], fgn.sdreader.createTokenFromLXML(cg[-1][2]), doc),
+                                                          cg[-1][2],
+                                                          cg[-1][1],
+                                                          getPOS(cg[-1][2]))
                                     return tmp1
                                 
         for y in sent.xpath("./dependencies[@type='collapsed-ccprocessed-dependencies']/dep/dependent[@idx='%s']/.." % x.attrib["id"]):

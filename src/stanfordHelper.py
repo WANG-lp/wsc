@@ -4,6 +4,8 @@ import collections
 import sys
 
 import featureGenerator as fgn
+# sys.path += ["./subrepo/knowledgeacquisition/bin"]
+# import sdreader
 
 
 def _isPredicativeGovernorRel(x): return x in "nsubjpass nsubj dobj iobj".split() or x.startswith("prep")
@@ -379,7 +381,7 @@ def getPrimaryPredicativeGovernor(sent, x, pa, doc, contentGovernor = True):
                                 if pa.oldrel:
                                     tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
                                 else:
-                                    tmp1 = governor_t(fgn.getRelI(cg[-1][0], fgn.sdreader.createTokenFromLXML(cg[-1][2]), doc),
+                                    tmp1 = governor_t(doc.getRelationIndex(cg[-1][0], fgn.sdreader.createTokenFromLXML(cg[-1][2])),
                                                       cg[-1][2],
                                                       cg[-1][1],
                                                       getPOS(cg[-1][2]))
@@ -399,7 +401,7 @@ def getPrimaryPredicativeGovernor(sent, x, pa, doc, contentGovernor = True):
                                     if pa.oldrel:
                                         tmp1 = governor_t(convRel(cg[-1][0], cg[-1][2], sent), cg[-1][2], cg[-1][1], getPOS(cg[-1][2]))
                                     else:
-                                        tmp1 = governor_t(fgn.getRelI(cg[-1][0], fgn.sdreader.createTokenFromLXML(cg[-1][2]), doc),
+                                        tmp1 = governor_t(doc.getRelationIndex(cg[-1][0], fgn.sdreader.createTokenFromLXML(cg[-1][2])),
                                                           cg[-1][2],
                                                           cg[-1][1],
                                                           getPOS(cg[-1][2]))

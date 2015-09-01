@@ -22,11 +22,11 @@ import marshal
 import glob
 from kyotocabinet import *
 
-# sys.path += ["/home/naoya-i/work/clone/knowledgeacquisition/bin"]
-sys.path += ["/home/jun-s/work/knowledgeAcquisition/bin"]
+sys.path += ["./subrepo/knowledgeacquisition/bin"]
 import flagging
 import sdreader
 import karesource
+from  extractEventPairs import _getRelationIndex as getRelI
 
 import classify_gen.classify_gensent as CG
 
@@ -759,7 +759,21 @@ def check_svosvomatch(psvosvo, isvosvo, svosvocount):
 class ranker_t:
     def __init__(self, ff, ana, candidates, sent, pa, mentions, db, pairdb):
 
-        ff.setProblemDoc(sdreader.createDocFromLXML(sent))
+        self.doc = sdreader.createDocFromLXML(sent)
+        dbbase = "/home/naoya-i/work/clone/knowledgeacquisition"
+
+        opt = karesource.option_t(
+            pa.verbose,
+            os.path.join(dbbase, "./data/catenative-verbs.tsv"),
+            os.path.join(dbbase, "./data/ergative-verbs.tsv"),
+            os.path.join(dbbase, "./data/linking-verbs.tsv"),
+            os.path.join(dbbase, "./data/phrases.ec+wn.txt"),
+        )
+        self.res = karesource.res_t(opt)
+        
+        
+        self.doc.rels += list(self.res.comp.prt(self.doc, self.res))
+        ff.setProblemDoc(self.doc, self.res)
 
         self.NNexamples = []
         self.NN = collections.defaultdict(list)
@@ -777,13 +791,15 @@ class ranker_t:
         negcontext2 = set("d:advmod:however-r d:advmod:nevertheless-r d:advmod:nonetheless-r d:mark:while-i d:mark:unless-i d:mark:although-i d:mark:though-i".split())
         negconjcol1 = set(["conj_but"])
 
+
+        
         # For REAL-VALUED FEATURES, WE FIRST CALCULATE THE RANKING VALUES
         # FOR EACH CANDIDATE.
         for can in candidates:
             wPrn, wCan	 = scn.getLemma(ana), scn.getLemma(can)
             # print >>sys.stderr, wPrn, wCan
             vCan				 = can.attrib["id"]
-            gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
+            gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa, ff.doc), scn.getPrimaryPredicativeGovernor(sent, can, pa, ff.doc)
 
             gvAnaCat = scn.checkCatenativeNeg(sent, ana, gvAna, pa, negcontext, negcontext2, catenativelist)
             gvCanCat = scn.checkCatenativeNeg(sent, can, gvCan, pa, negcontext, negcontext2, catenativelist)
@@ -1026,11 +1042,7 @@ class ranker_t:
                 svoS, svoO = getsowdet(sent, gvAna.token)
                 svoV = gvAna.lemma
                 svoVPlms, svoVPsurfs, vptype, vprel = get_VPpeng(sent, gvAna.token, gvAna.rel)
-                print >>sys.stderr, svoVPlms
-
                 svoVP = "_".join(svoVPlms)
-                print >>sys.stderr, "anaVP=%s" %(svoVP)
-
                 svoVPrel = "%s:%s" %(svoVP, vprel)
 
                 # # svoS, svoO = svoS.split("-")[0], svoO.split("-")[0]
@@ -1203,6 +1215,11 @@ class ranker_t:
                             self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
                             self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
 
+                            print >>sys.stderr, "rankingsRv NCNAIVE = "
+                            print >>sys.stderr, [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                            print >>sys.stderr, [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]                         
+                            print >>sys.stderr, [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
+                            
                 if isinstance(gvAna.lemma, list) and isinstance(gvCan.lemma, list):
                     # print >>sys.stderr, "anaphra govornor and candidate govornor are phrasal verb"
                     for anaph in gvAna.lemma:
@@ -1417,10 +1434,10 @@ class ranker_t:
             if x == xc[0]: return xc[1]
 
         return de
-        
+
     def getRankValue(self, x, t, de = 0.0, src = None):
         for xc in src[t] if None != src else self.rankingsRv[t]:
-            if t == "NCNAIVE0NPMI" and  1 >= len(self.rankingsRv[t]): return 0.0
+            if (t == "NCNAIVE0NPMI" or t == "selpref") and  1 >= len(self.rankingsRv[t]): return 0.0
             if x == xc[0]: return xc[1]
 
         return de
@@ -1580,17 +1597,6 @@ class ranker_t:
 class feature_function_t:
 	def __init__(self, pa, dirExtKb):
 		self.pa							 = pa
-
-		dbbase = "/home/naoya-i/work/clone/knowledgeacquisition"
-
-		opt = karesource.option_t(
-            os.path.join(dbbase, "./data/catenative-verbs.tsv"),
-            os.path.join(dbbase, "./data/phrases.ec+wn.txt"),
-            os.path.join(dbbase, "./data/ergative-verbs.tsv"),
-            os.path.join(dbbase, "./data/linking-verbs.tsv"),
-            )
-
-		self.res = karesource.res_t(opt)
 		self.ann = flagging.annotator_t()
 
 		self.libiri = None
@@ -1614,9 +1620,17 @@ class feature_function_t:
                     ncnaivecdb = "corefevents.0826.cdblist.ncnaive.0.cdb"
                     tuplescdb = "corefevents.0826.cdblist.tuples.cdb"
                 elif pa.kbflagsmall:
-                    coreftsv = "corefevents.0826small.tsv"
-                    ncnaivecdb = "corefevents.0826small.cdblist.ncnaive.0.cdb"
-                    tuplescdb = "corefevents.0826small.cdblist.tuples.cdb"
+                    coreftsv = "corefevents.0826small.fixed.tsv"
+                    ncnaivecdb = "corefevents.0826small.fixed.cdblist.ncnaive.0.cdb"
+                    tuplescdb = "corefevents.0826small.fixed.cdblist.tuples.cdb"
+                elif pa.kbflagnoph:
+                    coreftsv = "corefevents.0826.fixed.noph.exact.tsv"
+                    ncnaivecdb = "corefevents.0826.fixed.noph.exact.cdblist.ncnaive.0.cdb"
+                    tuplescdb = "corefevents.0826.fixed.noph.exact.cdblist.tuples.cdb"
+                # elif pa.kbflagnoph:
+                #     coreftsv = "corefevents.0826.fixed.filtered.noph.tsv"
+                #     ncnaivecdb = "corefevents.0826.fixed.filtered.noph.cdblist.ncnaive.0.cdb"
+                #     tuplescdb = "corefevents.0826.fixed.filtered.noph.cdblist.tuples.cdb"
                 elif pa.kb4e2down:
                     coreftsv = "corefevents.0218e2down%s.tsv" % pa.kb4e2down
                     ncnaivecdb = "corefevents.0218e2down%s.cdblist.ncnaive.0.cdb" % pa.kb4e2down
@@ -1682,8 +1696,9 @@ class feature_function_t:
 		# 								 ["UNIFORM"]
 		self.deptypes = ["UNIFORM"]
 
-	def setProblemDoc(self, doc):
+	def setProblemDoc(self, doc, res):
 		self.doc = doc
+                self.res = res
 
 	def generateFeatureSet(self, ana, can, sent, ranker, candidates, pa):
 		vCan = can.attrib["id"]
@@ -1701,7 +1716,7 @@ class feature_function_t:
 	def generateFeature(self, ana, can, sent, ranker, candidates, pa):
 		conn				 = scn.getConn(sent)
 		position		 = "left" if "R1" == ranker.getRank(can.attrib["id"], "position") else "right"
-		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
+		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa, self.doc), scn.getPrimaryPredicativeGovernor(sent, can, pa, self.doc)
 
                 EPupperfreq = 2000
                 numncnaive = 0
@@ -1911,8 +1926,8 @@ class feature_function_t:
 
 	def heuristicPolarity(self, ana, can, sent, ranker, candidates, pa):
 		conn				 = scn.getConn(sent)
-		gvCan1, gvCan2 = scn.getPrimaryPredicativeGovernor(sent, candidates[0], pa), scn.getPrimaryPredicativeGovernor(sent, candidates[1], pa)
-		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa), scn.getPrimaryPredicativeGovernor(sent, can, pa)
+		gvCan1, gvCan2 = scn.getPrimaryPredicativeGovernor(sent, candidates[0], pa, self.doc), scn.getPrimaryPredicativeGovernor(sent, candidates[1], pa, self.doc)
+		gvAna, gvCan = scn.getPrimaryPredicativeGovernor(sent, ana, pa, self.doc), scn.getPrimaryPredicativeGovernor(sent, can, pa, self.doc)
 		polAna, polCan1, polCan2 = 0, 0, 0
 		position		 = "left" if "R1" == ranker.getRank(can.attrib["id"], "position") else "right"
 
@@ -2048,8 +2063,8 @@ class feature_function_t:
                 self.res
                 ).split(",")
                 print >>sys.stderr, pflags
-
-                if pa.noknn == True: return 0
+                
+                # if pa.noknn == True: return 0
                 phnopara = False
 
                 if pa.ph and ph1:
@@ -2067,9 +2082,15 @@ class feature_function_t:
 
                 if pa.verbose == True:
                     print >>sys.stderr, "Verbose Start"
+                    print >>sys.stderr, list(self.res.comp.prtFor(sdreader.createTokenFromLXML(tp1), self.doc, self.res))
+                    print >>sys.stderr, list(self.res.comp.prtFor(sdreader.createTokenFromLXML(tp2), self.doc, self.res))
+                    print >>sys.stderr, list(self.res.comp.getPhraseTokens(self.doc, self.res))
                     print >>sys.stderr, list(self.res.comp.prt(self.doc, self.res))
                     print >>sys.stderr, "Verbose End"
-                
+
+                if pa.noknn == True: return 0
+
+                    
                 # if pa.nph == True:
                 #     nphrasal1 = _getnphrasal(p1, r1, c1)
                 #     nphrasal2 = _getnphrasal(p2, r2, c2)
@@ -2124,8 +2145,6 @@ class feature_function_t:
                 if "agent" == r2:
                     print >>sys.stderr, "replace agent2nsubj r2"
                     r2 = "nsubj"
-
-                # print "c1 = %s, c2 = %s" %(c1, c2)
 
                 # if pa.bitsim == True:
                 pbit = [0,0,0]
@@ -2190,7 +2209,7 @@ class feature_function_t:
 
                         # print >>sys.stderr, "raw = "
                         # print >>sys.stderr, raw
-                        
+
                         if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
                             if str(raw[:-7]) in set(instancecache): # SAME without IDs
                                 # print >>sys.stderr, "is Duplication"
@@ -2199,7 +2218,7 @@ class feature_function_t:
                             # print >>sys.stderr, "raw[:-2] = %s" % str(raw[:-2])
 
 
-                            
+
                         psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
                         psr2 = "%s-%s:%s" %(p2, ps2[0].lower(), r2)
 
