@@ -1217,6 +1217,17 @@ class ranker_t:
                             print >>sys.stderr, [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
                             print >>sys.stderr, [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]                         
                             print >>sys.stderr, [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
+
+                            print >>sys.stderr, "KEYs ="
+                            print >>sys.stderr, "%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel)
+                            print >>sys.stderr, "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)
+
+                            eAna = sdreader.createTokenFromLXML(gvAna.token)
+                            eCan = sdreader.createTokenFromLXML(gvCan.token)
+                            e1i, e2i = ff.doc.getEventIndex(eAna, ff.res.lv), ff.doc.getEventIndex(eCan, ff.res.lv)
+
+                            print >>sys.stderr, "%s-%s:%s" % (e1i, gvAna.POS[0].lower(), ff.doc.getRelationIndex(gvAna.rel, eAna))
+                            print >>sys.stderr, "%s-%s:%s" % (e2i, gvCan.POS[0].lower(), ff.doc.getRelationIndex(gvCan.rel, eCan))
                             
                 if isinstance(gvAna.lemma, list) and isinstance(gvCan.lemma, list):
                     # print >>sys.stderr, "anaphra govornor and candidate govornor are phrasal verb"
@@ -2045,17 +2056,41 @@ class feature_function_t:
 
 			outExamples += [(NNvoted, vector)]
 
-        def flagsimTemp(pflags, iflags):
-            # F14: temporal relation b/w e1 and e2. U or 12 or 21.
+        def flagsimTemp(self, pflags, iflags):
+            # F14: temporal relation b/w e1 and e2. T:U or T:12 or T:21.
             isskip = False
-            if pflags[13] == "U" or iflags[13] == "U":
+            if pflags[13] == "T:U" or iflags[11] == "T:U":
                 return 0.75, isskip
-            elif pflags[13] == iflags[13]:
+            elif pflags[13] == iflags[11]:
                 return 1.0, isskip
             else:
                 return 0.5, isskip
                         
+        def flagsimPol(self, pflags, iflags):
+            # F1,2: polarity. A (affirmative) or N (negative).
+            isskip = False
+            if pflags[0:2] == iflags[0:2]:
+                return 1.0, isskip
+            else:
+                return 0.75, isskip
 
+        def flagsimBit(self, pflags, iflags):
+            # F1,2: polarity. A (affirmative) or N (negative).
+            # F5,6: expectation field. E (expects) or C (contra-expects).
+            isskip = False
+            isrevote = False
+            TFlst = [pflags[0]==iflags[0], pflags[1]==iflags[1], pflags[4]==iflags[4], pflags[5]==iflags[5]]
+            if TFlst == [True, True, True, True]:
+                return 1.0, isskip, isrevote
+            elif TFlst.count(False) == 1:
+                isrevote = True
+                return 0.75, isskip, isrevote
+            elif TFlst.count(False) == 2: # strong and win & strong but not win & not strong and not win
+                return 0.75, isskip, isrevote
+            else:
+                return 0.5, isskip, isrevote
+            
+            
 	def iri(self, outNN, NNvoted, lmvcan, p1, tp1, r1, ps1, c1, ta1, a1, ph1, cat1, p2, tp2, r2, ps2, c2, ta2, a2, ph2, cat2, pathline, pa, ff, svoplst, statistics, cached = None, outExamples = None, trade = False):
                 if None == self.libiri: return 0
 
@@ -2088,47 +2123,18 @@ class feature_function_t:
                 print >>sys.stderr, p2, c2, a2, r2
                 print >>sys.stderr, lmvcan
 
-                if pa.verbose == True:
-                    print >>sys.stderr, "Verbose Start"
-                    print >>sys.stderr, list(self.res.comp.prtFor(sdreader.createTokenFromLXML(tp1), self.doc, self.res))
-                    print >>sys.stderr, list(self.res.comp.prtFor(sdreader.createTokenFromLXML(tp2), self.doc, self.res))
-                    print >>sys.stderr, list(self.res.comp.getPhraseTokens(self.doc, self.res))
-                    print >>sys.stderr, list(self.res.comp.prt(self.doc, self.res))
-                    print >>sys.stderr, "Verbose End"
+                print >>sys.stderr, "KEYs2 ="
+                print >>sys.stderr, "%s-%s:%s" % (p1, ps1[0].lower(), r1)
+                print >>sys.stderr, "%s-%s:%s" % (p2, ps2[0].lower(), r2)
+
+                e1 = sdreader.createTokenFromLXML(tp1)
+                e2 = sdreader.createTokenFromLXML(tp2)
+                e1i, e2i = ff.doc.getEventIndex(e1, ff.res.lv), ff.doc.getEventIndex(e2, ff.res.lv)
+
+                print >>sys.stderr, "%s-%s:%s" % (e1i, ps1[0].lower(), ff.doc.getRelationIndex(r1, e1))
+                print >>sys.stderr, "%s-%s:%s" % (e2i, ps2[0].lower(), ff.doc.getRelationIndex(r2, e2))
 
                 if pa.noknn == True: return 0
-
-                    
-                # if pa.nph == True:
-                #     nphrasal1 = _getnphrasal(p1, r1, c1)
-                #     nphrasal2 = _getnphrasal(p2, r2, c2)
-                #     print >>sys.stderr, nphrasal1, nphrasal2
-                #     return
-
-                # if trade == True: # anaphor = 2
-                #     la2 = a2
-                #     la1 = lmvcan
-                #     svocan, svoana, svosvotype = getsvo(p1, c1, la1, r1, p2, c2, la2, r2)
-                # else: # anaphor = 1
-                #     la2 = lmvcan
-                #     la1 = a1
-                #     svocan, svoana, svosvotype = getsvo(p2, c2, la2, r2, p1, c1, la1, r1)
-                # print >>sys.stderr, p1, c1, la1, r1
-                # print >>sys.stderr, p2, c2, la2, r2
-
-                # print >>sys.stderr, svocan, svoana, svosvotype
-                # statistics["svopair_q"] += [(NNvoted, "%s==%s" %("~".join(svocan), "~".join(svoana)))]
-                # if svosvotype == "svmsvm":
-                #     print >>sys.stderr, svosvotype
-                # elif svosvotype == "svmmvo":
-                #     print >>sys.stderr, svosvotype
-                # elif svosvotype == "mvosvm":
-                #     print >>sys.stderr, svosvotype
-                # elif svosvotype == "mvomvo":
-                #     print >>sys.stderr, svosvotype
-
-
-                # svosvodic = {"mvomvo":0, "mvomv-":0, "mv-mvo":0, "svosvo":0, "sv-svo":0, "sv-svo":0, "sv-svo":0, "sv-svo":0, "sv-svo":0, }
 
                 if pa.ph and ph2:
                     if ph2[0] == 0:
@@ -2215,8 +2221,8 @@ class feature_function_t:
 
                 for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, simretry, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
 
-                        # print >>sys.stderr, "raw = "
-                        # print >>sys.stderr, raw
+                        print >>sys.stderr, "raw = "
+                        print >>sys.stderr, raw
 
                         if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
                             if str(raw[:-7]) in set(instancecache): # SAME without IDs
@@ -2237,16 +2243,23 @@ class feature_function_t:
                         # F15: heuristic coref rule is satisfied or not. Y or N.
                             
                         iflags = raw[9].split(",")
-                        print >>sys.stderr, iflags
+                        # print >>sys.stderr, iflags
 
                         # SKIP gomi verb
-                        if iflags[10] == "Y" or iflag[11] == "Y":
+                        if iflags[10] == "Y" or iflags[11] == "Y":
                             continue
 
                         # Calculate temporal similarity and skip flag
-                        temporalsim, temporalskip = flagsimTemp(pflags, iflags)
-                        print >>sys.stderr, temporalsim, temporalskip
+                        temporalsim, temporalskip = ff.flagsimTemp(pflags, iflags)
+                        # print >>sys.stderr, temporalsim, temporalskip
+
+                        # Calculate polarity similarity and skip flag
+                        polaritysim, polarityskip = ff.flagsimPol(pflags, iflags)
+                        # print >>sys.stderr, polaritysim, polarityskip
                         
+                        # Calculate bit similarity and skip flag and revoteflag
+                        bitsim, bitskip, bitrevote = ff.flagsimBit(pflags, iflags)
+                        # print >>sys.stderr, bitsim, bitskip, bitrevote
                         
 
                         psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
@@ -2460,7 +2473,6 @@ class feature_function_t:
                         if pa.insent == True: # USE INSTANCES FROM INTER-SENTENTIAL COREFERENCE
                             if "1" == raw[3]:
                                 continue
-
                         if pa.insent2 == True: # SET PENALTY_INSENT=0.5  TO USE INSTANCES FROM NOT INTER-SENTENTIAL COREFERENCE
                             if "1" == raw[3]:
                                 penalty_insent = penalty_insent * 0.5
