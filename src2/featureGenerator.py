@@ -26,7 +26,6 @@ sys.path += ["./subrepo/knowledgeacquisition/bin"]
 import flagging
 import sdreader
 import karesource
-from  extractEventPairs import _getRelationIndex as getRelI
 
 import classify_gen.classify_gensent as CG
 
@@ -769,8 +768,7 @@ class ranker_t:
             os.path.join(dbbase, "./data/linking-verbs.tsv"),
             os.path.join(dbbase, "./data/phrases.ec+wn.txt"),
         )
-        self.res = karesource.res_t(opt)
-        
+        self.res = karesource.res_t(opt)        
         
         self.doc.rels += list(self.res.comp.prt(self.doc, self.res))
         ff.setProblemDoc(self.doc, self.res)
@@ -2047,6 +2045,16 @@ class feature_function_t:
 
 			outExamples += [(NNvoted, vector)]
 
+        def flagsimTemp(pflags, iflags):
+            # F14: temporal relation b/w e1 and e2. U or 12 or 21.
+            isskip = False
+            if pflags[13] == "U" or iflags[13] == "U":
+                return 0.75, isskip
+            elif pflags[13] == iflags[13]:
+                return 1.0, isskip
+            else:
+                return 0.5, isskip
+                        
 
 	def iri(self, outNN, NNvoted, lmvcan, p1, tp1, r1, ps1, c1, ta1, a1, ph1, cat1, p2, tp2, r2, ps2, c2, ta2, a2, ph2, cat2, pathline, pa, ff, svoplst, statistics, cached = None, outExamples = None, trade = False):
                 if None == self.libiri: return 0
@@ -2217,7 +2225,29 @@ class feature_function_t:
                             # print >>sys.stderr, "ret = %s" % repr(ret)
                             # print >>sys.stderr, "raw[:-2] = %s" % str(raw[:-2])
 
+                        # F1,2: polarity. A (affirmative) or N (negative).
+                        # F3,4: transitive verb or not. T-* (transitive) or I (intransitive).
+                        # F5,6: expectation field. E (expects) or C (contra-expects).
+                        # F7, 8: role sources. A (propadvcl), C (propcoord), P (propxcomp), or - (pure).
+                        # F9, 10: auxiliary-like verb. A (yes) or - (no).
+                        # F11, 12: gomi verb. Y (yes) or N (no).
+                        # F13: grammatical relation b/w e1 and e2. U, A12, A21, C12, C21, X12, X21.
+                        #      (basically, clausal complement or adverbial modifier or xcomp)
+                        # F14: temporal relation b/w e1 and e2. U or 12 or 21.
+                        # F15: heuristic coref rule is satisfied or not. Y or N.
+                            
+                        iflags = raw[9].split(",")
+                        print >>sys.stderr, iflags
 
+                        # SKIP gomi verb
+                        if iflags[10] == "Y" or iflag[11] == "Y":
+                            continue
+
+                        # Calculate temporal similarity and skip flag
+                        temporalsim, temporalskip = flagsimTemp(pflags, iflags)
+                        print >>sys.stderr, temporalsim, temporalskip
+                        
+                        
 
                         psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
                         psr2 = "%s-%s:%s" %(p2, ps2[0].lower(), r2)
@@ -2434,44 +2464,6 @@ class feature_function_t:
                         if pa.insent2 == True: # SET PENALTY_INSENT=0.5  TO USE INSTANCES FROM NOT INTER-SENTENTIAL COREFERENCE
                             if "1" == raw[3]:
                                 penalty_insent = penalty_insent * 0.5
-
-                        # print >>sys.stderr, "raw = %s" % (raw)
-                        # print >>sys.stderr, "c1 = %s, c2 = %s" % (c1, c2)
-
-                        # if pa.req == True: # CONTINUE INSTANCES IF NOT CONTAIN REQUIED CONTEXT
-
-                        #     reqc1 = []
-                        #     reqc2 = []
-                        #     for reqele in requiredlist:
-                        #         for matchreq in [x for x in c1.split(" ") if x.startswith(reqele)]:
-                        #             reqc1.append(matchreq)
-                        #         for matchreq in [x for x in c2.split(" ") if x.startswith(reqele)]:
-                        #             reqc2.append(matchreq)
-                        #     if raw[0].startswith(p1):
-                        #         assert(raw[1].startswith(p2))
-                        #         if reqc1 != []:
-                        #             if set(reqc1) != set(reqc1) & set(raw[4].strip().split(" ")):
-                        #                 continue
-                        #         if reqc2 != []:
-                        #             if set(reqc2) != set(reqc2) & set(raw[5].strip().split(" ")):
-                        #                 continue
-                        #     else:
-                        #         assert(raw[0].startswith(p2))
-                        #         assert(raw[1].startswith(p1))
-                        #         if reqc1 != []:
-                        #             if set(reqc1) != set(reqc1) & set(raw[5].strip().split(" ")):
-                        #                 continue
-                        #         if reqc2 != []:
-                        #             if set(reqc2) != set(reqc2) & set(raw[4].strip().split(" ")):
-                        #                 continue
-
-
-                        # if pa.pathsim1 == True or pa.pathsim2 == True:
-                        #     if pa.pathsim1: pathsimilarity = 0.5
-                        #     elif pa.pathsim2: pathsimilarity = 0
-                        #     pathsimilarity = _getpathsim(kbpaths, paths, pathsimilarity, pa)
-                        #     if pathsimilarity == 0: continue
-                            # print "path similarity = %s" % (pathsimilarity)
 
                         if pa.simpred1 == True: # SET PRED SIMILARITY = 1
                             sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sRuleAssoc # * penaltyscore
