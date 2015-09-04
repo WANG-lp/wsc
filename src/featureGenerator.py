@@ -1209,14 +1209,34 @@ class ranker_t:
                             # self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreqbit("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), bit))]
                             # self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMIbit("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), bit, discount=1.0/(2**i)))]
                             # self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMIbit("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), bit, discount=1.0/(2**i)))]
-                            self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
-                            self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
-                            self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
+                            eAna = sdreader.createTokenFromLXML(gvAna.token)
+                            eCan = sdreader.createTokenFromLXML(gvCan.token)
+                            e1i, e2i = ff.doc.getEventIndex(eAna, ff.res.lv), ff.doc.getEventIndex(eCan, ff.res.lv)
+                            
+                            if pa.kbflag == True:
+                                self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (e1i, gvAna.POS[0].lower(), ff.doc.getRelationIndex(gvAna.rel, eAna)), "%s-%s:%s" % (e2i, gvCan.POS[0].lower(), ff.doc.getRelationIndex(gvCan.rel, eCan))))]
+                                self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (e1i, gvAna.POS[0].lower(), ff.doc.getRelationIndex(gvAna.rel, eAna)), "%s-%s:%s" % (e2i, gvCan.POS[0].lower(), ff.doc.getRelationIndex(gvCan.rel, eCan)), discount=1.0/(2**i)))]
+                                self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (e1i, gvAna.POS[0].lower(), ff.doc.getRelationIndex(gvAna.rel, eAna)), "%s-%s:%s" % (e2i, gvCan.POS[0].lower(), ff.doc.getRelationIndex(gvCan.rel, eCan)), discount=1.0/(2**i)))]
+
+                                print >>sys.stderr, "KEYsPH ="
+                                print >>sys.stderr, "%s-%s:%s" % (e1i, gvAna.POS[0].lower(), ff.doc.getRelationIndex(gvAna.rel, eAna))
+                                print >>sys.stderr, "%s-%s:%s" % (e2i, gvCan.POS[0].lower(), ff.doc.getRelationIndex(gvCan.rel, eCan))
+
+                            else:                                
+                                self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                                self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
+                                self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
+                                                                        
+                                print >>sys.stderr, "KEYs ="
+                                print >>sys.stderr, "%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel)
+                                print >>sys.stderr, "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)
+
 
                             print >>sys.stderr, "rankingsRv NCNAIVE = "
                             print >>sys.stderr, [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
                             print >>sys.stderr, [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]                         
                             print >>sys.stderr, [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
+
                             
                 if isinstance(gvAna.lemma, list) and isinstance(gvCan.lemma, list):
                     # print >>sys.stderr, "anaphra govornor and candidate govornor are phrasal verb"
@@ -1614,9 +1634,9 @@ class feature_function_t:
                     ncnaivecdb = "corefevents.0218e2.cdblist.ncnaive.0.cdb"
                     tuplescdb = "corefevents.0218e2.cdblist.tuples.cdb"
                 elif pa.kbflag:
-                    coreftsv = "corefevents.0826.tsv"
-                    ncnaivecdb = "corefevents.0826.cdblist.ncnaive.0.cdb"
-                    tuplescdb = "corefevents.0826.cdblist.tuples.cdb"
+                    coreftsv = "corefevents.0901.exact.assoc.filtered2.tsv"
+                    ncnaivecdb = "corefevents.0901.exact.cdblist.ncnaive.0.cdb"
+                    tuplescdb = "corefevents.0901.exact.cdblist.tuples.cdb"
                 elif pa.kbflagsmall:
                     coreftsv = "corefevents.0826small.fixed.tsv"
                     ncnaivecdb = "corefevents.0826small.fixed.cdblist.ncnaive.0.cdb"
@@ -2045,7 +2065,41 @@ class feature_function_t:
 
 			outExamples += [(NNvoted, vector)]
 
+        def flagsimTemp(self, pflags, iflags):
+            # F14: temporal relation b/w e1 and e2. T:U or T:12 or T:21.
+            isskip = False
+            if pflags[13] == "T:U" or iflags[13] == "T:U":
+                return 0.75, isskip
+            elif pflags[13] == iflags[13]:
+                return 1.0, isskip
+            else:
+                return 0.5, isskip
 
+        def flagsimPol(self, pflags, iflags):
+            # F1,2: polarity. A (affirmative) or N (negative).
+            isskip = False
+            if pflags[0:2] == iflags[0:2]:
+                return 1.0, isskip
+            else:
+                return 0.75, isskip
+
+        def flagsimBit(self, pflags, iflags):
+            # F1,2: polarity. A (affirmative) or N (negative).
+            # F5,6: expectation field. E (expects) or C (contra-expects).
+            isskip = False
+            isrevote = False
+            TFlst = [pflags[0]==iflags[0], pflags[1]==iflags[1], pflags[4]==iflags[4], pflags[5]==iflags[5]]
+            if TFlst == [True, True, True, True]:
+                return 1.0, isskip, isrevote
+            elif TFlst.count(False) == 1:
+                isrevote = True
+                return 0.75, isskip, isrevote
+            elif TFlst.count(False) == 2: # "strong and win" & "strong but not win" & "not strong and not win"
+                return 0.75, isskip, isrevote
+            else:
+                return 0.5, isskip, isrevote
+            
+            
 	def iri(self, outNN, NNvoted, lmvcan, p1, tp1, r1, ps1, c1, ta1, a1, ph1, cat1, p2, tp2, r2, ps2, c2, ta2, a2, ph2, cat2, pathline, pa, ff, svoplst, statistics, cached = None, outExamples = None, trade = False):
                 if None == self.libiri: return 0
 
@@ -2078,47 +2132,19 @@ class feature_function_t:
                 print >>sys.stderr, p2, c2, a2, r2
                 print >>sys.stderr, lmvcan
 
-                if pa.verbose == True:
-                    print >>sys.stderr, "Verbose Start"
-                    print >>sys.stderr, list(self.res.comp.prtFor(sdreader.createTokenFromLXML(tp1), self.doc, self.res))
-                    print >>sys.stderr, list(self.res.comp.prtFor(sdreader.createTokenFromLXML(tp2), self.doc, self.res))
-                    print >>sys.stderr, list(self.res.comp.getPhraseTokens(self.doc, self.res))
-                    print >>sys.stderr, list(self.res.comp.prt(self.doc, self.res))
-                    print >>sys.stderr, "Verbose End"
+                print >>sys.stderr, "KEYs2 ="
+                print >>sys.stderr, "%s-%s:%s" % (p1, ps1[0].lower(), r1)
+                print >>sys.stderr, "%s-%s:%s" % (p2, ps2[0].lower(), r2)
+
+                e1 = sdreader.createTokenFromLXML(tp1)
+                e2 = sdreader.createTokenFromLXML(tp2)
+                e1i, e2i = ff.doc.getEventIndex(e1, ff.res.lv), ff.doc.getEventIndex(e2, ff.res.lv)
+
+                print >>sys.stderr, "KEYs2PH ="
+                print >>sys.stderr, "%s-%s:%s" % (e1i, ps1[0].lower(), ff.doc.getRelationIndex(r1, e1))
+                print >>sys.stderr, "%s-%s:%s" % (e2i, ps2[0].lower(), ff.doc.getRelationIndex(r2, e2))
 
                 if pa.noknn == True: return 0
-
-                    
-                # if pa.nph == True:
-                #     nphrasal1 = _getnphrasal(p1, r1, c1)
-                #     nphrasal2 = _getnphrasal(p2, r2, c2)
-                #     print >>sys.stderr, nphrasal1, nphrasal2
-                #     return
-
-                # if trade == True: # anaphor = 2
-                #     la2 = a2
-                #     la1 = lmvcan
-                #     svocan, svoana, svosvotype = getsvo(p1, c1, la1, r1, p2, c2, la2, r2)
-                # else: # anaphor = 1
-                #     la2 = lmvcan
-                #     la1 = a1
-                #     svocan, svoana, svosvotype = getsvo(p2, c2, la2, r2, p1, c1, la1, r1)
-                # print >>sys.stderr, p1, c1, la1, r1
-                # print >>sys.stderr, p2, c2, la2, r2
-
-                # print >>sys.stderr, svocan, svoana, svosvotype
-                # statistics["svopair_q"] += [(NNvoted, "%s==%s" %("~".join(svocan), "~".join(svoana)))]
-                # if svosvotype == "svmsvm":
-                #     print >>sys.stderr, svosvotype
-                # elif svosvotype == "svmmvo":
-                #     print >>sys.stderr, svosvotype
-                # elif svosvotype == "mvosvm":
-                #     print >>sys.stderr, svosvotype
-                # elif svosvotype == "mvomvo":
-                #     print >>sys.stderr, svosvotype
-
-
-                # svosvodic = {"mvomvo":0, "mvomv-":0, "mv-mvo":0, "svosvo":0, "sv-svo":0, "sv-svo":0, "sv-svo":0, "sv-svo":0, "sv-svo":0, }
 
                 if pa.ph and ph2:
                     if ph2[0] == 0:
@@ -2203,11 +2229,11 @@ class feature_function_t:
                 instancecache = []
                 svosvocount = collections.defaultdict(int)
 
-                for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, simretry, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
+                for ret, raw, vec in self.libiri.predict("%s-%s" % (e1i, ps1[0].lower()), c1, ff.doc.getRelationIndex(r1, e1), a1, simretry, "%s-%s" % (e2i, ps2[0].lower()), c2, ff.doc.getRelationIndex(r2, e2), a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
 
                         # print >>sys.stderr, "raw = "
                         # print >>sys.stderr, raw
-
+                        
                         if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
                             if str(raw[:-7]) in set(instancecache): # SAME without IDs
                                 # print >>sys.stderr, "is Duplication"
@@ -2215,7 +2241,36 @@ class feature_function_t:
                             # print >>sys.stderr, "ret = %s" % repr(ret)
                             # print >>sys.stderr, "raw[:-2] = %s" % str(raw[:-2])
 
+                        # F1,2: polarity. A (affirmative) or N (negative).
+                        # F3,4: transitive verb or not. T-* (transitive) or I (intransitive).
+                        # F5,6: expectation field. E (expects) or C (contra-expects).
+                        # F7, 8: role sources. A (propadvcl), C (propcoord), P (propxcomp), or - (pure).
+                        # F9, 10: auxiliary-like verb. A (yes) or - (no).
+                        # F11, 12: gomi verb. Y (yes) or N (no).
+                        # F13: grammatical relation b/w e1 and e2. U, A12, A21, C12, C21, X12, X21.
+                        #      (basically, clausal complement or adverbial modifier or xcomp)
+                        # F14: temporal relation b/w e1 and e2. U or 12 or 21.
+                        # F15: heuristic coref rule is satisfied or not. Y or N.
+                            
+                        iflags = raw[9].split(",")
+                        # print >>sys.stderr, iflags
 
+                        # SKIP gomi verb
+                        if iflags[10] == "Y" or iflags[11] == "Y":
+                            continue
+
+                        # Calculate temporal similarity and skip flag
+                        temporalsim, temporalskip = ff.flagsimTemp(pflags, iflags)
+                        # print >>sys.stderr, temporalsim, temporalskip
+
+                        # Calculate polarity similarity and skip flag
+                        polaritysim, polarityskip = ff.flagsimPol(pflags, iflags)
+                        # print >>sys.stderr, polaritysim, polarityskip
+                        
+                        # Calculate bit similarity and skip flag and revoteflag
+                        bitsim, bitskip, bitrevote = ff.flagsimBit(pflags, iflags)
+                        # print >>sys.stderr, bitsim, bitskip, bitrevote
+                        
 
                         psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
                         psr2 = "%s-%s:%s" %(p2, ps2[0].lower(), r2)
@@ -2428,48 +2483,9 @@ class feature_function_t:
                         if pa.insent == True: # USE INSTANCES FROM INTER-SENTENTIAL COREFERENCE
                             if "1" == raw[3]:
                                 continue
-
                         if pa.insent2 == True: # SET PENALTY_INSENT=0.5  TO USE INSTANCES FROM NOT INTER-SENTENTIAL COREFERENCE
                             if "1" == raw[3]:
                                 penalty_insent = penalty_insent * 0.5
-
-                        # print >>sys.stderr, "raw = %s" % (raw)
-                        # print >>sys.stderr, "c1 = %s, c2 = %s" % (c1, c2)
-
-                        # if pa.req == True: # CONTINUE INSTANCES IF NOT CONTAIN REQUIED CONTEXT
-
-                        #     reqc1 = []
-                        #     reqc2 = []
-                        #     for reqele in requiredlist:
-                        #         for matchreq in [x for x in c1.split(" ") if x.startswith(reqele)]:
-                        #             reqc1.append(matchreq)
-                        #         for matchreq in [x for x in c2.split(" ") if x.startswith(reqele)]:
-                        #             reqc2.append(matchreq)
-                        #     if raw[0].startswith(p1):
-                        #         assert(raw[1].startswith(p2))
-                        #         if reqc1 != []:
-                        #             if set(reqc1) != set(reqc1) & set(raw[4].strip().split(" ")):
-                        #                 continue
-                        #         if reqc2 != []:
-                        #             if set(reqc2) != set(reqc2) & set(raw[5].strip().split(" ")):
-                        #                 continue
-                        #     else:
-                        #         assert(raw[0].startswith(p2))
-                        #         assert(raw[1].startswith(p1))
-                        #         if reqc1 != []:
-                        #             if set(reqc1) != set(reqc1) & set(raw[5].strip().split(" ")):
-                        #                 continue
-                        #         if reqc2 != []:
-                        #             if set(reqc2) != set(reqc2) & set(raw[4].strip().split(" ")):
-                        #                 continue
-
-
-                        # if pa.pathsim1 == True or pa.pathsim2 == True:
-                        #     if pa.pathsim1: pathsimilarity = 0.5
-                        #     elif pa.pathsim2: pathsimilarity = 0
-                        #     pathsimilarity = _getpathsim(kbpaths, paths, pathsimilarity, pa)
-                        #     if pathsimilarity == 0: continue
-                            # print "path similarity = %s" % (pathsimilarity)
 
                         if pa.simpred1 == True: # SET PRED SIMILARITY = 1
                             sp = ret.sIndexSlot[ret.iIndexed]*ret.sPredictedSlot*ret.sRuleAssoc # * penaltyscore
@@ -2525,7 +2541,7 @@ class feature_function_t:
                         # print >>sys.stderr, "bit == %s == %s" % (penalty_bit, flag_continue_bit)
                         # print >>sys.stderr, "ph == %s == %s" % (penalty_ph, flag_continue_ph)
 
-                        for settingname in "OFF bitON phON pengON ON".split():
+                        for settingname in "OFF bitON ON".split():
                         # for settingname in "OFF bitON pengON ON".split():
                             sp = sp_original
                             spa = spa_original
@@ -2685,107 +2701,6 @@ class feature_function_t:
                             deptypedic["Min+subj"] = ["nsubj", "obj", "prep_"]
                             # deptypedic["Min+xcomp"] = ["xcomp", "obj", "prep_"]
                             # deptypedic["Min+xcomp+nsubj"] = ["nsubj", "xcomp", "obj", "prep_"]
-
-                            for typename, typelist in deptypedic.items():
-			        # funcWeight = lambda x: 100.0 if None != re.match("^%s$" % weightedType, x) else 1.0
-			        # funcWeight = lambda x: 100.0 if weightedType in x else 1.0
-			        # funcWeight = lambda x: 0.1 if weightedType in x else 1.0
-
-			        try:
-			        	sc_iw, sc_id = _calcConSim(vec[ret.iIndexed], typelist)
-                                        sc_pw, sc_pd = _calcConSim(vec[2], typelist)
-			        except IndexError:
-			        	continue
-
-
-
-                                # print >>sys.stderr, sc_id, sc_pd
-
-			        outNN["iriPredArgConW_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_iw * sc_pw, bittype)]
-                                # outNN["iriPredArgConD_%s_%s" % (typename, settingname)] += [(NNvoted, spa * sc_id * sc_pd, bittype)]
-                                outNN["iriPredConW_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_iw * sc_pw, bittype)]
-                                # outNN["iriPredConD_%s_%s" % (typename, settingname)] += [(NNvoted, sp * sc_id * sc_pd, bittype)]
-                                outNN["iriConW_%s_%s" %(typename, settingname)] += [(NNvoted, sc_iw * sc_pw *penaltyscore, bittype)]
-                                # outNN["iriConD_%s_%s" %(typename, settingname)] += [(NNvoted, sc_id * sc_pd *penaltyscore, bittype)]
-                                outNN["iriArgConW_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_iw * sc_pw *penaltyscore, bittype)]
-                            #     # outNN["iriArgConD_%s_%s" %(typename, settingname)] += [(NNvoted, ret.sPredictedArg * sc_id * sc_pd *penaltyscore, bittype)]
-
-                                if typename == "Min+subj" and settingname == "bitON":
-                                    sfinal["iriPredArgConW_%s_%s" % (typename, settingname)] =  spa * sc_iw * sc_pw
-                                    sfinal["iriPredArgConW_%s_%s.scIndexed" % (typename, settingname)] = sc_iw
-                                    sfinal["iriPredArgConW_%s_%s.scPredicted" % (typename, settingname)] = sc_pw
-                                    sfinal["iriPredArgConW_%s_%s.bit" % (typename, settingname)] = ibit
-                                    nret = ret._replace(s_final = sfinal)
-
-                            #         # print >>sys.stderr, sc_iw, sc_pw, raw
-                            #         # print >>sys.stderr, vec[ret.iIndexed], "\n", vec[2]
-
-
-                            #     newCsimcw = {}
-                            #     newCsimcd = {}
-                            #     newCsimtw = {}
-                            #     newCsimtd = {}
-                            #     for center in centers:
-                            #         newCsim1cw = calcnewConsim(sc_iw, freq_pi, center)
-                            #         newCsim2cw = calcnewConsim(sc_pw, freq_pp, center)
-                            #         newCsimcw[center] = [newCsim1cw, newCsim2cw]
-                            #         newCsim1cd = calcnewConsim(sc_id, freq_pi, center)
-                            #         newCsim2cd = calcnewConsim(sc_pd, freq_pp, center)
-                            #         newCsimcd[center] = [newCsim1cd, newCsim2cd]
-
-
-                            #     for thresh in threshs:
-                            #         newCsim1tw = calcnewConsimthre(sc_iw, freq_pi, thresh)
-                            #         newCsim2tw = calcnewConsimthre(sc_pw, freq_pp, thresh)
-                            #         newCsimtw[thresh] = [newCsim1tw, newCsim2tw]
-                            #         newCsim1td = calcnewConsimthre(sc_id, freq_pi, thresh)
-                            #         newCsim2td = calcnewConsimthre(sc_pd, freq_pp, thresh)
-                            #         newCsimtd[thresh] = [newCsim1td, newCsim2td]
-
-
-                            #     # newCsimiw = calcnewConsim(sc_iw, freq_p1)
-                            #     # newCsimpw = calcnewConsim(sc_pw, freq_p2)
-                            #     # newCsimw = newCsimiw * newCsimpw
-                            #     # newCsimid = calcnewConsim(sc_id, freq_p1)
-                            #     # newCsimpd = calcnewConsim(sc_pd, freq_p2)
-                            #     # newCsimd = newCsimid * newCsimpd
-
-                            #     # for Ncon center
-                            #     for settingnameNCon, newCsim in newCsimcw.items():
-                            #         outNN["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
-                            #         outNN["iriPredNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
-                            #         outNN["iriNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1]*penaltyscore, bittype)]
-                            #         outNN["iriArgNConW_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1]*penaltyscore, bittype)]
-                            #         if settingnameNCon == 0.7 and typename == "Min+subj" and settingname == "OFF":
-                            #             sfinal["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] = spa*newCsim[0]*newCsim[1]
-                            #             sfinal["iriPredArgNConW_center%s_%s_%s.scIndexed" % (settingnameNCon, typename, settingname)] = newCsim[0]
-                            #             sfinal["iriPredArgNConW_center%s_%s_%s.scPredicted"  % (settingnameNCon, typename, settingname)] = newCsim[1]
-                            #             sfinal["iriPredArgNConW_center%s_%s_%s.bit"  % (settingnameNCon, typename, settingname)] = ibit
-                            #             nret = ret._replace(s_final = sfinal)
-                            #         if settingnameNCon == 0.7 and typename == "Min+subj" and settingname == "ON":
-                            #             sfinal["iriPredArgNConW_center%s_%s_%s" % (settingnameNCon, typename, settingname)] = spa*newCsim[0]*newCsim[1]
-                            #             sfinal["iriPredArgNConW_center%s_%s_%s.scIndexed" % (settingnameNCon, typename, settingname)] = newCsim[0]
-                            #             sfinal["iriPredArgNConW_center%s_%s_%s.scPredicted"  % (settingnameNCon, typename, settingname)] = newCsim[1]
-                            #             sfinal["iriPredArgNConW_center%s_%s_%s.bit"  % (settingnameNCon, typename, settingname)] = ibit
-                            #             nret = ret._replace(s_final = sfinal)
-
-                                # for settingnameNCon, newCsim in newCsimcd.items():
-                                #     outNN["iriPredArgNConD_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
-                                #     outNN["iriPredNConD_center%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
-                                #     outNN["iriNConD_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1], bittype)]
-                                #     outNN["iriArgNConD_center%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1], bittype)]
-
-                                # for Ncon thresh
-                                # for settingnameNCon, newCsim in newCsimtw.items():
-                                #     outNN["iriPredArgNConW_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
-                                #     outNN["iriPredNConW_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
-                                #     outNN["iriNConW_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1], bittype)]
-                                #     outNN["iriArgNConW_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1], bittype)]
-                                # for settingnameNCon, newCsim in newCsimtd.items():
-                                #     outNN["iriPredArgNConD_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, spa * newCsim[0]*newCsim[1], bittype)]
-                                #     outNN["iriPredNConD_thresh%s_%s_%s" % (settingnameNCon, typename, settingname)] += [(NNvoted, sp * newCsim[0]*newCsim[1], bittype)]
-                                #     outNN["iriNConD_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, newCsim[0]*newCsim[1], bittype)]
-                                #     outNN["iriArgNConD_thresh%s_%s_%s" %(settingnameNCon, typename, settingname)] += [(NNvoted, ret.sPredictedArg * newCsim[0]*newCsim[1], bittype)]
 
                         # for allsettingname, v in outNN.items():
                         #     # scoreofsetting = v[0][1]

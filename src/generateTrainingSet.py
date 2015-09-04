@@ -380,5 +380,6 @@ if "__main__" == __name__:
         cmdparser.add_option("--pfilter", help	= "problem filter ON", action="store_true", default=False)
         cmdparser.add_option("--oldrel", help	= "Using old ConvRel", action="store_true", default=False)
         cmdparser.add_option("--verbose", action="store_true", default=False, help="Turn on verbose mode.")
+        cmdparser.add_option("--flagsim", action="store_true", default=False, help="Calculate knn-score including Flag-Similarity")        
         
 	main(*cmdparser.parse_args())

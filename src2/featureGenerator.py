@@ -2541,7 +2541,7 @@ class feature_function_t:
                         # print >>sys.stderr, "bit == %s == %s" % (penalty_bit, flag_continue_bit)
                         # print >>sys.stderr, "ph == %s == %s" % (penalty_ph, flag_continue_ph)
 
-                        for settingname in "OFF bitON phON pengON ON".split():
+                        for settingname in "OFF bitON ON".split():
                         # for settingname in "OFF bitON pengON ON".split():
                             sp = sp_original
                             spa = spa_original

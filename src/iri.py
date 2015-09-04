@@ -59,9 +59,9 @@ class iri_t:
                     totalfreq = "corefevents.0218e2.cdblist.totalfreq.txt"
                     opts += ["-c /work/jun-s/kb/corefevents.0218e2.cdblist/"]
                 elif pa.kbflag:
-                    tuplescdb = "corefevents.0826.cdblist.tuples.cdb"
-                    totalfreq = "corefevents.0826.cdblist.totalfreq.txt"
-                    opts += ["-c /work/jun-s/kb/corefevents.0826.cdblist/"]
+                    tuplescdb = "corefevents.0901.exact.cdblist.tuples.cdb"
+                    totalfreq = "corefevents.0901.exact.assoc.cdblist.totalfreq.txt"
+                    opts += ["-c /work/jun-s/kb/corefevents.0901.exact.cdblist/"]
                 elif pa.kbflagsmall:
                     tuplescdb = "corefevents.0826small.fixed.cdblist.tuples.cdb"
                     totalfreq = "corefevents.0826small.fixed.cdblist.totalfreq.txt"
