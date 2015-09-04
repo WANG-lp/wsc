@@ -1209,25 +1209,34 @@ class ranker_t:
                             # self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreqbit("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), bit))]
                             # self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMIbit("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), bit, discount=1.0/(2**i)))]
                             # self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMIbit("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), bit, discount=1.0/(2**i)))]
-                            self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
-                            self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
-                            self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
+                            eAna = sdreader.createTokenFromLXML(gvAna.token)
+                            eCan = sdreader.createTokenFromLXML(gvCan.token)
+                            e1i, e2i = ff.doc.getEventIndex(eAna, ff.res.lv), ff.doc.getEventIndex(eCan, ff.res.lv)
+                            
+                            if pa.kbflag == True:
+                                self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (e1i, gvAna.POS[0].lower(), ff.doc.getRelationIndex(gvAna.rel, eAna)), "%s-%s:%s" % (e2i, gvCan.POS[0].lower(), ff.doc.getRelationIndex(gvCan.rel, eCan))))]
+                                self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (e1i, gvAna.POS[0].lower(), ff.doc.getRelationIndex(gvAna.rel, eAna)), "%s-%s:%s" % (e2i, gvCan.POS[0].lower(), ff.doc.getRelationIndex(gvCan.rel, eCan)), discount=1.0/(2**i)))]
+                                self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (e1i, gvAna.POS[0].lower(), ff.doc.getRelationIndex(gvAna.rel, eAna)), "%s-%s:%s" % (e2i, gvCan.POS[0].lower(), ff.doc.getRelationIndex(gvCan.rel, eCan)), discount=1.0/(2**i)))]
+
+                                print >>sys.stderr, "KEYsPH ="
+                                print >>sys.stderr, "%s-%s:%s" % (e1i, gvAna.POS[0].lower(), ff.doc.getRelationIndex(gvAna.rel, eAna))
+                                print >>sys.stderr, "%s-%s:%s" % (e2i, gvCan.POS[0].lower(), ff.doc.getRelationIndex(gvCan.rel, eCan))
+
+                            else:                                
+                                self.rankingsRv["NCNAIVE%sFREQ" % i] += [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
+                                self.rankingsRv["NCNAIVE%sPMI" % i] += [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
+                                self.rankingsRv["NCNAIVE%sNPMI" % i] += [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
+                                                                        
+                                print >>sys.stderr, "KEYs ="
+                                print >>sys.stderr, "%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel)
+                                print >>sys.stderr, "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)
+
 
                             print >>sys.stderr, "rankingsRv NCNAIVE = "
                             print >>sys.stderr, [(vCan, ff.ncnaive[i].getFreq("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)))]
                             print >>sys.stderr, [(vCan, ff.ncnaive[i].getPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]                         
                             print >>sys.stderr, [(vCan, ff.ncnaive[i].getNPMI("%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel), "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel), discount=1.0/(2**i)))]
 
-                            print >>sys.stderr, "KEYs ="
-                            print >>sys.stderr, "%s-%s:%s" % (gvanalemma, gvAna.POS[0].lower(), gvAna.rel)
-                            print >>sys.stderr, "%s-%s:%s" % (gvcanlemma, gvCan.POS[0].lower(), gvCan.rel)
-
-                            eAna = sdreader.createTokenFromLXML(gvAna.token)
-                            eCan = sdreader.createTokenFromLXML(gvCan.token)
-                            e1i, e2i = ff.doc.getEventIndex(eAna, ff.res.lv), ff.doc.getEventIndex(eCan, ff.res.lv)
-
-                            print >>sys.stderr, "%s-%s:%s" % (e1i, gvAna.POS[0].lower(), ff.doc.getRelationIndex(gvAna.rel, eAna))
-                            print >>sys.stderr, "%s-%s:%s" % (e2i, gvCan.POS[0].lower(), ff.doc.getRelationIndex(gvCan.rel, eCan))
                             
                 if isinstance(gvAna.lemma, list) and isinstance(gvCan.lemma, list):
                     # print >>sys.stderr, "anaphra govornor and candidate govornor are phrasal verb"
@@ -1625,9 +1634,9 @@ class feature_function_t:
                     ncnaivecdb = "corefevents.0218e2.cdblist.ncnaive.0.cdb"
                     tuplescdb = "corefevents.0218e2.cdblist.tuples.cdb"
                 elif pa.kbflag:
-                    coreftsv = "corefevents.0826.tsv"
-                    ncnaivecdb = "corefevents.0826.cdblist.ncnaive.0.cdb"
-                    tuplescdb = "corefevents.0826.cdblist.tuples.cdb"
+                    coreftsv = "corefevents.0901.exact.assoc.filtered2.tsv"
+                    ncnaivecdb = "corefevents.0901.exact.cdblist.ncnaive.0.cdb"
+                    tuplescdb = "corefevents.0901.exact.cdblist.tuples.cdb"
                 elif pa.kbflagsmall:
                     coreftsv = "corefevents.0826small.fixed.tsv"
                     ncnaivecdb = "corefevents.0826small.fixed.cdblist.ncnaive.0.cdb"
@@ -2059,13 +2068,13 @@ class feature_function_t:
         def flagsimTemp(self, pflags, iflags):
             # F14: temporal relation b/w e1 and e2. T:U or T:12 or T:21.
             isskip = False
-            if pflags[13] == "T:U" or iflags[11] == "T:U":
+            if pflags[13] == "T:U" or iflags[13] == "T:U":
                 return 0.75, isskip
-            elif pflags[13] == iflags[11]:
+            elif pflags[13] == iflags[13]:
                 return 1.0, isskip
             else:
                 return 0.5, isskip
-                        
+
         def flagsimPol(self, pflags, iflags):
             # F1,2: polarity. A (affirmative) or N (negative).
             isskip = False
@@ -2085,7 +2094,7 @@ class feature_function_t:
             elif TFlst.count(False) == 1:
                 isrevote = True
                 return 0.75, isskip, isrevote
-            elif TFlst.count(False) == 2: # strong and win & strong but not win & not strong and not win
+            elif TFlst.count(False) == 2: # "strong and win" & "strong but not win" & "not strong and not win"
                 return 0.75, isskip, isrevote
             else:
                 return 0.5, isskip, isrevote
@@ -2131,6 +2140,7 @@ class feature_function_t:
                 e2 = sdreader.createTokenFromLXML(tp2)
                 e1i, e2i = ff.doc.getEventIndex(e1, ff.res.lv), ff.doc.getEventIndex(e2, ff.res.lv)
 
+                print >>sys.stderr, "KEYs2PH ="
                 print >>sys.stderr, "%s-%s:%s" % (e1i, ps1[0].lower(), ff.doc.getRelationIndex(r1, e1))
                 print >>sys.stderr, "%s-%s:%s" % (e2i, ps2[0].lower(), ff.doc.getRelationIndex(r2, e2))
 
@@ -2219,11 +2229,11 @@ class feature_function_t:
                 instancecache = []
                 svosvocount = collections.defaultdict(int)
 
-                for ret, raw, vec in self.libiri.predict("%s-%s" % (p1, ps1[0].lower()), c1, r1, a1, simretry, "%s-%s" % (p2, ps2[0].lower()), c2, r2, a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
+                for ret, raw, vec in self.libiri.predict("%s-%s" % (e1i, ps1[0].lower()), c1, ff.doc.getRelationIndex(r1, e1), a1, simretry, "%s-%s" % (e2i, ps2[0].lower()), c2, ff.doc.getRelationIndex(r2, e2), a2, threshold = 1, pos1=ps1, pos2=ps2, limit=100000):
 
-                        print >>sys.stderr, "raw = "
-                        print >>sys.stderr, raw
-
+                        # print >>sys.stderr, "raw = "
+                        # print >>sys.stderr, raw
+                        
                         if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
                             if str(raw[:-7]) in set(instancecache): # SAME without IDs
                                 # print >>sys.stderr, "is Duplication"
