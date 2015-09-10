@@ -20,7 +20,7 @@ import os
 import cdb
 import marshal
 import glob
-from kyotocabinet import *
+# from kyotocabinet import *
 
 sys.path += ["./subrepo/knowledgeacquisition/bin"]
 import flagging
