@@ -1035,87 +1035,74 @@ class ranker_t:
                 #     self.rankingsRv["ggllogedJC"] += [(vCan, math.log(1+ret))]
                 # ==============
 
-                # SVO COUNT
-                # cAna = scn.getFirstOrderContext(sent, gvAna.token)
-                svoS, svoO = getsowdet(sent, gvAna.token)
-                svoV = gvAna.lemma
-                svoVPlms, svoVPsurfs, vptype, vprel = get_VPpeng(sent, gvAna.token, gvAna.rel)
-                svoVP = "_".join(svoVPlms)
-                svoVPrel = "%s:%s" %(svoVP, vprel)
+                svoana = None
+                svocan = None
+                
+                # # SVO COUNT
+                # # cAna = scn.getFirstOrderContext(sent, gvAna.token)
+                # svoS, svoO = getsowdet(sent, gvAna.token)
+                # svoV = gvAna.lemma
+                # svoVPlms, svoVPsurfs, vptype, vprel = get_VPpeng(sent, gvAna.token, gvAna.rel)
+                # svoVP = "_".join(svoVPlms)
+                # svoVPrel = "%s:%s" %(svoVP, vprel)
 
-                # # svoS, svoO = svoS.split("-")[0], svoO.split("-")[0]
-                if "obj" in gvAna.rel or "prep_" in gvAna.rel or "nsubj_pass" in gvAna.rel:
-                    # svoO = " ".join(lmqW)
-                    svoO = wCan
-                elif "subj" in gvAna.rel:
-                    # svoS = " ".join(lmqC)
-                    svoS = wCan
+                # if "obj" in gvAna.rel or "prep_" in gvAna.rel or "nsubj_pass" in gvAna.rel:
+                #     # svoO = " ".join(lmqW)
+                #     svoO = wCan
+                # elif "subj" in gvAna.rel:
+                #     # svoS = " ".join(lmqC)
+                #     svoS = wCan
 
-                # SVO
-                # if "nsubj_pass" in gvAna.rel:
-                #     ret = 0.0
-                # elif "JJ" in gvAna.POS or "NN" in gvAna.POS:
-                #     ret = int(db.get("%s~%s~" %(svoS, svoV))) if None != db.get("%s~%s~" %(svoS, svoV)) else 0.0
-                #     self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, "be", svoO]))]
+                # if svoS != "":
+                #     if "NN" in gvAna.POS:
+                #         ret = int(db.get("%s~%s~" %(svoS, svoV))) if None != db.get("%s~%s~" %(svoS, svoV)) else 0.0
+                #         self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, "be", svoV]))]
+                #         ret = math.log(1+ret)
+                #         self.rankingsRv["svocountSVO"] += [(vCan, ret)]
+                #     elif svoO != "":
+                #         ret = int(db.get("%s~%s~%s" %(svoS, svoVP, svoO))) if None != db.get("%s~%s~%s" %(svoS, svoVP, svoO)) else 0.0
+                #         self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, svoVP, svoO]))]
+                #         ret = math.log(1+ret)
+                #         self.rankingsRv["svocountSVO"] += [(vCan, ret)]
+
+                # if "subj" in gvAna.rel and "nsubj_pass" not in gvAna.rel:
+                #     # SV
+                #     if "NN" in gvAna.POS:
+                #         ret = 0.0
+                #     else:
+                #         ret = int(db.get("%s~%s~" %(svoS, svoVP))) if None != db.get("%s~%s~" %(svoS, svoVP)) else 0.0
+                #         self.statistics["svocount_svvo"] += [(vCan, " ".join([svoS, svoVP]))]
                 # else:
-                #     ret = int(db.get("%s~%s~%s" %(svoS, svoV, svoO))) if None != db.get("%s~%s~%s" %(svoS, svoV, svoO)) else 0.0
-                #     self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, svoV, svoO]))]
+                #     # VO
+                #     ret = int(db.get("~%s~%s" %(svoVP, svoO))) if None != db.get("~%s~%s" %(svoVP, svoO)) else 0.0
+                #     self.statistics["svocount_svvo"] += [(vCan, " ".join([svoVP, svoO]))]
 
-                if svoS != "":
-                    if "NN" in gvAna.POS:
-                        ret = int(db.get("%s~%s~" %(svoS, svoV))) if None != db.get("%s~%s~" %(svoS, svoV)) else 0.0
-                        self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, "be", svoV]))]
-                        ret = math.log(1+ret)
-                        self.rankingsRv["svocountSVO"] += [(vCan, ret)]
-                    elif svoO != "":
-                        ret = int(db.get("%s~%s~%s" %(svoS, svoVP, svoO))) if None != db.get("%s~%s~%s" %(svoS, svoVP, svoO)) else 0.0
-                        self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, svoVP, svoO]))]
-                        ret = math.log(1+ret)
-                        self.rankingsRv["svocountSVO"] += [(vCan, ret)]
-
-
-                # print >>sys.stderr, "ret = %s" %ret
-                # ret = db.get("%s~%s~%s" %(qC, qV, qW)) if None != db.get("%s~%s~%s" %(qC, qV, qW)) else 0.0
-
-                if "subj" in gvAna.rel and "nsubj_pass" not in gvAna.rel:
-                    # SV
-                    if "NN" in gvAna.POS:
-                        ret = 0.0
-                    else:
-                        ret = int(db.get("%s~%s~" %(svoS, svoVP))) if None != db.get("%s~%s~" %(svoS, svoVP)) else 0.0
-                        self.statistics["svocount_svvo"] += [(vCan, " ".join([svoS, svoVP]))]
-                else:
-                    # VO
-                    ret = int(db.get("~%s~%s" %(svoVP, svoO))) if None != db.get("~%s~%s" %(svoVP, svoO)) else 0.0
-                    self.statistics["svocount_svvo"] += [(vCan, " ".join([svoVP, svoO]))]
-
-                ret = math.log(1+ret)
-                self.rankingsRv["svocountSVVO"] += [(vCan, ret)]
-                # print >>sys.stderr, "ret = %s" %ret
+                # ret = math.log(1+ret)
+                # self.rankingsRv["svocountSVVO"] += [(vCan, ret)]
+                # # print >>sys.stderr, "ret = %s" %ret
 
             if None != gvAna and None != gvCan:
                 # pathline = scn.getPath(sent, gvAna.token, gvCan.token, pa)
                 pathline = scn.getPath(sent, ana, can, pa)
                 # print >>sys.stderr, pathline
 
-                cansvoS, cansvoO = getsowdet(sent, gvCan.token)
-                cansvoVPlms, cansvoVPsurfs, canvptype, canvprel = get_VPpeng(sent, gvCan.token, gvCan.rel)
-                cansvoVP = "_".join(cansvoVPlms)
+                # cansvoS, cansvoO = getsowdet(sent, gvCan.token)
+                # cansvoVPlms, cansvoVPsurfs, canvptype, canvprel = get_VPpeng(sent, gvCan.token, gvCan.rel)
+                # cansvoVP = "_".join(cansvoVPlms)
 
-                print >>sys.stderr, "canVP=%s" %(cansvoVP)
+                # print >>sys.stderr, "canVP=%s" %(cansvoVP)
 
-                cansvoV = gvCan.lemma
-                if "obj" in gvCan.rel or "prep_" in gvCan.rel or "nsubj_pass" in gvCan.rel:
-                    # svoO = " ".join(lmqW)
-                    cansvoO = wCan
-                elif "subj" in gvCan.rel:
-                    # svoS = " ".join(lmqC)
-                    cansvoS = wCan
+                # cansvoV = gvCan.lemma
+                # if "obj" in gvCan.rel or "prep_" in gvCan.rel or "nsubj_pass" in gvCan.rel:
+                #     # svoO = " ".join(lmqW)
+                #     cansvoO = wCan
+                # elif "subj" in gvCan.rel:
+                #     # svoS = " ".join(lmqC)
+                #     cansvoS = wCan
 
-                cansvoVPrel = "%s:%s" %(cansvoVP, canvprel)
-
-                svocan = [cansvoS, cansvoVPrel, cansvoO]
-                svoana = [svoS, svoVPrel, svoO]
+                # cansvoVPrel = "%s:%s" %(cansvoVP, canvprel)
+                # svocan = [cansvoS, cansvoVPrel, cansvoO]
+                # svoana = [svoS, svoVPrel, svoO]
                 pnegconjbit = 0
 
                 for cAnae in scn.getFirstOrderContext(sent, gvAna.token).strip().split():
@@ -1126,15 +1113,15 @@ class ranker_t:
                         pnegconjbit = 1
                 pnegconjbit = max(get_conjbit(pathline, negconjcol1), pnegconjbit)
 
-                svosvocount_giga = check_svosvomatch_giga([svoana, svocan, pnegconjbit], pairdb)
+                # svosvocount_giga = check_svosvomatch_giga([svoana, svocan, pnegconjbit], pairdb)
 
-                for svosvoname, svosvovalue in svosvocount_giga.iteritems():
-                    svosvotype = 1 if svosvoname == "VV" else 2
-                    self.statistics["svopair%d_%s" % (svosvotype, svosvoname)] += [(vCan, svosvovalue)]
-                    self.statistics["svoploged%d_%s" % (svosvotype, svosvoname)] += [(vCan, math.log(1+svosvovalue))]
-                    self.rankingsRv["svopair%d_%s" % (svosvotype, svosvoname)] += [(vCan, svosvovalue)]
-                    self.rankingsRv["svoploged%d_%s" % (svosvotype, svosvoname)] += [(vCan, math.log(1+svosvovalue))]
-                self.statistics["svopair_q"] += [(vCan, "%s==%s==%d" %("~".join(svocan), "~".join(svoana), pnegconjbit))]
+                # for svosvoname, svosvovalue in svosvocount_giga.iteritems():
+                #     svosvotype = 1 if svosvoname == "VV" else 2
+                #     self.statistics["svopair%d_%s" % (svosvotype, svosvoname)] += [(vCan, svosvovalue)]
+                #     self.statistics["svoploged%d_%s" % (svosvotype, svosvoname)] += [(vCan, math.log(1+svosvovalue))]
+                #     self.rankingsRv["svopair%d_%s" % (svosvotype, svosvoname)] += [(vCan, svosvovalue)]
+                #     self.rankingsRv["svoploged%d_%s" % (svosvotype, svosvoname)] += [(vCan, math.log(1+svosvovalue))]
+                # self.statistics["svopair_q"] += [(vCan, "%s==%s==%d" %("~".join(svocan), "~".join(svoana), pnegconjbit))]
 
                 # if cansvoS != "":
                 #     if "JJ" in gvCan.POS or "NN" in gvCan.POS:
@@ -2312,12 +2299,12 @@ class feature_function_t:
                         # print >>sys.stderr, "isvpol, isvpor = %s, %s" % (repr(isvpol), repr(isvpor))
                         # print >>sys.stderr, "psvoplist = %s\n" % (repr(svoplst))
 
-                        # phrase check
-                        pphs = set([svoplst[0][1], svoplst[1][1]])
-                        iphs = set([isvpol[1], isvpor[1]])
-                        # print >>sys.stderr, "pph, iph = %s, %s\n" % (repr(pphs), repr(iphs))
-                        if pa.phpeng == True and pphs != iphs:
-                                continue
+                        # # phrase check
+                        # pphs = set([svoplst[0][1], svoplst[1][1]])
+                        # iphs = set([isvpol[1], isvpor[1]])
+                        # # print >>sys.stderr, "pph, iph = %s, %s\n" % (repr(pphs), repr(iphs))
+                        # if pa.phpeng == True and pphs != iphs:
+                        #         continue
 
                         if psr1 == raw[0] or psr2 == raw[1]:
                             ic1, ic2, isvpo1, isvpo2 = icl, icr, isvpol, isvpor
@@ -2333,23 +2320,23 @@ class feature_function_t:
                                 inegconjbit = 1
                         inegconjbit +=get_conjbit(ipath, negconjcol1)
 
-                        # peng check
-                        pengcount = 0
-                        if svoplst[0][0] == isvpo1[0]:
-                            pengcount += 1
-                        if svoplst[0][2] == isvpo1[2]:
-                            pengcount += 1
-                        if svoplst[1][0] == isvpo2[0]:
-                            pengcount += 1
-                        if svoplst[1][2] == isvpo2[2]:
-                            pengcount += 1
+                        # # peng check
+                        # pengcount = 0
+                        # if svoplst[0][0] == isvpo1[0]:
+                        #     pengcount += 1
+                        # if svoplst[0][2] == isvpo1[2]:
+                        #     pengcount += 1
+                        # if svoplst[1][0] == isvpo2[0]:
+                        #     pengcount += 1
+                        # if svoplst[1][2] == isvpo2[2]:
+                        #     pengcount += 1
 
-                        pengconjpenalty = 0.8 if svoplst[2] != inegconjbit else 1.0
+                        # pengconjpenalty = 0.8 if svoplst[2] != inegconjbit else 1.0
 
-                        if pengcount >= 3:
-                                penalty_peng = 1.0*pengconjpenalty
-                        elif pengcount <= 2:
-                                penalty_peng = 1.0*(0.8**(3-pengcount))*pengconjpenalty
+                        # if pengcount >= 3:
+                        #         penalty_peng = 1.0*pengconjpenalty
+                        # elif pengcount <= 2:
+                        #         penalty_peng = 1.0*(0.8**(3-pengcount))*pengconjpenalty
 
                         # pargs = set([svoplst[0][0], svoplst[0][2], svoplst[1][0], svoplst[1][2]])
                         # iargs = set([isvpol[0], isvpol[2], isvpor[0], isvpor[2]])

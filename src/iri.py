@@ -8,7 +8,7 @@ import urllib2
 
 import struct
 
-import readline
+# import readline
 import collections
 
 import os

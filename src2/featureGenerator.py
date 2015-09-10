@@ -2098,7 +2098,16 @@ class feature_function_t:
                 return 0.75, isskip, isrevote
             else:
                 return 0.5, isskip, isrevote
-            
+
+        def flagsimGrammatical(self, pflags, iflags):
+            # F13: grammatical relation b/w e1 and e2. U, A12, A21, C12, C21, X12, X21.
+            isskip = False
+            if pflags[12] == "G:U" or iflags[12] == "G:U":
+                return 0.75, isskip
+            elif pflags[12] == iflags[12]:
+                return 1.0, isskip
+            else:
+                return 0.5, isskip
             
 	def iri(self, outNN, NNvoted, lmvcan, p1, tp1, r1, ps1, c1, ta1, a1, ph1, cat1, p2, tp2, r2, ps2, c2, ta2, a2, ph2, cat2, pathline, pa, ff, svoplst, statistics, cached = None, outExamples = None, trade = False):
                 if None == self.libiri: return 0
@@ -2270,7 +2279,10 @@ class feature_function_t:
                         # Calculate bit similarity and skip flag and revoteflag
                         bitsim, bitskip, bitrevote = ff.flagsimBit(pflags, iflags)
                         # print >>sys.stderr, bitsim, bitskip, bitrevote
-                        
+
+                        # Calculate temporal similarity and skip flag
+                        Grammaticalsim, Grammaticalskip = ff.flagsimGrammatical(pflags, iflags)
+                        # print >>sys.stderr, temporalsim, temporalskip
 
                         psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
                         psr2 = "%s-%s:%s" %(p2, ps2[0].lower(), r2)

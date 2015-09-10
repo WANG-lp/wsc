@@ -152,7 +152,7 @@ def _printContextualInfo(sent, anaphor, antecedent, antecedent_false, options):
 		scn.getFirstOrderContext(sent, gvFalseAnte.token) if None != gvFalseAnte else "-"
 		)
 	
-def _writeFeatures(ff, i, tupleInstance, bypass, options, db, pairdb):
+def _writeFeatures(ff, i, tupleInstance, bypass, options, db=None, pairdb=None):
 	sent = bypass.xmlText.xpath("/root/document/sentences/sentence[@id='%s']" % (1+i))[0]	
 	anaphor, antecedent, antecedent_false =	_getBrothers(sent, tupleInstance)
         print >>sys.stderr, "tupleInstance = "
