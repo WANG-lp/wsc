@@ -1739,7 +1739,7 @@ class feature_function_t:
 
 		# kNN FEATURES.
 		ranker.sort()
-                flag_ScoreKnn = pa.sknn
+                flag_ScoreKnn = True
                 # if pa.sknn:
                 #     ScoreKnn = True
                 # else:
@@ -1754,6 +1754,7 @@ class feature_function_t:
                                         #if 0 == r:
                                         yield "KNN%d_%s_%s" % (K, fk, r), 1
                                         yield "SKNN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue(can.attrib["id"], fk, K, flag_ScoreKnn)
+                                        yield "KNNTURN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue4bit(can.attrib["id"], fk, candidates, K)
                                         yield "SKNNTURN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue4bit(can.attrib["id"], fk, candidates, K, flag_ScoreKnn)
 
                 # for fk, fnn in ranker.NN.iteritems():
@@ -2268,7 +2269,7 @@ class feature_function_t:
                         # print >>sys.stderr, bitsim, bitskip, bitrevote
 
                         # Calculate temporal similarity and skip flag
-                        Grammaticalsim, Grammaticalskip = ff.flagsimGrammatical(pflags, iflags)
+                        grammaticalsim, grammaticalskip = ff.flagsimGrammatical(pflags, iflags)
                         # print >>sys.stderr, temporalsim, temporalskip
 
                         psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
@@ -2441,6 +2442,11 @@ class feature_function_t:
                         else:
                             bittype = None
 
+                        if bitrevote == True:
+                            bittype = -1
+                        else:
+                            bittype = 1
+                            
                         # print >>sys.stderr, pbit, ibit, bittype
 
                         if ph1 != None or ph2 != None:
@@ -2510,14 +2516,14 @@ class feature_function_t:
                             freq_pi = freq_p2
                             freq_pp = freq_p1
 
-                        for center in centers:
-                            newCsim1c = calcnewConsim(ret.sIndexContext[ret.iIndexed], freq_pi, center)
-                            newCsim2c = calcnewConsim(ret.sPredictedContext, freq_pp, center)
-                            newCsimc[center] = [newCsim1c, newCsim2c]
-                        for thresh in threshs:
-                            newCsim1t = calcnewConsimthre(ret.sIndexContext[ret.iIndexed], freq_pi, thresh)
-                            newCsim2t = calcnewConsimthre(ret.sPredictedContext, freq_pp, thresh)
-                            newCsimt[thresh] = [newCsim1t, newCsim2t]
+                        # for center in centers:
+                        #     newCsim1c = calcnewConsim(ret.sIndexContext[ret.iIndexed], freq_pi, center)
+                        #     newCsim2c = calcnewConsim(ret.sPredictedContext, freq_pp, center)
+                        #     newCsimc[center] = [newCsim1c, newCsim2c]
+                        # for thresh in threshs:
+                        #     newCsim1t = calcnewConsimthre(ret.sIndexContext[ret.iIndexed], freq_pi, thresh)
+                        #     newCsim2t = calcnewConsimthre(ret.sPredictedContext, freq_pp, thresh)
+                        #     newCsimt[thresh] = [newCsim1t, newCsim2t]
 
                         # print >>sys.stderr, ret.sIndexContext[ret.iIndexed], newCsim1,freq_p1 , ret.sPredictedContext, newCsim2, freq_p2, newCsim
 
@@ -2540,7 +2546,7 @@ class feature_function_t:
                         # print >>sys.stderr, "bit == %s == %s" % (penalty_bit, flag_continue_bit)
                         # print >>sys.stderr, "ph == %s == %s" % (penalty_ph, flag_continue_ph)
 
-                        for settingname in "OFF bitON ON".split():
+                        for settingname in "OFF BitON TempON GramON ON".split():
                         # for settingname in "OFF bitON pengON ON".split():
                             sp = sp_original
                             spa = spa_original
@@ -2553,10 +2559,51 @@ class feature_function_t:
                                 spa = sp * ret.sPredictedArg
                                 spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
                                 spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-
                                 penaltyscore = penalty_bit
                                 if flag_continue_bit == 1:
                                     continue
+                            if pa.ph == True and settingname == "phON":
+                                sp = sp_original * penalty_ph
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                penaltyscore = penalty_ph
+                                if flag_continue_ph == 1:
+                                    continue
+                                    
+                            if settingname == "TempON":
+                                sp = sp_original * temporalsim
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                penaltyscore = temporalsim
+                                if temporalskip == True:
+                                    continue
+                            if settingname == "BitON":
+                                sp = sp_original * bitsim
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                penaltyscore = bitsim
+                                if bitskip == True:
+                                    continue
+                            if settingname == "GramON":
+                                sp = sp_original * grammaticalsim
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                penaltyscore = grammaticalsim
+                                if grammaticalskip == True:
+                                    continue
+                            if settingname == "ON":
+                                sp = sp_original * temporalsim * bitsim * grammaticalsim
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                penaltyscore = temporalsim * bitsim * grammaticalsim
+                                if temoralskip == True or bitskip == True or grammaticalskip == True:
+                                    continue
+                                
                             # if pa.peng == True and settingname == "pengON":
                             #     sp = sp_original * penalty_peng
                             #     spa = sp * ret.sPredictedArg
@@ -2573,24 +2620,14 @@ class feature_function_t:
                             #     if flag_continue_bit == 1:
                             #         continue
 
-                            if pa.ph == True and settingname == "phON":
-                                sp = sp_original * penalty_ph
-                                spa = sp * ret.sPredictedArg
-                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-
-                                penaltyscore = penalty_ph
-                                if flag_continue_ph == 1:
-                                    continue
-                            if pa.bitsim == True and pa.ph == True and settingname == "ON":
-                                sp = sp_original * penalty_bit * penalty_ph
-                                spa = sp * ret.sPredictedArg
-                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-
-                                penaltyscore = penalty_bit * penalty_ph
-                                if flag_continue_bit == 1 or flag_continue_ph == 1:
-                                    continue
+                            # if pa.bitsim == True and pa.ph == True and settingname == "ON":
+                            #     sp = sp_original * penalty_bit * penalty_ph
+                            #     spa = sp * ret.sPredictedArg
+                            #     spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                            #     spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                            #     penaltyscore = penalty_bit * penalty_ph
+                            #     if flag_continue_bit == 1 or flag_continue_ph == 1:
+                            #         continue
 
                             # if None != cached: cached += [(NNvoted, nret)]
                             # if None != cached: cached += [(NNvoted, ret)]
