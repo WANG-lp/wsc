@@ -2079,7 +2079,7 @@ class feature_function_t:
             TFlst = [pflags[0]==iflags[0], pflags[1]==iflags[1], pflags[4]==iflags[4], pflags[5]==iflags[5]]
             if TFlst == [True, True, True, True]:
                 return 1.0, isskip, isrevote
-            elif TFlst.count(False) == 1:
+            elif TFlst == [True, True, False, True] or TFlst == [True, True, True, False]:                
                 isrevote = True
                 return 0.75, isskip, isrevote
             elif TFlst.count(False) == 2: # "strong and win" & "strong but not win" & "not strong and not win"
@@ -2745,7 +2745,7 @@ class feature_function_t:
 
                         if None != cached: cached += [(NNvoted, nret)]
                         if pa.nodupli == True:
-                            instancecache += [str(raw[:-2])]
+                            instancecache += [str(raw[:-5])]
 
                                 # print >>sys.stderr, "*****"
                                 # print >>sys.stderr, raw

@@ -8,7 +8,7 @@ import urllib2
 
 import struct
 
-import readline
+# import readline
 import collections
 
 import os
@@ -42,69 +42,69 @@ class iri_t:
 		print >>sys.stderr, "Loading..."
 
 		opts = []
-
+                
 		if fUseMemoryMap: opts += ["-q"]
                 if pa.kbsmall:
                     opts += ["-c /work/jun-s/kb/corefevents.0909small.cdblist/"]
                 elif pa.kb4:
                     tuplescdb = "corefevents.0126.1.cdblist.tuples.cdb"
                     totalfreq = "corefevents.0126.1.cdblist.totalfreq.txt"
-                    opts += ["-c /work/jun-s/kb/corefevents.0126.1.cdblist/"]
+                    opts += ["-c %s/corefevents.0126.1.cdblist/" %dirKb]
                 elif pa.kb4e:
                     tuplescdb = "corefevents.0212.cdblist.tuples.cdb"
                     totalfreq = "corefevents.0212.cdblist.totalfreq.txt"
-                    opts += ["-c /work/jun-s/kb/corefevents.0212.cdblist/"]
+                    opts += ["-c %s/corefevents.0212.cdblist/" %dirKb]
                 elif pa.kb4e2:
                     tuplescdb = "corefevents.0218e2.cdblist.tuples.cdb"
                     totalfreq = "corefevents.0218e2.cdblist.totalfreq.txt"
-                    opts += ["-c /work/jun-s/kb/corefevents.0218e2.cdblist/"]
+                    opts += ["-c %s/corefevents.0218e2.cdblist/" %dirKb]
                 elif pa.kbflag:
                     tuplescdb = "corefevents.0901.exact.cdblist.tuples.cdb"
                     totalfreq = "corefevents.0901.exact.assoc.cdblist.totalfreq.txt"
-                    opts += ["-c /work/jun-s/kb/corefevents.0901.exact.cdblist/"]
+                    opts += ["-c %s/corefevents.0901.exact.cdblist/" %dirKb]
                 elif pa.kbflagsmall:
                     tuplescdb = "corefevents.0826small.fixed.cdblist.tuples.cdb"
                     totalfreq = "corefevents.0826small.fixed.cdblist.totalfreq.txt"
-                    opts += ["-c /work/jun-s/kb/corefevents.0826small.fixed.cdblist/"]
+                    opts += ["-c %s/corefevents.0826small.fixed.cdblist/" %dirKb]
                 elif pa.kbflagnoph:
                     tuplescdb = "corefevents.0826.fixed.noph.exact.cdblist.tuples.cdb"
                     totalfreq = "corefevents.0826.fixed.noph.exact.cdblist.totalfreq.txt"
-                    opts += ["-c /work/jun-s/kb/corefevents.0826.fixed.noph.exact.cdblist/"]
+                    opts += ["-c %s/corefevents.0826.fixed.noph.exact.cdblist/" %dirKb]
                 # elif pa.kbflagnoph:
                 #     tuplescdb = "corefevents.0826.fixed.filtered.noph.cdblist.tuples.cdb"
                 #     totalfreq = "corefevents.0826.fixed.filtered.noph.cdblist.totalfreq.txt"
-                #     opts += ["-c /work/jun-s/kb/corefevents.0826.fixed.filtered.noph.cdblist/"]                    
+                #     opts += ["-c %s/corefevents.0826.fixed.filtered.noph.cdblist/" %dirKb]                    
                 elif pa.kb4e2down:
                     print >>sys.stderr, "Down sampling KB 1/%s" % pa.kb4e2down
                     tuplescdb = "corefevents.0218e2down%s.cdblist.tuples.cdb" % pa.kb4e2down
                     totalfreq = "corefevents.0218e2down%s.cdblist.totalfreq.txt" % pa.kb4e2down
-                    opts += ["-c /work/jun-s/kb/corefevents.0218e2down%s.cdblist/" % pa.kb4e2down]
+                    opts += ["-c %s/corefevents.0218e2down%s.cdblist/" % (pa.kb4e2down, dirKb)]
                 elif pa.kb87ei:
                     tuplescdb = "corefevents.0909inter.cdblist.tuples.cdb"
                     totalfreq = "corefevents.0909inter.cdblist.totalfreq.txt"
-                    opts += ["-c /work/jun-s/kb/corefevents.0909inter.cdblist/"]
+                    opts += ["-c %s/corefevents.0909inter.cdblist/" %dirKb]
                 elif pa.kb100:
                     tuplescdb = "corefevents.100.%s.cdblist.tuples.cdb" % pa.kb100
                     totalfreq = "corefevents.100.%s.cdblist.totalfreq.txt" % pa.kb100
-                    opts += ["-c /work/jun-s/kb/corefevents.100.%s.cdblist/" % pa.kb100]
+                    opts += ["-c %s/corefevents.100.%s.cdblist/" % (pa.kb100, dirKb)]
                 elif pa.kb10:
                     tuplescdb = "corefevents.10.%s.cdblist.tuples.cdb" % pa.kb10
                     # print >>sys.stderr, "+++ tuplescdb = %s  +++" % tuplescdb
                     totalfreq = "corefevents.10.%s.cdblist.totalfreq.txt" % pa.kb10
-                    opts += ["-c /work/jun-s/kb/corefevents.10.%s.cdblist/" % pa.kb10]
+                    opts += ["-c %s/corefevents.10.%s.cdblist/"  % (pa.kb10, dirKb)]
                 elif pa.oldkb:
                     tuplescdb = "tuples.cdb"
                     totalfreq = "tuples.totalfreq.txt"
-                    opts += ["-c /work/jun-s/kb/corefevents.cdblist/"]
+                    opts += ["-c %s/corefevents.cdblist/" %dirKb]
                 else:
                     tuplescdb = "tuples.0909.cdb"
                     totalfreq = "tuples.0909.totalfreq.txt"
-                    opts += ["-c /work/jun-s/kb/corefevents.0909.cdblist/"]
+                    opts += ["-c %s/corefevents.0909.cdblist/" %dirKb]
                 # else:
                 #     if pa.oldkb == True:
-                #         opts += ["-c /work/jun-s/kb/corefevents.cdblist/"]
+                #         opts += ["-c %s/corefevents.cdblist/" %dirKb]
                 #     else:
-                #         opts += ["-c /work/jun-s/kb/corefevents.0909.cdblist/"]
+                #         opts += ["-c %s/corefevents.0909.cdblist/" %dirKb]
 
                 print >>sys.stderr, "OPTS = %s" % (" ".join(opts))
 

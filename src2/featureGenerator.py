@@ -20,7 +20,7 @@ import os
 import cdb
 import marshal
 import glob
-from kyotocabinet import *
+# from kyotocabinet import *
 
 sys.path += ["./subrepo/knowledgeacquisition/bin"]
 import flagging
@@ -1035,87 +1035,74 @@ class ranker_t:
                 #     self.rankingsRv["ggllogedJC"] += [(vCan, math.log(1+ret))]
                 # ==============
 
-                # SVO COUNT
-                # cAna = scn.getFirstOrderContext(sent, gvAna.token)
-                svoS, svoO = getsowdet(sent, gvAna.token)
-                svoV = gvAna.lemma
-                svoVPlms, svoVPsurfs, vptype, vprel = get_VPpeng(sent, gvAna.token, gvAna.rel)
-                svoVP = "_".join(svoVPlms)
-                svoVPrel = "%s:%s" %(svoVP, vprel)
+                svoana = None
+                svocan = None
+                
+                # # SVO COUNT
+                # # cAna = scn.getFirstOrderContext(sent, gvAna.token)
+                # svoS, svoO = getsowdet(sent, gvAna.token)
+                # svoV = gvAna.lemma
+                # svoVPlms, svoVPsurfs, vptype, vprel = get_VPpeng(sent, gvAna.token, gvAna.rel)
+                # svoVP = "_".join(svoVPlms)
+                # svoVPrel = "%s:%s" %(svoVP, vprel)
 
-                # # svoS, svoO = svoS.split("-")[0], svoO.split("-")[0]
-                if "obj" in gvAna.rel or "prep_" in gvAna.rel or "nsubj_pass" in gvAna.rel:
-                    # svoO = " ".join(lmqW)
-                    svoO = wCan
-                elif "subj" in gvAna.rel:
-                    # svoS = " ".join(lmqC)
-                    svoS = wCan
+                # if "obj" in gvAna.rel or "prep_" in gvAna.rel or "nsubj_pass" in gvAna.rel:
+                #     # svoO = " ".join(lmqW)
+                #     svoO = wCan
+                # elif "subj" in gvAna.rel:
+                #     # svoS = " ".join(lmqC)
+                #     svoS = wCan
 
-                # SVO
-                # if "nsubj_pass" in gvAna.rel:
-                #     ret = 0.0
-                # elif "JJ" in gvAna.POS or "NN" in gvAna.POS:
-                #     ret = int(db.get("%s~%s~" %(svoS, svoV))) if None != db.get("%s~%s~" %(svoS, svoV)) else 0.0
-                #     self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, "be", svoO]))]
+                # if svoS != "":
+                #     if "NN" in gvAna.POS:
+                #         ret = int(db.get("%s~%s~" %(svoS, svoV))) if None != db.get("%s~%s~" %(svoS, svoV)) else 0.0
+                #         self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, "be", svoV]))]
+                #         ret = math.log(1+ret)
+                #         self.rankingsRv["svocountSVO"] += [(vCan, ret)]
+                #     elif svoO != "":
+                #         ret = int(db.get("%s~%s~%s" %(svoS, svoVP, svoO))) if None != db.get("%s~%s~%s" %(svoS, svoVP, svoO)) else 0.0
+                #         self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, svoVP, svoO]))]
+                #         ret = math.log(1+ret)
+                #         self.rankingsRv["svocountSVO"] += [(vCan, ret)]
+
+                # if "subj" in gvAna.rel and "nsubj_pass" not in gvAna.rel:
+                #     # SV
+                #     if "NN" in gvAna.POS:
+                #         ret = 0.0
+                #     else:
+                #         ret = int(db.get("%s~%s~" %(svoS, svoVP))) if None != db.get("%s~%s~" %(svoS, svoVP)) else 0.0
+                #         self.statistics["svocount_svvo"] += [(vCan, " ".join([svoS, svoVP]))]
                 # else:
-                #     ret = int(db.get("%s~%s~%s" %(svoS, svoV, svoO))) if None != db.get("%s~%s~%s" %(svoS, svoV, svoO)) else 0.0
-                #     self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, svoV, svoO]))]
+                #     # VO
+                #     ret = int(db.get("~%s~%s" %(svoVP, svoO))) if None != db.get("~%s~%s" %(svoVP, svoO)) else 0.0
+                #     self.statistics["svocount_svvo"] += [(vCan, " ".join([svoVP, svoO]))]
 
-                if svoS != "":
-                    if "NN" in gvAna.POS:
-                        ret = int(db.get("%s~%s~" %(svoS, svoV))) if None != db.get("%s~%s~" %(svoS, svoV)) else 0.0
-                        self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, "be", svoV]))]
-                        ret = math.log(1+ret)
-                        self.rankingsRv["svocountSVO"] += [(vCan, ret)]
-                    elif svoO != "":
-                        ret = int(db.get("%s~%s~%s" %(svoS, svoVP, svoO))) if None != db.get("%s~%s~%s" %(svoS, svoVP, svoO)) else 0.0
-                        self.statistics["svocount_svo"] += [(vCan, " ".join([svoS, svoVP, svoO]))]
-                        ret = math.log(1+ret)
-                        self.rankingsRv["svocountSVO"] += [(vCan, ret)]
-
-
-                # print >>sys.stderr, "ret = %s" %ret
-                # ret = db.get("%s~%s~%s" %(qC, qV, qW)) if None != db.get("%s~%s~%s" %(qC, qV, qW)) else 0.0
-
-                if "subj" in gvAna.rel and "nsubj_pass" not in gvAna.rel:
-                    # SV
-                    if "NN" in gvAna.POS:
-                        ret = 0.0
-                    else:
-                        ret = int(db.get("%s~%s~" %(svoS, svoVP))) if None != db.get("%s~%s~" %(svoS, svoVP)) else 0.0
-                        self.statistics["svocount_svvo"] += [(vCan, " ".join([svoS, svoVP]))]
-                else:
-                    # VO
-                    ret = int(db.get("~%s~%s" %(svoVP, svoO))) if None != db.get("~%s~%s" %(svoVP, svoO)) else 0.0
-                    self.statistics["svocount_svvo"] += [(vCan, " ".join([svoVP, svoO]))]
-
-                ret = math.log(1+ret)
-                self.rankingsRv["svocountSVVO"] += [(vCan, ret)]
-                # print >>sys.stderr, "ret = %s" %ret
+                # ret = math.log(1+ret)
+                # self.rankingsRv["svocountSVVO"] += [(vCan, ret)]
+                # # print >>sys.stderr, "ret = %s" %ret
 
             if None != gvAna and None != gvCan:
                 # pathline = scn.getPath(sent, gvAna.token, gvCan.token, pa)
                 pathline = scn.getPath(sent, ana, can, pa)
                 # print >>sys.stderr, pathline
 
-                cansvoS, cansvoO = getsowdet(sent, gvCan.token)
-                cansvoVPlms, cansvoVPsurfs, canvptype, canvprel = get_VPpeng(sent, gvCan.token, gvCan.rel)
-                cansvoVP = "_".join(cansvoVPlms)
+                # cansvoS, cansvoO = getsowdet(sent, gvCan.token)
+                # cansvoVPlms, cansvoVPsurfs, canvptype, canvprel = get_VPpeng(sent, gvCan.token, gvCan.rel)
+                # cansvoVP = "_".join(cansvoVPlms)
 
-                print >>sys.stderr, "canVP=%s" %(cansvoVP)
+                # print >>sys.stderr, "canVP=%s" %(cansvoVP)
 
-                cansvoV = gvCan.lemma
-                if "obj" in gvCan.rel or "prep_" in gvCan.rel or "nsubj_pass" in gvCan.rel:
-                    # svoO = " ".join(lmqW)
-                    cansvoO = wCan
-                elif "subj" in gvCan.rel:
-                    # svoS = " ".join(lmqC)
-                    cansvoS = wCan
+                # cansvoV = gvCan.lemma
+                # if "obj" in gvCan.rel or "prep_" in gvCan.rel or "nsubj_pass" in gvCan.rel:
+                #     # svoO = " ".join(lmqW)
+                #     cansvoO = wCan
+                # elif "subj" in gvCan.rel:
+                #     # svoS = " ".join(lmqC)
+                #     cansvoS = wCan
 
-                cansvoVPrel = "%s:%s" %(cansvoVP, canvprel)
-
-                svocan = [cansvoS, cansvoVPrel, cansvoO]
-                svoana = [svoS, svoVPrel, svoO]
+                # cansvoVPrel = "%s:%s" %(cansvoVP, canvprel)
+                # svocan = [cansvoS, cansvoVPrel, cansvoO]
+                # svoana = [svoS, svoVPrel, svoO]
                 pnegconjbit = 0
 
                 for cAnae in scn.getFirstOrderContext(sent, gvAna.token).strip().split():
@@ -1126,15 +1113,15 @@ class ranker_t:
                         pnegconjbit = 1
                 pnegconjbit = max(get_conjbit(pathline, negconjcol1), pnegconjbit)
 
-                svosvocount_giga = check_svosvomatch_giga([svoana, svocan, pnegconjbit], pairdb)
+                # svosvocount_giga = check_svosvomatch_giga([svoana, svocan, pnegconjbit], pairdb)
 
-                for svosvoname, svosvovalue in svosvocount_giga.iteritems():
-                    svosvotype = 1 if svosvoname == "VV" else 2
-                    self.statistics["svopair%d_%s" % (svosvotype, svosvoname)] += [(vCan, svosvovalue)]
-                    self.statistics["svoploged%d_%s" % (svosvotype, svosvoname)] += [(vCan, math.log(1+svosvovalue))]
-                    self.rankingsRv["svopair%d_%s" % (svosvotype, svosvoname)] += [(vCan, svosvovalue)]
-                    self.rankingsRv["svoploged%d_%s" % (svosvotype, svosvoname)] += [(vCan, math.log(1+svosvovalue))]
-                self.statistics["svopair_q"] += [(vCan, "%s==%s==%d" %("~".join(svocan), "~".join(svoana), pnegconjbit))]
+                # for svosvoname, svosvovalue in svosvocount_giga.iteritems():
+                #     svosvotype = 1 if svosvoname == "VV" else 2
+                #     self.statistics["svopair%d_%s" % (svosvotype, svosvoname)] += [(vCan, svosvovalue)]
+                #     self.statistics["svoploged%d_%s" % (svosvotype, svosvoname)] += [(vCan, math.log(1+svosvovalue))]
+                #     self.rankingsRv["svopair%d_%s" % (svosvotype, svosvoname)] += [(vCan, svosvovalue)]
+                #     self.rankingsRv["svoploged%d_%s" % (svosvotype, svosvoname)] += [(vCan, math.log(1+svosvovalue))]
+                # self.statistics["svopair_q"] += [(vCan, "%s==%s==%d" %("~".join(svocan), "~".join(svoana), pnegconjbit))]
 
                 # if cansvoS != "":
                 #     if "JJ" in gvCan.POS or "NN" in gvCan.POS:
@@ -1752,7 +1739,7 @@ class feature_function_t:
 
 		# kNN FEATURES.
 		ranker.sort()
-                flag_ScoreKnn = pa.sknn
+                flag_ScoreKnn = True
                 # if pa.sknn:
                 #     ScoreKnn = True
                 # else:
@@ -1767,6 +1754,7 @@ class feature_function_t:
                                         #if 0 == r:
                                         yield "KNN%d_%s_%s" % (K, fk, r), 1
                                         yield "SKNN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue(can.attrib["id"], fk, K, flag_ScoreKnn)
+                                        yield "KNNTURN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue4bit(can.attrib["id"], fk, candidates, K)
                                         yield "SKNNTURN%d_%s_%s" % (K, fk, r), ranker.getKNNRankValue4bit(can.attrib["id"], fk, candidates, K, flag_ScoreKnn)
 
                 # for fk, fnn in ranker.NN.iteritems():
@@ -2091,7 +2079,7 @@ class feature_function_t:
             TFlst = [pflags[0]==iflags[0], pflags[1]==iflags[1], pflags[4]==iflags[4], pflags[5]==iflags[5]]
             if TFlst == [True, True, True, True]:
                 return 1.0, isskip, isrevote
-            elif TFlst.count(False) == 1:
+            elif TFlst == [True, True, False, True] or TFlst == [True, True, True, False]:
                 isrevote = True
                 return 0.75, isskip, isrevote
             elif TFlst.count(False) == 2: # "strong and win" & "strong but not win" & "not strong and not win"
@@ -2281,7 +2269,7 @@ class feature_function_t:
                         # print >>sys.stderr, bitsim, bitskip, bitrevote
 
                         # Calculate temporal similarity and skip flag
-                        Grammaticalsim, Grammaticalskip = ff.flagsimGrammatical(pflags, iflags)
+                        grammaticalsim, grammaticalskip = ff.flagsimGrammatical(pflags, iflags)
                         # print >>sys.stderr, temporalsim, temporalskip
 
                         psr1 = "%s-%s:%s" %(p1, ps1[0].lower(), r1)
@@ -2312,12 +2300,12 @@ class feature_function_t:
                         # print >>sys.stderr, "isvpol, isvpor = %s, %s" % (repr(isvpol), repr(isvpor))
                         # print >>sys.stderr, "psvoplist = %s\n" % (repr(svoplst))
 
-                        # phrase check
-                        pphs = set([svoplst[0][1], svoplst[1][1]])
-                        iphs = set([isvpol[1], isvpor[1]])
-                        # print >>sys.stderr, "pph, iph = %s, %s\n" % (repr(pphs), repr(iphs))
-                        if pa.phpeng == True and pphs != iphs:
-                                continue
+                        # # phrase check
+                        # pphs = set([svoplst[0][1], svoplst[1][1]])
+                        # iphs = set([isvpol[1], isvpor[1]])
+                        # # print >>sys.stderr, "pph, iph = %s, %s\n" % (repr(pphs), repr(iphs))
+                        # if pa.phpeng == True and pphs != iphs:
+                        #         continue
 
                         if psr1 == raw[0] or psr2 == raw[1]:
                             ic1, ic2, isvpo1, isvpo2 = icl, icr, isvpol, isvpor
@@ -2333,23 +2321,23 @@ class feature_function_t:
                                 inegconjbit = 1
                         inegconjbit +=get_conjbit(ipath, negconjcol1)
 
-                        # peng check
-                        pengcount = 0
-                        if svoplst[0][0] == isvpo1[0]:
-                            pengcount += 1
-                        if svoplst[0][2] == isvpo1[2]:
-                            pengcount += 1
-                        if svoplst[1][0] == isvpo2[0]:
-                            pengcount += 1
-                        if svoplst[1][2] == isvpo2[2]:
-                            pengcount += 1
+                        # # peng check
+                        # pengcount = 0
+                        # if svoplst[0][0] == isvpo1[0]:
+                        #     pengcount += 1
+                        # if svoplst[0][2] == isvpo1[2]:
+                        #     pengcount += 1
+                        # if svoplst[1][0] == isvpo2[0]:
+                        #     pengcount += 1
+                        # if svoplst[1][2] == isvpo2[2]:
+                        #     pengcount += 1
 
-                        pengconjpenalty = 0.8 if svoplst[2] != inegconjbit else 1.0
+                        # pengconjpenalty = 0.8 if svoplst[2] != inegconjbit else 1.0
 
-                        if pengcount >= 3:
-                                penalty_peng = 1.0*pengconjpenalty
-                        elif pengcount <= 2:
-                                penalty_peng = 1.0*(0.8**(3-pengcount))*pengconjpenalty
+                        # if pengcount >= 3:
+                        #         penalty_peng = 1.0*pengconjpenalty
+                        # elif pengcount <= 2:
+                        #         penalty_peng = 1.0*(0.8**(3-pengcount))*pengconjpenalty
 
                         # pargs = set([svoplst[0][0], svoplst[0][2], svoplst[1][0], svoplst[1][2]])
                         # iargs = set([isvpol[0], isvpol[2], isvpor[0], isvpor[2]])
@@ -2454,6 +2442,11 @@ class feature_function_t:
                         else:
                             bittype = None
 
+                        if bitrevote == True:
+                            bittype = -1
+                        else:
+                            bittype = 1
+                            
                         # print >>sys.stderr, pbit, ibit, bittype
 
                         if ph1 != None or ph2 != None:
@@ -2523,14 +2516,14 @@ class feature_function_t:
                             freq_pi = freq_p2
                             freq_pp = freq_p1
 
-                        for center in centers:
-                            newCsim1c = calcnewConsim(ret.sIndexContext[ret.iIndexed], freq_pi, center)
-                            newCsim2c = calcnewConsim(ret.sPredictedContext, freq_pp, center)
-                            newCsimc[center] = [newCsim1c, newCsim2c]
-                        for thresh in threshs:
-                            newCsim1t = calcnewConsimthre(ret.sIndexContext[ret.iIndexed], freq_pi, thresh)
-                            newCsim2t = calcnewConsimthre(ret.sPredictedContext, freq_pp, thresh)
-                            newCsimt[thresh] = [newCsim1t, newCsim2t]
+                        # for center in centers:
+                        #     newCsim1c = calcnewConsim(ret.sIndexContext[ret.iIndexed], freq_pi, center)
+                        #     newCsim2c = calcnewConsim(ret.sPredictedContext, freq_pp, center)
+                        #     newCsimc[center] = [newCsim1c, newCsim2c]
+                        # for thresh in threshs:
+                        #     newCsim1t = calcnewConsimthre(ret.sIndexContext[ret.iIndexed], freq_pi, thresh)
+                        #     newCsim2t = calcnewConsimthre(ret.sPredictedContext, freq_pp, thresh)
+                        #     newCsimt[thresh] = [newCsim1t, newCsim2t]
 
                         # print >>sys.stderr, ret.sIndexContext[ret.iIndexed], newCsim1,freq_p1 , ret.sPredictedContext, newCsim2, freq_p2, newCsim
 
@@ -2553,7 +2546,7 @@ class feature_function_t:
                         # print >>sys.stderr, "bit == %s == %s" % (penalty_bit, flag_continue_bit)
                         # print >>sys.stderr, "ph == %s == %s" % (penalty_ph, flag_continue_ph)
 
-                        for settingname in "OFF bitON ON".split():
+                        for settingname in "OFF BitON TempON GramON ON".split():
                         # for settingname in "OFF bitON pengON ON".split():
                             sp = sp_original
                             spa = spa_original
@@ -2566,10 +2559,51 @@ class feature_function_t:
                                 spa = sp * ret.sPredictedArg
                                 spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
                                 spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-
                                 penaltyscore = penalty_bit
                                 if flag_continue_bit == 1:
                                     continue
+                            if pa.ph == True and settingname == "phON":
+                                sp = sp_original * penalty_ph
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                penaltyscore = penalty_ph
+                                if flag_continue_ph == 1:
+                                    continue
+                                    
+                            if settingname == "TempON":
+                                sp = sp_original * temporalsim
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                penaltyscore = temporalsim
+                                if temporalskip == True:
+                                    continue
+                            if settingname == "BitON":
+                                sp = sp_original * bitsim
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                penaltyscore = bitsim
+                                if bitskip == True:
+                                    continue
+                            if settingname == "GramON":
+                                sp = sp_original * grammaticalsim
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                penaltyscore = grammaticalsim
+                                if grammaticalskip == True:
+                                    continue
+                            if settingname == "ON":
+                                sp = sp_original * temporalsim * bitsim * grammaticalsim
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                penaltyscore = temporalsim * bitsim * grammaticalsim
+                                if temporalskip == True or bitskip == True or grammaticalskip == True:
+                                    continue
+                                
                             # if pa.peng == True and settingname == "pengON":
                             #     sp = sp_original * penalty_peng
                             #     spa = sp * ret.sPredictedArg
@@ -2586,24 +2620,14 @@ class feature_function_t:
                             #     if flag_continue_bit == 1:
                             #         continue
 
-                            if pa.ph == True and settingname == "phON":
-                                sp = sp_original * penalty_ph
-                                spa = sp * ret.sPredictedArg
-                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-
-                                penaltyscore = penalty_ph
-                                if flag_continue_ph == 1:
-                                    continue
-                            if pa.bitsim == True and pa.ph == True and settingname == "ON":
-                                sp = sp_original * penalty_bit * penalty_ph
-                                spa = sp * ret.sPredictedArg
-                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-
-                                penaltyscore = penalty_bit * penalty_ph
-                                if flag_continue_bit == 1 or flag_continue_ph == 1:
-                                    continue
+                            # if pa.bitsim == True and pa.ph == True and settingname == "ON":
+                            #     sp = sp_original * penalty_bit * penalty_ph
+                            #     spa = sp * ret.sPredictedArg
+                            #     spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                            #     spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                            #     penaltyscore = penalty_bit * penalty_ph
+                            #     if flag_continue_bit == 1 or flag_continue_ph == 1:
+                            #         continue
 
                             # if None != cached: cached += [(NNvoted, nret)]
                             # if None != cached: cached += [(NNvoted, ret)]
