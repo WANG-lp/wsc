@@ -2601,7 +2601,7 @@ class feature_function_t:
                                 spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
                                 spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
                                 penaltyscore = temporalsim * bitsim * grammaticalsim
-                                if temoralskip == True or bitskip == True or grammaticalskip == True:
+                                if temporalskip == True or bitskip == True or grammaticalskip == True:
                                     continue
                                 
                             # if pa.peng == True and settingname == "pengON":
