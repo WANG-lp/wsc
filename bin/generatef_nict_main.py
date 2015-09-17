@@ -20,6 +20,6 @@ for setname in options.targetset.split():
     pnum = getpnum(setname) -1
     print setname, pnum
 
-    generatecmd = "mpirun -np %s /home/jun-s/src/bkp/bin/bkp %s python bin/generatef_nict.py --targetset '%s' --date %s --genoptions '%s'" %(options.mpiopt, pnum, setname, options.date, options.genoptions)
+    generatecmd = "mpirun -np %s /home/jun-s/src/bkp/bin/bkp %s /opt/PYTHON/python-2.7.5/bin/python bin/generatef_nict.py --targetset '%s' --date %s --genoptions '%s'" %(options.mpiopt, pnum, setname, options.date, options.genoptions)
     print generatecmd
     subprocess.call(generatecmd, shell=True)
