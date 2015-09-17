@@ -759,7 +759,6 @@ class ranker_t:
     def __init__(self, ff, ana, candidates, sent, pa, mentions, db, pairdb):
 
         self.doc = sdreader.createDocFromLXML(sent)
-        # dbbase = "/home/naoya-i/work/clone/knowledgeacquisition"
         dbbase = "./subrepo/knowledgeacquisition"
 
         opt = karesource.option_t(
