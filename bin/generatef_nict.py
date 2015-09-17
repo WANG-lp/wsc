@@ -26,10 +26,8 @@ defaultgenoptions = "--quicktest --extkb /share01/jun-s/kb"
 myoptions = "--" + " --".join(options.genoptions.split())
 lightfnlst = []
 
-problemindex = os.environ['BKP_INDEX']
-
-
 for setname in options.targetset.split():
+    problemindex = os.environ['BKP_INDEX']
     pnum = getpnum(setname) -1
     print setname, pnum
 
