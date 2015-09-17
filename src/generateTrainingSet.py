@@ -76,9 +76,9 @@ def main(options, args):
         db = DB()
         pairdb = DB()
         # if not db.open("/work/jun-s/kb/svocount.0525nodet.kch", DB.OREADER):
-        if not db.open("/work/jun-s/kb/svocount.0616.vp.kch", DB.OREADER):
+        if not db.open("%s/svocount.0616.vp.kch" %options.extkb, DB.OREADER):
             print >>sys.stderr, "open error: " + str(db.error())
-        if not pairdb.open("/work/jun-s/kb/svosvocount.0613.vp.kch", DB.OREADER):
+        if not pairdb.open("%s/svosvocount.0613.vp.kch" %options.extkb, DB.OREADER):
             print >>sys.stderr, "open error: " + str(pairdb.error())
 
         if options.pfilter:
