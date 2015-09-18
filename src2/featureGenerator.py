@@ -759,7 +759,7 @@ class ranker_t:
     def __init__(self, ff, ana, candidates, sent, pa, mentions, db, pairdb):
 
         self.doc = sdreader.createDocFromLXML(sent)
-        dbbase = "/home/naoya-i/work/clone/knowledgeacquisition"
+        dbbase = "./subrepo/knowledgeacquisition"
 
         opt = karesource.option_t(
             pa.verbose,
@@ -2079,7 +2079,7 @@ class feature_function_t:
             TFlst = [pflags[0]==iflags[0], pflags[1]==iflags[1], pflags[4]==iflags[4], pflags[5]==iflags[5]]
             if TFlst == [True, True, True, True]:
                 return 1.0, isskip, isrevote
-            elif TFlst == [True, True, False, True] or TFlst == [True, True, True, False]:
+            elif TFlst == [True, True, False, True] or TFlst == [True, True, True, False]:                
                 isrevote = True
                 return 0.75, isskip, isrevote
             elif TFlst.count(False) == 2: # "strong and win" & "strong but not win" & "not strong and not win"
@@ -2232,7 +2232,7 @@ class feature_function_t:
                         # print >>sys.stderr, raw
                         
                         if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
-                            if str(raw[:-7]) in set(instancecache): # SAME without IDs
+                            if str(raw[:7]) in set(instancecache): # SAME without IDs
                                 # print >>sys.stderr, "is Duplication"
                                 continue
                             # print >>sys.stderr, "ret = %s" % repr(ret)
@@ -2745,7 +2745,7 @@ class feature_function_t:
 
                         if None != cached: cached += [(NNvoted, nret)]
                         if pa.nodupli == True:
-                            instancecache += [str(raw[:-2])]
+                            instancecache += [str(raw[:7])]
 
                                 # print >>sys.stderr, "*****"
                                 # print >>sys.stderr, raw

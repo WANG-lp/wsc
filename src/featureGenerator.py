@@ -2232,7 +2232,7 @@ class feature_function_t:
                         # print >>sys.stderr, raw
                         
                         if pa.nodupli == True: # COTINUE DUPLICATE INSTANCES
-                            if str(raw[:-7]) in set(instancecache): # SAME without IDs
+                            if str(raw[:7]) in set(instancecache): # SAME without IDs
                                 # print >>sys.stderr, "is Duplication"
                                 continue
                             # print >>sys.stderr, "ret = %s" % repr(ret)
@@ -2745,7 +2745,7 @@ class feature_function_t:
 
                         if None != cached: cached += [(NNvoted, nret)]
                         if pa.nodupli == True:
-                            instancecache += [str(raw[:-5])]
+                            instancecache += [str(raw[:7])]
 
                                 # print >>sys.stderr, "*****"
                                 # print >>sys.stderr, raw
