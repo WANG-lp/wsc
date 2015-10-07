@@ -2248,13 +2248,17 @@ class feature_function_t:
                         #      (basically, clausal complement or adverbial modifier or xcomp)
                         # F14: temporal relation b/w e1 and e2. U or 12 or 21.
                         # F15: heuristic coref rule is satisfied or not. Y or N.
-                            
+                        
                         iflags = raw[9].split(",")
                         # print >>sys.stderr, iflags
 
-                        # SKIP gomi verb
+                        # SKIP gomi verbs
                         if iflags[10] == "Y" or iflags[11] == "Y":
                             continue
+                        if pa.nonewkb:
+                            # SKIP NEW verbs
+                            if iflags[6] == "A" or iflags[6] == "C" or iflags[7] == "A" or iflags[7] == "C":
+                                continue                            
 
                         # Calculate temporal similarity and skip flag
                         temporalsim, temporalskip = ff.flagsimTemp(pflags, iflags)
