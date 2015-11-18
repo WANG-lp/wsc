@@ -2248,16 +2248,20 @@ class feature_function_t:
                         #      (basically, clausal complement or adverbial modifier or xcomp)
                         # F14: temporal relation b/w e1 and e2. U or 12 or 21.
                         # F15: heuristic coref rule is satisfied or not. Y or N.
-                        
-                        iflags = raw[9].split(",")
-                        # print >>sys.stderr, iflags
 
+                        if pa.flagtest == True:
+                            iflags = ["A","A","-","-","E","E","-","-","-","-", "N", "N", "G:C12","T:U","Y"]
+                        else:
+                            iflags = raw[9].split(",")
+                        
                         # SKIP gomi verbs
                         if iflags[10] == "Y" or iflags[11] == "Y":
                             continue
                         if pa.nonewkb:
                             # SKIP NEW verbs
                             if iflags[6] == "A" or iflags[6] == "C" or iflags[7] == "A" or iflags[7] == "C":
+                                # print >>sys.stderr, "SKIP NEW KB!"
+                                # print >>sys.stderr, "raw = %s" % repr(raw)
                                 continue                            
 
                         # Calculate temporal similarity and skip flag
@@ -2446,10 +2450,11 @@ class feature_function_t:
                         else:
                             bittype = None
 
-                        if bitrevote == True:
-                            bittype = -1
-                        else:
-                            bittype = 1
+                        if pa.oldbitrevote == False:
+                            if bitrevote == True:
+                                bittype = -1
+                            else:
+                                bittype = 1
                             
                         # print >>sys.stderr, pbit, ibit, bittype
 
@@ -2550,7 +2555,8 @@ class feature_function_t:
                         # print >>sys.stderr, "bit == %s == %s" % (penalty_bit, flag_continue_bit)
                         # print >>sys.stderr, "ph == %s == %s" % (penalty_ph, flag_continue_ph)
 
-                        for settingname in "OFF BitON TempON GramON ON".split():
+                        for settingname in "OFF BitON ON OldbitON".split():
+                        # for settingname in "OFF BitON TempON GramON ON OldbitON".split():
                         # for settingname in "OFF bitON pengON ON".split():
                             sp = sp_original
                             spa = spa_original
@@ -2566,6 +2572,15 @@ class feature_function_t:
                                 penaltyscore = penalty_bit
                                 if flag_continue_bit == 1:
                                     continue
+                            if pa.bitsim == True and settingname == "OldbitON":
+                                sp = sp_original * penalty_bit
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                penaltyscore = penalty_bit
+                                if flag_continue_bit == 1:
+                                    continue
+                                    
                             if pa.ph == True and settingname == "phON":
                                 sp = sp_original * penalty_ph
                                 spa = sp * ret.sPredictedArg
@@ -2599,14 +2614,14 @@ class feature_function_t:
                                 penaltyscore = grammaticalsim
                                 if grammaticalskip == True:
                                     continue
-                            if settingname == "ON":
-                                sp = sp_original * temporalsim * bitsim * grammaticalsim
-                                spa = sp * ret.sPredictedArg
-                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-                                penaltyscore = temporalsim * bitsim * grammaticalsim
-                                if temporalskip == True or bitskip == True or grammaticalskip == True:
-                                    continue
+                            # if settingname == "ON":
+                            #     sp = sp_original * temporalsim * bitsim * grammaticalsim
+                            #     spa = sp * ret.sPredictedArg
+                            #     spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                            #     spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                            #     penaltyscore = temporalsim * bitsim * grammaticalsim
+                            #     if temporalskip == True or bitskip == True or grammaticalskip == True:
+                            #         continue
                                 
                             # if pa.peng == True and settingname == "pengON":
                             #     sp = sp_original * penalty_peng
@@ -2624,14 +2639,14 @@ class feature_function_t:
                             #     if flag_continue_bit == 1:
                             #         continue
 
-                            # if pa.bitsim == True and pa.ph == True and settingname == "ON":
-                            #     sp = sp_original * penalty_bit * penalty_ph
-                            #     spa = sp * ret.sPredictedArg
-                            #     spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-                            #     spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
-                            #     penaltyscore = penalty_bit * penalty_ph
-                            #     if flag_continue_bit == 1 or flag_continue_ph == 1:
-                            #         continue
+                            if pa.bitsim == True and pa.ph == True and settingname == "ON":
+                                sp = sp_original * penalty_bit * penalty_ph
+                                spa = sp * ret.sPredictedArg
+                                spc = sp * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                spac = spa * ret.sIndexContext[ret.iIndexed]*ret.sPredictedContext
+                                penaltyscore = penalty_bit * penalty_ph
+                                if flag_continue_bit == 1 or flag_continue_ph == 1:
+                                    continue
 
                             # if None != cached: cached += [(NNvoted, nret)]
                             # if None != cached: cached += [(NNvoted, ret)]

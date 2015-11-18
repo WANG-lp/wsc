@@ -377,10 +377,12 @@ if "__main__" == __name__:
         cmdparser.add_option("--onlybit", help	= "Using scoreKNN", action="store_true", default=False)
         cmdparser.add_option("--nodupli", help	= "No Duplication", action="store_true", default=False)
         cmdparser.add_option("--nonewkb", help	= "Not Use New KB", action="store_true", default=False)
+        cmdparser.add_option("--flagtest", help	= "Teting mode of Flags", action="store_true", default=False)
         cmdparser.add_option("--peng", help	= "Using Peng style instances (control penalty)", action="store_true", default=False)
         cmdparser.add_option("--pfilter", help	= "problem filter ON", action="store_true", default=False)
         cmdparser.add_option("--oldrel", help	= "Using old ConvRel", action="store_true", default=False)
         cmdparser.add_option("--verbose", action="store_true", default=False, help="Turn on verbose mode.")
         cmdparser.add_option("--flagsim", action="store_true", default=False, help="Calculate knn-score including Flag-Similarity")        
+        cmdparser.add_option("--oldbitrevote", help	= "Using old revote flag", action="store_true", default=False)
         
 	main(*cmdparser.parse_args())
