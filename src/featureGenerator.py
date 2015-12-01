@@ -843,196 +843,198 @@ class ranker_t:
                     tkNextAna = scn.getNextPredicateToken(sent, ana)
                     qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
                     ret = ff.gn.search(qCV)
-                    self.statistics["CV"] += [(vCan, " ".join(qCV))]
-                    self.rankingsRv["googleCV"] += [(vCan, ret)]
+                    self.statistics["ngCV"] += [(vCan, " ".join(qCV))]
+                    self.rankingsRv["gglngCV"] += [(vCan, ret)]
 
                     # Q3, Q4: CVW
                     tkNeighbor = scn.getNextToken(sent, tkNextAna)
                     if None != tkNeighbor:
                         qCV = [scn.getSurf(can), scn.getSurf(tkNextAna), scn.getSurf(tkNeighbor)]
                         ret = ff.gn.search(qCV)
-                        self.statistics["CVW"] += [(vCan, " ".join(qCV))]
-                        self.rankingsRv["googleCVW"] += [(vCan, ret)]
+                        self.statistics["ngCVW"] += [(vCan, " ".join(qCV))]
+                        self.rankingsRv["gglngCVW"] += [(vCan, ret)]
 
                     if "JJ" in gvAna.POS:
                         # Q5, Q6: JC
                         qCV = [scn.getSurf(gvAna.token), scn.getSurf(can)]
                         ret = ff.gn.search(qCV)
-                        self.statistics["JC"] += [(vCan, " ".join(qCV))]
-                        self.rankingsRv["googleJC"] += [(vCan, ret)]
+                        self.statistics["ngJC"] += [(vCan, " ".join(qCV))]
+                        self.rankingsRv["gglngJC"] += [(vCan, ret)]
 
                 # ============
                 # ## USING GOOGLE SEARCH API
 
-                # # tkNextAna = scn.getNextPredicateToken(sent, ana)
-                # if "JJ" in gvAna.POS or "NN" in gvAna.POS:
-                #     tkNextAna = scn.getNextPredicateToken(sent, ana)
-                # else:
-                #     tkNextAna = gvAna.token
+                if "PERSON" != scn.getNEtype(can):
+                    
+                    # tkNextAna = scn.getNextPredicateToken(sent, ana)
+                    if "JJ" in gvAna.POS or "NN" in gvAna.POS:
+                        tkNextAna = scn.getNextPredicateToken(sent, ana)
+                    else:
+                        tkNextAna = gvAna.token
 
-                # print >>sys.stderr, "tkNextAna.rel = %s" % gvAna.rel
+                    print >>sys.stderr, "tkNextAna.rel = %s" % gvAna.rel
 
-                # if "dobj" == gvAna.rel:
-                #     qC = googleS.split(" ")
-                #     self.statistics["subject"] += [(vCan, " ".join(qC))]
-                # else:
-                #     qC = [scn.getSurf(can)]
-                #     # idqC = can.attrib["id"]
-                #     # lmqC = [scn.getLemma(can)]
+                    if "dobj" == gvAna.rel:
+                        qC = googleS.split(" ")
+                        self.statistics["subject"] += [(vCan, " ".join(qC))]
+                    else:
+                        qC = [scn.getSurf(can)]
+                        # idqC = can.attrib["id"]
+                        # lmqC = [scn.getLemma(can)]
 
-                # if qC[0] in mentions[1].split() and qC[0] in mentions[2].split():
-                #     print >>sys.stderr, "EACH MENTION MATCH!"
-                #     # WHICH MENTION = CAN?
+                    if qC[0] in mentions[1].split() and qC[0] in mentions[2].split():
+                        print >>sys.stderr, "EACH MENTION MATCH!"
+                        # WHICH MENTION = CAN?
 
-                #     m1, m2 = mentions[1].split(), mentions[2].split()
-                #     lenm1, lenm2 = len(m1), len(m2)
+                        m1, m2 = mentions[1].split(), mentions[2].split()
+                        lenm1, lenm2 = len(m1), len(m2)
 
-                #     startid1 = int(vCan) - m1.index(qC[0])
-                #     startid2 = int(vCan) - m2.index(qC[0])
-                #     endid1 = startid1 + lenm1
-                #     endid2 = startid2 + lenm2
+                        startid1 = int(vCan) - m1.index(qC[0])
+                        startid2 = int(vCan) - m2.index(qC[0])
+                        endid1 = startid1 + lenm1
+                        endid2 = startid2 + lenm2
 
-                #     if startid1 > 0:
-                #         surfs1 = [scn.getSurf(scn.getTokenById(sent, x)) for x in range(startid1, endid1)]
-                #     else: surfs1 = ""
-                #     if startid2 > 0:
-                #         surfs2 = [scn.getSurf(scn.getTokenById(sent, x)) for x in range(startid2, endid2)]
-                #     else: surfs2 = ""
+                        if startid1 > 0:
+                            surfs1 = [scn.getSurf(scn.getTokenById(sent, x)) for x in range(startid1, endid1)]
+                        else: surfs1 = ""
+                        if startid2 > 0:
+                            surfs2 = [scn.getSurf(scn.getTokenById(sent, x)) for x in range(startid2, endid2)]
+                        else: surfs2 = ""
 
-                #     if " ".join(surfs1) == mentions[1] or " ".join(surfs2) == mentions[1]:
-                #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[1])
-                #         qC = mentions[1].split()
-                #     elif " ".join(surfs1) == mentions[2] or " ".join(surfs2) == mentions[2]:
-                #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[2])
-                #         qC = mentions[2].split()
-                #     else:
-                #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
-                #         qC = mentions[0].split()
+                        if " ".join(surfs1) == mentions[1] or " ".join(surfs2) == mentions[1]:
+                            print >>sys.stderr, "%s = %s" %(qC[0], mentions[1])
+                            qC = mentions[1].split()
+                        elif " ".join(surfs1) == mentions[2] or " ".join(surfs2) == mentions[2]:
+                            print >>sys.stderr, "%s = %s" %(qC[0], mentions[2])
+                            qC = mentions[2].split()
+                        else:
+                            print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
+                            qC = mentions[0].split()
 
-                # else:
-                #     if qC[0] in mentions[1].split():
-                #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[1])
-                #         qC = mentions[1].split()
+                    else:
+                        if qC[0] in mentions[1].split():
+                            print >>sys.stderr, "%s = %s" %(qC[0], mentions[1])
+                            qC = mentions[1].split()
 
-                #     elif qC[0] in mentions[2].split():
-                #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[2])
-                #         qC = mentions[2].split()
-                #     else:
-                #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
-                #         qC = mentions[0].split()
+                        elif qC[0] in mentions[2].split():
+                            print >>sys.stderr, "%s = %s" %(qC[0], mentions[2])
+                            qC = mentions[2].split()
+                        else:
+                            print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
+                            qC = mentions[0].split()
 
-                # # lmqC = [scn.getLemma(scn.getTokenById(sent, x)) for x in range(int(idqC) - len(qC)+1, int(idqC)+1)]
-                # # print >>sys.stderr, "lmqC = %s" %lmqC
-                # labelC = "+".join(qC)
-
-
-                # qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
-                # if "nsubj_pass" == gvAna.rel and "JJ" not in gvAna.POS and "NN" not in gvAna.POS:
-                #     # print >>sys.stderr, scn.getSurf(gvAna.token)
-                #     tktmpqV = scn.getTarget(sent, gvAna.token, "auxpass")
-                #     if tktmpqV == []:
-                #         print >>sys.stderr, "Cannot find auxpass"
-                #         qV = [scn.getSurf(tkNextAna)]
-                #         lmqV = [scn.getLemma(tkNextAna)]
-                #     else:
-                #         qV = [scn.getSurf(tktmpqV), scn.getSurf(tkNextAna)]
-                #         lmqV = [scn.getLemma(tktmpqV), scn.getLemma(tkNextAna)]
-                # else:
-                #     qV = [scn.getSurf(tkNextAna)]
-                #     lmqV = [scn.getLemma(tkNextAna)]
-                # labelV = "+".join(qV)
+                    # lmqC = [scn.getLemma(scn.getTokenById(sent, x)) for x in range(int(idqC) - len(qC)+1, int(idqC)+1)]
+                    # print >>sys.stderr, "lmqC = %s" %lmqC
+                    labelC = "+".join(qC)
 
 
-                # # ret = ff.gn.search(qC+qV)
-
-                # labelcv = "+".join([labelC, labelV])
-                # filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labelcv))
-                # if filename == []:
-                #     ret = 0.0
-                # else:
-                #     ret = int(lSAPI.loadresult(filename[0]))
-
-                # self.statistics["CV"] += [(vCan, " ".join(qC+qV))]
-                # self.statistics["governor"] += [(vCan, "%s:%s" % (" ".join(qV),gvAna.rel))]
-                # self.rankingsRv["googleCV"] += [(vCan, ret)]
-                # self.rankingsRv["ggllogedCV"] += [(vCan, math.log(1+ret))]
-
-                # # Q3, Q4: CVW
-                # tkNeighbor = scn.getNextToken(sent, tkNextAna)
-                # if None != tkNeighbor:
-                #     if scn.getPOS(tkNeighbor) == "DT":
-                #         tkNeighborGovs = scn.getGovernors(sent, tkNeighbor)
-                #         # print >>sys.stderr, tkNeighborGovs
-                #         # print >>sys.stderr, "tkNeighborGovs"
-                #         if tkNeighborGovs != None and len(tkNeighborGovs) == 1:
-                #             qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
-                #             qW = [scn.getSurf(tkNeighbor), scn.getSurf(tkNeighborGovs[0][1])]
-                #             lmqW = [scn.getLemma(tkNeighbor), scn.getLemma(tkNeighborGovs[0][1])]
-                #         else:
-                #             qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
-                #             qW = [scn.getSurf(tkNeighbor)]
-                #             lmqW = [scn.getLemma(tkNeighbor)]
-                #     else:
-                #         # print >>sys.stderr, "POS="
-                #         # print >>sys.stderr, scn.getPOS(tkNeighbor)
-                #         qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
-                #         if "JJ" in gvAna.POS or "NN" in gvAna.POS and "RB" in scn.getPOS(tkNeighbor):
-                #             qW = [scn.getSurf(gvAna.token)]
-                #             lmqW = [scn.getLemma(gvAna.token)]
-                #         else:
-                #             qW = [scn.getSurf(tkNeighbor)]
-                #             lmqW = [scn.getLemma(tkNeighbor)]
-
-                #     labelW = "+".join(qW)
-                #     labelcvw = "+".join([labelC, labelV, labelW])
-                #     labelma = "+".join([labelC, labelW])
-                #     # print >>sys.stderr, "labelcvw = %s" %(labelcvw)
-                #     filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labelcvw))
-                #     # print >>sys.stderr, filename
-                #     if filename == []:
-                #         ret = 0.0
-                #     else:
-                #         ret = int(lSAPI.loadresult(filename[0]))
-
-                #     # if len(qC+qV+qW) > 4:
-                #     #     ret = 0.0
-                #     # else:
-                #     #     ret = ff.gn.search(qC+qV+qW)
-                #     self.statistics["CVW"] += [(vCan, " ".join(qC+qV+qW))]
-                #     self.statistics["argument"] += [(vCan, " ".join(qW))]
-                #     self.rankingsRv["googleCVW"] += [(vCan, ret)]
-                #     self.rankingsRv["ggllogedCVW"] += [(vCan, math.log(1+ret))]
-
-                #     filename = glob.glob("/home/jun-s/work/wsc/data/google2/*_%s.json" %(labelma))
-                #     if filename == []:
-                #         ret = 0.0
-                #     else:
-                #         ret = int(lSAPI.loadresult(filename[0]))
-
-                #     self.statistics["MA"] += [(vCan, " ".join(qC+qW))]
-                #     self.rankingsRv["googleMA"] += [(vCan, ret)]
-                #     self.rankingsRv["ggllogedMA"] += [(vCan, math.log(1+ret))]
+                    qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
+                    if "nsubj_pass" == gvAna.rel and "JJ" not in gvAna.POS and "NN" not in gvAna.POS:
+                        # print >>sys.stderr, scn.getSurf(gvAna.token)
+                        tktmpqV = scn.getTarget(sent, gvAna.token, "auxpass")
+                        if tktmpqV == []:
+                            print >>sys.stderr, "Cannot find auxpass"
+                            qV = [scn.getSurf(tkNextAna)]
+                            lmqV = [scn.getLemma(tkNextAna)]
+                        else:
+                            qV = [scn.getSurf(tktmpqV), scn.getSurf(tkNextAna)]
+                            lmqV = [scn.getLemma(tktmpqV), scn.getLemma(tkNextAna)]
+                    else:
+                        qV = [scn.getSurf(tkNextAna)]
+                        lmqV = [scn.getLemma(tkNextAna)]
+                    labelV = "+".join(qV)
 
 
-                # if "JJ" in gvAna.POS:
-                #     # Q5, Q6: JC
-                #     qCV = [scn.getSurf(gvAna.token), scn.getSurf(can)]
-                #     qJ = [scn.getSurf(gvAna.token)]
+                    # ret = ff.gn.search(qC+qV)
 
-                #     labelJ = "+".join(qJ)
-                #     labeljc = "+".join([labelJ, labelC])
-                #     print >>sys.stderr, "labeljc = %s" %(labeljc)
-                #     filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labeljc))
-                #     print >>sys.stderr, filename
-                #     if filename == []:
-                #         ret = 0.0
-                #     else:
-                #         ret = int(lSAPI.loadresult(filename[0]))
+                    labelcv = "+".join([labelC, labelV])
+                    filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labelcv))
+                    if filename == []:
+                        ret = 0.0
+                    else:
+                        ret = int(lSAPI.loadresult(filename[0]))
 
-                #     self.statistics["JC"] += [(vCan, " ".join(qCV))]
-                #     self.statistics["adjective"] += [(vCan, " ".join(qJ))]
-                #     self.rankingsRv["googleJC"] += [(vCan, ret)]
-                #     self.rankingsRv["ggllogedJC"] += [(vCan, math.log(1+ret))]
+                    self.statistics["CV"] += [(vCan, " ".join(qC+qV))]
+                    self.statistics["governor"] += [(vCan, "%s:%s" % (" ".join(qV),gvAna.rel))]
+                    self.rankingsRv["googleCV"] += [(vCan, ret)]
+                    self.rankingsRv["ggllogedCV"] += [(vCan, math.log(1+ret))]
+
+                    # Q3, Q4: CVW
+                    tkNeighbor = scn.getNextToken(sent, tkNextAna)
+                    if None != tkNeighbor:
+                        if scn.getPOS(tkNeighbor) == "DT":
+                            tkNeighborGovs = scn.getGovernors(sent, tkNeighbor)
+                            # print >>sys.stderr, tkNeighborGovs
+                            # print >>sys.stderr, "tkNeighborGovs"
+                            if tkNeighborGovs != None and len(tkNeighborGovs) == 1:
+                                qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
+                                qW = [scn.getSurf(tkNeighbor), scn.getSurf(tkNeighborGovs[0][1])]
+                                lmqW = [scn.getLemma(tkNeighbor), scn.getLemma(tkNeighborGovs[0][1])]
+                            else:
+                                qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
+                                qW = [scn.getSurf(tkNeighbor)]
+                                lmqW = [scn.getLemma(tkNeighbor)]
+                        else:
+                            # print >>sys.stderr, "POS="
+                            # print >>sys.stderr, scn.getPOS(tkNeighbor)
+                            qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
+                            if "JJ" in gvAna.POS or "NN" in gvAna.POS and "RB" in scn.getPOS(tkNeighbor):
+                                qW = [scn.getSurf(gvAna.token)]
+                                lmqW = [scn.getLemma(gvAna.token)]
+                            else:
+                                qW = [scn.getSurf(tkNeighbor)]
+                                lmqW = [scn.getLemma(tkNeighbor)]
+
+                        labelW = "+".join(qW)
+                        labelcvw = "+".join([labelC, labelV, labelW])
+                        labelma = "+".join([labelC, labelW])
+                        # print >>sys.stderr, "labelcvw = %s" %(labelcvw)
+                        filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labelcvw))
+                        # print >>sys.stderr, filename
+                        if filename == []:
+                            ret = 0.0
+                        else:
+                            ret = int(lSAPI.loadresult(filename[0]))
+
+                        # if len(qC+qV+qW) > 4:
+                        #     ret = 0.0
+                        # else:
+                        #     ret = ff.gn.search(qC+qV+qW)
+                        self.statistics["CVW"] += [(vCan, " ".join(qC+qV+qW))]
+                        self.statistics["argument"] += [(vCan, " ".join(qW))]
+                        self.rankingsRv["googleCVW"] += [(vCan, ret)]
+                        self.rankingsRv["ggllogedCVW"] += [(vCan, math.log(1+ret))]
+
+                        filename = glob.glob("/home/jun-s/work/wsc/data/google2/*_%s.json" %(labelma))
+                        if filename == []:
+                            ret = 0.0
+                        else:
+                            ret = int(lSAPI.loadresult(filename[0]))
+
+                        self.statistics["MA"] += [(vCan, " ".join(qC+qW))]
+                        self.rankingsRv["googleMA"] += [(vCan, ret)]
+                        self.rankingsRv["ggllogedMA"] += [(vCan, math.log(1+ret))]
+
+
+                    if "JJ" in gvAna.POS:
+                        # Q5, Q6: JC
+                        qCV = [scn.getSurf(gvAna.token), scn.getSurf(can)]
+                        qJ = [scn.getSurf(gvAna.token)]
+
+                        labelJ = "+".join(qJ)
+                        labeljc = "+".join([labelJ, labelC])
+                        print >>sys.stderr, "labeljc = %s" %(labeljc)
+                        filename = glob.glob("/home/jun-s/work/wsc/data/google/*_%s.json" %(labeljc))
+                        print >>sys.stderr, filename
+                        if filename == []:
+                            ret = 0.0
+                        else:
+                            ret = int(lSAPI.loadresult(filename[0]))
+
+                        self.statistics["JC"] += [(vCan, " ".join(qCV))]
+                        self.statistics["adjective"] += [(vCan, " ".join(qJ))]
+                        self.rankingsRv["googleJC"] += [(vCan, ret)]
+                        self.rankingsRv["ggllogedJC"] += [(vCan, math.log(1+ret))]
                 # ==============
 
                 svoana = None
