@@ -17,7 +17,7 @@ for i in xrange(10):
         key, prec, recall, F = key.strip(), prec.strip(), recall.strip(), F.strip()
         # print >>sys.stderr, key, prec, recall
         precl, precr = prec.split(" (")[-1].strip("()").split("/")
-        recalll, recallr = recall.split(" ")[-1].strip("()").split("/")
+        recalll, recallr = recall.split(" (")[-1].strip("()").split("/")
         # print col, cor, wrl, wrr
         if key not in results:
             results[key] = [0,0,0,0]

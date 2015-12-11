@@ -552,6 +552,7 @@ def getsowdet(sent, tk):
     return s1, o1
 
 def getsowdet4google(sent, tk):
+    # GET SVO with Determiner
     s1 = ""
     o1 = ""
     for tpdep, tkdep in scn.getDependents(sent, tk):
@@ -559,16 +560,16 @@ def getsowdet4google(sent, tk):
         if "obj" in tpdep or "nsubj_pass" in tpdep:
             o1 = scn.getSurf(tkdep)
             for tpdepdep, tkdepdep in scn.getDependents(sent, tkdep):
-                if tpdepdep in ["det", "nn"]:
-                # if tpdepdep in ["nn"]:
+                # if tpdepdep in ["det", "nn"]:
+                if tpdepdep in ["nn"]:
                     depdeplst.append(scn.getSurf(tkdepdep))
             if depdeplst != []:
                 o1 = "%s %s" %(" ".join(depdeplst), o1)
         elif "subj" in tpdep:
             s1 = scn.getSurf(tkdep)
             for tpdepdep, tkdepdep in scn.getDependents(sent, tkdep):
-                if tpdepdep in ["det", "nn"]:
-                # if tpdepdep in ["nn"]:
+                # if tpdepdep in ["det", "nn"]:
+                if tpdepdep in ["nn"]:
                     depdeplst.append(scn.getSurf(tkdepdep))
             if depdeplst != []:
                 s1 = "%s %s" %(" ".join(depdeplst), s1)
