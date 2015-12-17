@@ -867,8 +867,11 @@ class ranker_t:
 
                 if "PERSON" != scn.getNEtype(can):
                     
-                    # tkNextAna = scn.getNextPredicateToken(sent, ana)
+                    # print >>sys.stderr, "tkNextPredicate = %s"  %scn.getSurf(scn.getNextPredicateToken(sent, ana))
+                    # print >>sys.stderr, gvAna.POS
                     if "JJ" in gvAna.POS or "NN" in gvAna.POS:
+                        tkNextAna = scn.getNextPredicateToken(sent, ana)
+                    elif "VBG" == gvAna.POS:
                         tkNextAna = scn.getNextPredicateToken(sent, ana)
                     else:
                         tkNextAna = gvAna.token
@@ -912,17 +915,18 @@ class ranker_t:
                             print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
                             qC = mentions[0].split()
 
-                    else:
-                        if qC[0] in mentions[1].split():
-                            print >>sys.stderr, "%s = %s" %(qC[0], mentions[1])
-                            qC = mentions[1].split()
+                    # else:
+                    #     # head word -> original mention
+                    #     if qC[0] in mentions[1].split():
+                    #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[1])
+                    #         qC = mentions[1].split()
 
-                        elif qC[0] in mentions[2].split():
-                            print >>sys.stderr, "%s = %s" %(qC[0], mentions[2])
-                            qC = mentions[2].split()
-                        else:
-                            print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
-                            qC = mentions[0].split()
+                    #     elif qC[0] in mentions[2].split():
+                    #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[2])
+                    #         qC = mentions[2].split()
+                    #     else:
+                    #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
+                    #         qC = mentions[0].split()
 
                     # lmqC = [scn.getLemma(scn.getTokenById(sent, x)) for x in range(int(idqC) - len(qC)+1, int(idqC)+1)]
                     # print >>sys.stderr, "lmqC = %s" %lmqC
@@ -930,6 +934,8 @@ class ranker_t:
 
 
                     qCV = [scn.getSurf(can), scn.getSurf(tkNextAna)]
+                    # print >>sys.stderr, "qCV = %s" %qCV
+                    
                     if "nsubj_pass" == gvAna.rel and "JJ" not in gvAna.POS and "NN" not in gvAna.POS:
                         # print >>sys.stderr, scn.getSurf(gvAna.token)
                         tktmpqV = scn.getTarget(sent, gvAna.token, "auxpass")
