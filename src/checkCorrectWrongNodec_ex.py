@@ -9,7 +9,7 @@ rangeEval = None
 
 setting = sys.argv[1]
 if setting.startswith("base"):
-    filehead = "local/test.google-selpref-LEX-HPOL"
+    filehead = "local/test.googleCV-googleJC-selpref-LEX-HPOL"
 else:
     filehead = "local/test."
 

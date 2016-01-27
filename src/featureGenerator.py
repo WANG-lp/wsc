@@ -867,12 +867,10 @@ class ranker_t:
 
                 if "PERSON" != scn.getNEtype(can):
                     
-                    # print >>sys.stderr, "tkNextPredicate = %s"  %scn.getSurf(scn.getNextPredicateToken(sent, ana))
-                    # print >>sys.stderr, gvAna.POS
                     if "JJ" in gvAna.POS or "NN" in gvAna.POS:
                         tkNextAna = scn.getNextPredicateToken(sent, ana)
-                    elif "VBG" == gvAna.POS:
-                        tkNextAna = scn.getNextPredicateToken(sent, ana)
+                    # elif "VBG" == gvAna.POS:
+                    #     tkNextAna = scn.getNextPredicateToken(sent, ana)
                     else:
                         tkNextAna = gvAna.token
 
@@ -915,18 +913,18 @@ class ranker_t:
                             print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
                             qC = mentions[0].split()
 
-                    # else:
-                    #     # head word -> original mention
-                    #     if qC[0] in mentions[1].split():
-                    #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[1])
-                    #         qC = mentions[1].split()
+                    else:
+                        # head word -> original mention
+                        if qC[0] in mentions[1].split():
+                            print >>sys.stderr, "%s = %s" %(qC[0], mentions[1])
+                            qC = mentions[1].split()
 
-                    #     elif qC[0] in mentions[2].split():
-                    #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[2])
-                    #         qC = mentions[2].split()
-                    #     else:
-                    #         print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
-                    #         qC = mentions[0].split()
+                        elif qC[0] in mentions[2].split():
+                            print >>sys.stderr, "%s = %s" %(qC[0], mentions[2])
+                            qC = mentions[2].split()
+                        else:
+                            print >>sys.stderr, "%s = %s" %(qC[0], mentions[0])
+                            qC = mentions[0].split()
 
                     # lmqC = [scn.getLemma(scn.getTokenById(sent, x)) for x in range(int(idqC) - len(qC)+1, int(idqC)+1)]
                     # print >>sys.stderr, "lmqC = %s" %lmqC
@@ -2120,10 +2118,10 @@ class feature_function_t:
                 self.doc,
                 self.res
                 ).split(",")
-                print >>sys.stderr, pflags
+                # print >>sys.stderr, pflags
                 
                 # if pa.noknn == True: return 0
-                phnopara = False
+                phnopara = True
 
                 if pa.ph and ph1:
                     if ph1[0] == 0:
@@ -2159,7 +2157,6 @@ class feature_function_t:
                         if phnopara == True: return 0
                         c2 = _rmphrasalctx(c2, ph2)
                         r2 = _setphrel(r2, ph2)
-
 
                 # freq_evp = ff.ncnaive[0].getFreq("%s-%s:%s" % (p1, ps1[0].lower(), r1), "%s-%s:%s" % (p2, ps2[0].lower(), r2))
                 freq_p1 = ff.ncnaive[0].getFreqPred("%s-%s:%s" % (p1, ps1[0].lower(), r1))
@@ -2477,16 +2474,14 @@ class feature_function_t:
 
                             if predl == p1 or predr == p2:
                                 # assert(predr == p2)
-                                ctxline1 = ctxlinel
-                                ctxline2 = ctxliner
-                                rel1 = rell
-                                rel2 = relr
+                                ctxline1, ctxline2, rel1, rel2 = ctxlinel, ctxliner, rell, relr
                             elif predr == p1 or predl == p2:
                                 # assert(predl == p2)
-                                ctxline1 = ctxliner
-                                ctxline2 = ctxlinel
-                                rel1 = relr
-                                rel2 = rell
+                                ctxline1, ctxline2, rel1, rel2 = ctxliner, ctxlinel, relr, rell
+                            elif predl.startswith(p1) or predr.startswith(p2):
+                                ctxline1, ctxline2, rel1, rel2 = ctxlinel, ctxliner, rell, relr
+                            elif predr.startswith(p1) or predl.startswith(p2):
+                                ctxline1, ctxline2, rel1, rel2 = ctxliner, ctxlinel, relr, rell
 
                             if ph1 != None:
                                 penalty_ph = _calphpenalty(ph1, ctxline1, rel1, penalty_ph, pa)
