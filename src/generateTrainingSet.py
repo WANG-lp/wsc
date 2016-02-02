@@ -127,7 +127,7 @@ def _toWordConstant(w):
 	return "W%s%s" % (w.attrib["id"], scn.getLemma(w))
 	
 def _getBrothers(sent, x):
-	return scn.getToken(sent, x[2]), scn.getToken(sent, x[4]), scn.getToken(sent, x[3].split(",")[0] if x[3].split(",")[0] != x[4] else x[3].split(",")[1])
+	return scn.getToken(sent, x[2], scn.getConn(sent)), scn.getToken(sent, x[4]), scn.getToken(sent, x[3].split(",")[0] if x[3].split(",")[0] != x[4] else x[3].split(",")[1])
 
 def _printContextualInfo(sent, anaphor, antecedent, antecedent_false, options):
 	gvAna, gvAnte, gvFalseAnte = scn.getPrimaryPredicativeGovernor(sent, anaphor, options, featureGenerator.sdreader.createDocFromLXML(sent)), scn.getPrimaryPredicativeGovernor(sent, antecedent, options, featureGenerator.sdreader.createDocFromLXML(sent)), \
@@ -155,8 +155,6 @@ def _printContextualInfo(sent, anaphor, antecedent, antecedent_false, options):
 def _writeFeatures(ff, i, tupleInstance, bypass, options, db=None, pairdb=None):
 	sent = bypass.xmlText.xpath("/root/document/sentences/sentence[@id='%s']" % (1+i))[0]	
 	anaphor, antecedent, antecedent_false =	_getBrothers(sent, tupleInstance)
-        print >>sys.stderr, "tupleInstance = "
-        print >>sys.stderr, tupleInstance
         anaphor_full = tupleInstance[2]
         antecedent_full = tupleInstance[4]
         antecedent_false_full = tupleInstance[3].split(",")[0] if tupleInstance[3].split(",")[0] != tupleInstance[4] else tupleInstance[3].split(",")[1]

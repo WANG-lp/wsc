@@ -166,12 +166,14 @@ def getToken(sent, x, conn = None):
 
 	if 1 < len(r):
 		r.sort(key=lambda x: int(x.attrib["id"]))
-
-	if None != conn:
-		r = filter(lambda x: int(x.attrib["id"]) > int(conn.attrib["id"]), r)
+                
+	if None != conn and 1 < len(r):
+                print >>sys.stderr, "CONN"
+                if len(filter(lambda x: int(x.attrib["id"]) > int(conn.attrib["id"]), r)) != 0:
+                        r = filter(lambda x: int(x.attrib["id"]) > int(conn.attrib["id"]), r)
 		
 	if None != r and 1 < len(r):
-		#print >>sys.stderr, "Ambig!", " ".join([x.xpath("./word/text()")[0] for x in r])
+		print >>sys.stderr, "Ambig!", " ".join([x.xpath("./word/text()")[0] for x in r])
 		pass
 		
 	return r[0] if 0 < len(r) else None
